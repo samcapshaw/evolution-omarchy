@@ -38,6 +38,39 @@ G_DEFINE_TYPE (ECellVbox, e_cell_vbox, E_TYPE_CELL)
 
 #define INDENT_AMOUNT 16
 
+/* Mail status is painted outside the existing text cells.  It has no
+ * cell view or input handler, so the native tree/selection path is unchanged. */
+static gint
+mail_gutter_width (ECellView *view)
+{
+	return g_object_get_data (G_OBJECT (view->ecell), "oma-unread-gutter-col") ? 32 : 0;
+}
+
+static void
+mail_gutter_draw (ECellView *view, cairo_t *cr, gint row, gint x, gint y, gint height)
+{
+	gint unread_col = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (view->ecell), "oma-unread-gutter-col")) - 1;
+	gint flag_col = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (view->ecell), "oma-flag-gutter-col")) - 1;
+	gdouble cy = y + height / 2.0;
+	cairo_save (cr);
+	cairo_set_source_rgb (cr, 122.0 / 255, 162.0 / 255, 247.0 / 255);
+	if (GPOINTER_TO_INT (e_table_model_value_at (view->e_table_model, unread_col, row))) {
+		cairo_arc (cr, x + 8, cy, 3.5, 0, 2 * G_PI);
+		cairo_fill (cr);
+	}
+	if (GPOINTER_TO_INT (e_table_model_value_at (view->e_table_model, flag_col, row))) {
+		cairo_set_line_width (cr, 1.5);
+		cairo_move_to (cr, x + 20, cy + 6);
+		cairo_line_to (cr, x + 20, cy - 6);
+		cairo_line_to (cr, x + 28, cy - 6);
+		cairo_line_to (cr, x + 26, cy - 3);
+		cairo_line_to (cr, x + 28, cy);
+		cairo_line_to (cr, x + 20, cy);
+		cairo_stroke (cr);
+	}
+	cairo_restore (cr);
+}
+
 /*
  * ECell::new_view method
  */
@@ -146,6 +179,11 @@ ecv_draw (ECellView *ecell_view,
 
 	gint subcell_offset = 0;
 	gint i;
+	gint gutter = mail_gutter_width (ecell_view);
+
+	if (gutter && vbox_view->subcell_view_count)
+		mail_gutter_draw (ecell_view, cr, row, x1, y1,
+			e_cell_height (vbox_view->subcell_views[0], vbox_view->model_cols[0], view_col, row));
 
 	for (i = 0; i < vbox_view->subcell_view_count; i++) {
 		/* Now cause our subcells to draw their contents,
@@ -158,7 +196,7 @@ ecv_draw (ECellView *ecell_view,
 		e_cell_draw (
 			vbox_view->subcell_views[i], cr,
 			vbox_view->model_cols[i], view_col, row, flags,
-			x1, y1 + subcell_offset, x2,
+			x1 + gutter, y1 + subcell_offset, x2,
 			y1 + subcell_offset + height);
 
 		subcell_offset += e_cell_height (
@@ -181,6 +219,9 @@ ecv_event (ECellView *ecell_view,
 {
 	ECellVboxView *vbox_view = (ECellVboxView *) ecell_view;
 	gint y = 0;
+	gint gutter = mail_gutter_width (ecell_view);
+	GdkEvent *adjusted = NULL;
+	gint result = 0;
 	gint i;
 	gint subcell_offset = 0;
 
@@ -199,13 +240,30 @@ ecv_event (ECellView *ecell_view,
 		break;
 	}
 
+	if (gutter && (event->type == GDK_BUTTON_PRESS || event->type == GDK_BUTTON_RELEASE ||
+	    event->type == GDK_2BUTTON_PRESS || event->type == GDK_3BUTTON_PRESS || event->type == GDK_MOTION_NOTIFY)) {
+		gdouble x = event->type == GDK_MOTION_NOTIFY ? event->motion.x : event->button.x;
+		if (x < gutter)
+			return FALSE;
+		adjusted = gdk_event_copy (event);
+		if (event->type == GDK_MOTION_NOTIFY)
+			adjusted->motion.x -= gutter;
+		else
+			adjusted->button.x -= gutter;
+		event = adjusted;
+	}
+
 	for (i = 0; i < vbox_view->subcell_view_count; i++) {
 		gint height = e_cell_height (vbox_view->subcell_views[i], vbox_view->model_cols[i], view_col, row);
-		if (y < subcell_offset + height)
-			return e_cell_event (vbox_view->subcell_views[i], event, vbox_view->model_cols[i], view_col, row, flags, actions);
+		if (y < subcell_offset + height) {
+			result = e_cell_event (vbox_view->subcell_views[i], event, vbox_view->model_cols[i], view_col, row, flags, actions);
+			break;
+		}
 		subcell_offset += height;
 	}
-	return 0;
+	if (adjusted)
+		gdk_event_free (adjusted);
+	return result;
 }
 
 /*
@@ -244,7 +302,7 @@ ecv_max_width (ECellView *ecell_view,
 		max_width = MAX (width, max_width);
 	}
 
-	return max_width;
+	return max_width + mail_gutter_width (ecell_view);
 }
 
 /*

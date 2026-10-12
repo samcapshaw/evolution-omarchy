@@ -2241,8 +2241,7 @@ create_composite_cell (GSettings *mail_settings,
 		       gint col)
 {
 	ECell *cell_vbox, *cell_hbox, *cell_date, *cell_from, *top_cell_tree, *bottom_cell_tree, *cell_attach;
-	ECell *cell_preview, *cell_body, *body_cell_tree, *cell_unread, *cell_flag;
-	static const gchar *unread_icons[] = { NULL, "oma-mail-unread" };
+	ECell *cell_preview, *cell_body, *body_cell_tree;
 	gboolean show_email;
 	gboolean show_subject_above_sender;
 
@@ -2253,14 +2252,10 @@ create_composite_cell (GSettings *mail_settings,
 		col = (col == COL_FROM) ? COL_SENDER : COL_RECIPIENTS;
 
 	cell_vbox = e_cell_vbox_new ();
+	g_object_set_data (G_OBJECT (cell_vbox), "oma-unread-gutter-col", GINT_TO_POINTER (COL_UNREAD + 1));
+	g_object_set_data (G_OBJECT (cell_vbox), "oma-flag-gutter-col", GINT_TO_POINTER (COL_FLAGGED + 1));
 
 	cell_hbox = e_cell_hbox_new ();
-	cell_unread = e_cell_toggle_new (unread_icons, G_N_ELEMENTS (unread_icons));
-	cell_flag = e_cell_toggle_new (flagged_icons, G_N_ELEMENTS (flagged_icons));
-	e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_unread, COL_UNREAD, 5);
-	e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_flag, COL_FLAGGED, 5);
-	g_object_unref (cell_unread);
-	g_object_unref (cell_flag);
 
 	/* Exclude the meeting icon. */
 	cell_attach = e_cell_toggle_new (attachment_icons, G_N_ELEMENTS (attachment_icons));
@@ -2297,9 +2292,9 @@ create_composite_cell (GSettings *mail_settings,
 		NULL);
 
 	if (show_subject_above_sender)
-		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_preview, COL_SUBJECT, 59);
+		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_preview, COL_SUBJECT, 69);
 	else
-		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_from, col, 59);
+		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_from, col, 69);
 
 	e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_attach, COL_ATTACHMENT, 5);
 	e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_date, COL_SENT, 26);
