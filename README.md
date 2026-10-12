@@ -21,6 +21,8 @@ An unofficial Evolution 3.60.2 fork with an Apple Mail inspired layout and a Tok
 
 Unread messages have a blue dot and stronger text. The toolbar flag button (Ctrl+Alt+L) toggles follow-up flags; the Flagged mailbox gathers flagged messages across accounts. Replies default to HTML with your response above the quoted original, without a format-change prompt.
 
+The compose window uses a compact toolbar with attachment and formatting controls on the left and Send on the right. Address fields use subtle dividers; formatting toolbars are hidden initially and can be toggled from the header. The toolbar stays available in fullscreen.
+
 ## Build and install
 
 On Omarchy/Arch, install Evolution and its build dependencies first:

@@ -45,3 +45,14 @@ statusbar { background-color:#13141c; color:#565f89; }
 /* Breathing room between search controls, list heading and first row. */
 #omamail-searchbar { padding:8px 12px; margin-bottom:6px; }
 #omamail-message-list { margin-top:8px; }
+
+/* A quiet compose surface, with controls available on demand. */
+#omamail-composer headerbar { padding:8px 14px; border-bottom:1px solid rgba(169,177,214,.12); }
+#omamail-composer headerbar button.suggested-action { background-color:#7aa2f7; color:#13141c; padding:6px 18px; font-weight:600; border-radius:8px; }
+#omamail-composer headerbar button.suggested-action:hover { background-color:#9bb8ff; }
+#omamail-composer-fields { background-color:#1a1b26; }
+#omamail-composer-fields entry, #omamail-composer-fields combobox button { background-image:none; background-color:transparent; border:0; border-bottom:1px solid rgba(169,177,214,.14); border-radius:0; box-shadow:none; padding:5px 8px; min-height:24px; }
+#omamail-composer-fields entry:focus { border-bottom-color:#7aa2f7; }
+#omamail-composer-fields button { background-image:none; background-color:transparent; border:0; box-shadow:none; padding:4px 8px; }
+#omamail-composer-fields label { color:#9aa4c9; }
+#omamail-composer toolbar { padding:4px 14px; }

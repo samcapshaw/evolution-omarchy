@@ -473,7 +473,7 @@ e_composer_actions_init (EMsgComposer *composer)
 		  NULL, NULL, "false", (EUIActionFunc) e_ui_action_set_state },
 
 		{ "toolbar-show-edit",
-		  NULL,
+		  "format-text-bold",
 		  N_("Edit _toolbar"),
 		  NULL,
 		  N_("Edit toolbar"),

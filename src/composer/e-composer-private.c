@@ -349,6 +349,8 @@ e_composer_private_constructed (EMsgComposer *composer)
 
 	container = widget;
 
+	gtk_widget_set_name (GTK_WIDGET (composer), "omamail-composer");
+
 	/* Construct the main menu and headerbar. */
 	ui_item = e_html_editor_get_ui_object (editor, E_HTML_EDITOR_UI_OBJECT_MAIN_MENU);
 	widget = gtk_menu_bar_new_from_model (G_MENU_MODEL (ui_item));
@@ -359,7 +361,9 @@ e_composer_private_constructed (EMsgComposer *composer)
 	if (e_util_get_use_header_bar ()) {
 		ui_item = e_ui_manager_create_item (ui_manager, "main-headerbar");
 		widget = GTK_WIDGET (ui_item);
-		gtk_window_set_titlebar (window, widget);
+		gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (widget), FALSE);
+		gtk_box_pack_start (GTK_BOX (container), widget, FALSE, FALSE, 0);
+		gtk_widget_show (widget);
 
 		e_ui_customizer_register (e_ui_manager_get_customizer (ui_manager), "main-headerbar", NULL);
 	}
@@ -376,7 +380,8 @@ e_composer_private_constructed (EMsgComposer *composer)
 	/* Construct the header table. */
 
 	widget = e_composer_header_table_new (client_cache);
-	gtk_container_set_border_width (GTK_CONTAINER (widget), 6);
+	gtk_widget_set_name (widget, "omamail-composer-fields");
+	gtk_container_set_border_width (GTK_CONTAINER (widget), 14);
 	gtk_box_pack_start (GTK_BOX (container), widget, FALSE, FALSE, 0);
 	priv->header_table = g_object_ref (widget);
 	gtk_widget_show (widget);

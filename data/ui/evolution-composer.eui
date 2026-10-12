@@ -1,13 +1,13 @@
 <eui>
   <headerbar id='main-headerbar' type='gtk'>
     <start>
-      <item action='send' icon_only='false' css_classes='suggested-action'/>
+      <item action='attach' icon_only='true' css_classes='flat'/>
+      <item action='toolbar-show-edit' icon_only='true' css_classes='flat'/>
       <item action='save-draft' icon_only='true' css_classes='flat'/>
     </start>
     <end>
-      <item action='prioritize-message' icon_only='true' css_classes='flat'/>
-      <item action='request-read-receipt' icon_only='true' css_classes='flat'/>
       <item action='EMsgComposer::menu-button'/>
+      <item action='send' icon_only='false' css_classes='suggested-action'/>
     </end>
   </headerbar>
   <menu id='main-menu'>

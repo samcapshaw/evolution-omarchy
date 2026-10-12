@@ -23,6 +23,8 @@ defaults = {
         'show-subject-above-sender': False, 'show-email': False,
         'show-preview-toolbar': False, 'show-to-do-bar': False,
         'show-sender-photo': False, 'headers-collapsed': True,
+        'composer-show-main-toolbar': False, 'composer-show-edit-toolbar': False,
+        'composer-show-cc': False,
         'reply-style-name': 'quoted', 'composer-mode': 'html',
         'composer-reply-start-bottom': False, 'composer-top-signature': True,
         'prompt-on-composer-mode-switch': False, 'prompt-on-unwanted-html': False,
