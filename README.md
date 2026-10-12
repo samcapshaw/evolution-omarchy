@@ -19,6 +19,8 @@ An unofficial Evolution 3.60.2 fork with an Apple Mail inspired layout and a Tok
 - App-specific stylesheet and matching envelope icon, with a dedicated `org.omarchy.Mail` desktop identity so dock pins launch the custom build; desktop-wide themes are untouched.
 - User-local installation alongside the packaged Evolution. The RSS module is omitted because it otherwise installs a provider globally.
 
+Unread messages have a blue dot and stronger text. The toolbar flag button (Ctrl+Alt+L) toggles follow-up flags; the Flagged mailbox gathers flagged messages across accounts. Replies default to HTML with your response above the quoted original, without a format-change prompt.
+
 ## Build and install
 
 On Omarchy/Arch, install Evolution and its build dependencies first:
@@ -52,7 +54,7 @@ On desktops whose PATH prioritizes `/usr/bin`, launching plain `evolution` in a 
 
 ## Validation
 
-The matching source changes were compiled and exercised on an Omarchy desktop with Google Workspace and Microsoft365 mail/calendar backends. Unified mail and calendar views were inspected, calendar checkbox choices matched after reopening, and the custom viewer loaded without missing-library errors. No test email was sent. This is a personal desktop fork, not an upstream-supported release.
+The matching source changes were compiled and exercised on an Omarchy desktop with Google Workspace and Microsoft365 mail/calendar backends. Unified mail and calendar views were inspected, calendar checkbox choices matched after reopening, and the custom viewer loaded without missing-library errors. Flagging was checked in both directions using synthetic local mail. The editor sandbox includes the custom library path so HTML replies can load their quoted content. No test email was sent. This is a personal desktop fork, not an upstream-supported release.
 
 ## Recovery and updates
 

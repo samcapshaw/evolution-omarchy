@@ -349,7 +349,7 @@ static const gchar *attachment_icons[] = {
 
 static const gchar *flagged_icons[] = {
 	NULL,  /* empty icon */
-	"emblem-important"
+	"oma-mail-flag"
 };
 
 static const gchar *followup_icons[] = {
@@ -1976,13 +1976,11 @@ ml_tree_value_at_ex (ETreeModel *etm,
 		}
 
 		if (!colour) {
-			if (camel_message_info_get_flags (msg_info) & CAMEL_MESSAGE_FLAGGED) {
-				colour = "#A7453E";
-			} else if (((followup && *followup) || (due_by && *due_by)) && !(completed && *completed)) {
+			if (((followup && *followup) || (due_by && *due_by)) && !(completed && *completed)) {
 				time_t now = time (NULL);
 
 				if ((followup && *followup) || now >= camel_header_decode_date (due_by, NULL))
-					colour = "#A7453E";
+					colour = "#7aa2f7";
 			}
 		}
 
@@ -2243,7 +2241,8 @@ create_composite_cell (GSettings *mail_settings,
 		       gint col)
 {
 	ECell *cell_vbox, *cell_hbox, *cell_date, *cell_from, *top_cell_tree, *bottom_cell_tree, *cell_attach;
-	ECell *cell_preview, *cell_body, *body_cell_tree;
+	ECell *cell_preview, *cell_body, *body_cell_tree, *cell_unread, *cell_flag;
+	static const gchar *unread_icons[] = { NULL, "oma-mail-unread" };
 	gboolean show_email;
 	gboolean show_subject_above_sender;
 
@@ -2256,11 +2255,18 @@ create_composite_cell (GSettings *mail_settings,
 	cell_vbox = e_cell_vbox_new ();
 
 	cell_hbox = e_cell_hbox_new ();
+	cell_unread = e_cell_toggle_new (unread_icons, G_N_ELEMENTS (unread_icons));
+	cell_flag = e_cell_toggle_new (flagged_icons, G_N_ELEMENTS (flagged_icons));
+	e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_unread, COL_UNREAD, 5);
+	e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_flag, COL_FLAGGED, 5);
+	g_object_unref (cell_unread);
+	g_object_unref (cell_flag);
 
 	/* Exclude the meeting icon. */
 	cell_attach = e_cell_toggle_new (attachment_icons, G_N_ELEMENTS (attachment_icons));
 
 	cell_date = e_cell_date_new (NULL, GTK_JUSTIFY_RIGHT);
+	g_object_set_data (G_OBJECT (cell_date), "oma-unread-column", GINT_TO_POINTER (COL_UNREAD + 1));
 	e_cell_date_set_format_component (E_CELL_DATE (cell_date), "mail");
 	g_object_set (
 		cell_date,
@@ -2270,6 +2276,7 @@ create_composite_cell (GSettings *mail_settings,
 		NULL);
 
 	cell_from = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
+	g_object_set_data (G_OBJECT (cell_from), "oma-unread-column", GINT_TO_POINTER (COL_UNREAD + 1));
 	g_object_set_data (G_OBJECT (cell_from), "oma-emphasize", GINT_TO_POINTER (1));
 	g_object_set (
 		cell_from,
@@ -2279,7 +2286,8 @@ create_composite_cell (GSettings *mail_settings,
 		NULL);
 
 	cell_preview = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
-	g_object_set_data (G_OBJECT (cell_preview), "oma-emphasize", GINT_TO_POINTER (1));
+	g_object_set_data (G_OBJECT (cell_preview), "oma-unread-column", GINT_TO_POINTER (COL_UNREAD + 1));
+	g_object_set_data (G_OBJECT (cell_preview), "oma-emphasize", GINT_TO_POINTER (2));
 	g_object_set (
 		cell_preview,
 		"bold-column", COL_UNREAD,
@@ -2289,12 +2297,12 @@ create_composite_cell (GSettings *mail_settings,
 		NULL);
 
 	if (show_subject_above_sender)
-		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_preview, COL_SUBJECT, 68);
+		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_preview, COL_SUBJECT, 59);
 	else
-		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_from, col, 68);
+		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_from, col, 59);
 
 	e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_attach, COL_ATTACHMENT, 5);
-	e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_date, COL_SENT, 27);
+	e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_date, COL_SENT, 26);
 
 	top_cell_tree = e_cell_tree_new (TRUE, FALSE, cell_hbox);
 
@@ -2309,6 +2317,7 @@ create_composite_cell (GSettings *mail_settings,
 
 	/* Sender/date, subject, then two quiet lines of actual message text. */
 	cell_body = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
+	g_object_set_data (G_OBJECT (cell_body), "oma-unread-column", GINT_TO_POINTER (COL_UNREAD + 1));
 	g_object_set_data (G_OBJECT (cell_body), "oma-preview-lines", GINT_TO_POINTER (2));
 	body_cell_tree = e_cell_tree_new (TRUE, TRUE, cell_body);
 	e_cell_vbox_append (E_CELL_VBOX (cell_vbox), body_cell_tree, COL_BODY_PREVIEW);

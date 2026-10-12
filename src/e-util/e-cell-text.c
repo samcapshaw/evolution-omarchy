@@ -444,9 +444,11 @@ build_attr_list (ECellTextView *text_view,
 	if (bold || g_object_get_data (G_OBJECT (ect), "oma-emphasize")) {
 		if (out_attrs_span) {
 			ensure_attrs_span ();
-			g_string_append (*out_attrs_span, bold ? " weight='bold'" : " weight='semibold'");
+			g_string_append (*out_attrs_span, bold ? " weight='bold'" :
+				(GPOINTER_TO_INT (g_object_get_data (G_OBJECT (ect), "oma-emphasize")) == 2 ? " weight='medium'" : " weight='semibold'"));
 		} else {
-			PangoAttribute *attr = pango_attr_weight_new (bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_SEMIBOLD);
+			PangoAttribute *attr = pango_attr_weight_new (bold ? PANGO_WEIGHT_BOLD :
+				(GPOINTER_TO_INT (g_object_get_data (G_OBJECT (ect), "oma-emphasize")) == 2 ? PANGO_WEIGHT_MEDIUM : PANGO_WEIGHT_SEMIBOLD));
 			attr->start_index = 0;
 			attr->end_index = text_length;
 
@@ -815,6 +817,13 @@ ect_draw (ECellView *ecell_view,
 	selected = flags & E_CELL_SELECTED;
 
 	e_utils_get_theme_color (canvas, "theme_text_color,theme_fg_color", E_UTILS_DEFAULT_THEME_TEXT_COLOR, &fg_rgba);
+	/* Distinguish unread mail without using COL_COLOUR, which also paints
+	 * selected row backgrounds in Evolution. */
+	if (!selected && g_object_get_data (G_OBJECT (ect), "oma-unread-column")) {
+		gint unread_col = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (ect), "oma-unread-column")) - 1;
+		gboolean unread = GPOINTER_TO_INT (e_table_model_value_at (ecell_view->e_table_model, unread_col, row));
+		gdk_rgba_parse (&fg_rgba, unread ? "#e0e7ff" : "#9aa4c9");
+	}
 	gdk_cairo_set_source_rgba (cr, &fg_rgba);
 
 	if (ect->color_column != -1) {

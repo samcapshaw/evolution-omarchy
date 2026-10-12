@@ -4397,6 +4397,7 @@ webkit_editor_constructor (GType type,
 				webkit_web_context_set_web_extensions_directory (web_context, EVOLUTION_WEB_EXTENSIONS_WEBKIT_EDITOR_DIR);
 				webkit_web_context_set_sandbox_enabled (web_context, TRUE);
 				webkit_web_context_add_path_to_sandbox (web_context, EVOLUTION_WEBKITDATADIR, TRUE);
+				webkit_web_context_add_path_to_sandbox (web_context, EVOLUTION_LIBDIR, TRUE);
 
 				plugins_path = g_build_filename (e_get_user_data_dir (), "webkit-editor-plugins", NULL);
 				if (g_file_test (plugins_path, G_FILE_TEST_IS_DIR))

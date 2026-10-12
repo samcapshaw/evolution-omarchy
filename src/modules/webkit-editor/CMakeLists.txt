@@ -10,6 +10,7 @@ set(sources
 	e-webkit-editor.h
 )
 set(extra_defines
+	-DEVOLUTION_LIBDIR=\"${LIB_INSTALL_DIR}\"
 	-DEVOLUTION_WEB_EXTENSIONS_WEBKIT_EDITOR_DIR=\"${webextensionswebkiteditordir}\"
 	-DEVOLUTION_WEBKITDATADIR=\"${webkitdatadir}\"
 )

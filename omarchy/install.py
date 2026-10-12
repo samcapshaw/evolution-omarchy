@@ -54,6 +54,9 @@ actions = home / '.local/share/icons/hicolor/scalable/actions'
 actions.mkdir(parents=True, exist_ok=True)
 for name in ['sidebar-show.svg', 'sidebar-show-symbolic.svg']:
     shutil.copy2(repo / 'omarchy/sidebar-show.svg', actions / name)
+for name in ['oma-mail-unread', 'oma-mail-flag']:
+    for suffix in ['', '-symbolic']:
+        shutil.copy2(repo / ('omarchy/' + name + '.svg'), actions / (name + suffix + '.svg'))
 config = home / '.config/evolution'
 config.mkdir(parents=True, exist_ok=True)
 shutil.copy2(repo / 'omarchy/omamail.css', config / 'omamail.css')
@@ -80,6 +83,16 @@ for title in ['All Inboxes', 'All Sent']:
     ET.SubElement(rule, 'title').text = title
     ET.SubElement(ET.SubElement(rule, 'partset'), 'part', name='all')
     ET.SubElement(rule, 'sources', {'with': 'specific', 'autoupdate': 'true'})
+    changed = True
+if not any(rule.findtext('title') == 'Flagged' for rule in ruleset):
+    rule = ET.SubElement(ruleset, 'rule', grouping='all', source='incoming', enabled='true')
+    ET.SubElement(rule, 'title').text = 'Flagged'
+    parts = ET.SubElement(rule, 'partset')
+    for match, flag in [('is', 'Flagged'), ('is not', 'Deleted')]:
+        part = ET.SubElement(parts, 'part', name='status')
+        ET.SubElement(part, 'value', name='match-type', type='option', value=match)
+        ET.SubElement(part, 'value', name='flag', type='option', value=flag)
+    ET.SubElement(rule, 'sources', {'with': 'local_remote_active', 'autoupdate': 'true'})
     changed = True
 if changed:
     tree.write(rules, encoding='utf-8', xml_declaration=True)

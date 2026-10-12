@@ -23,6 +23,9 @@ defaults = {
         'show-subject-above-sender': False, 'show-email': False,
         'show-preview-toolbar': False, 'show-to-do-bar': False,
         'show-sender-photo': False, 'headers-collapsed': True,
+        'reply-style-name': 'quoted', 'composer-mode': 'html',
+        'composer-reply-start-bottom': False, 'composer-top-signature': True,
+        'prompt-on-composer-mode-switch': False, 'prompt-on-unwanted-html': False,
     },
     'org.gnome.evolution.calendar': {
         'show-tag-vpane': False, 'compress-weekend': False,

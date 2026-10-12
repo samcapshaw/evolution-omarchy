@@ -1209,6 +1209,19 @@ action_mail_load_images_cb (EUIAction *action,
 }
 
 static void
+action_oma_mail_flag_toggle_cb (EUIAction *action,
+                                GVariant *parameter,
+                                gpointer user_data)
+{
+	EMailReader *reader = user_data;
+	guint32 state = e_mail_reader_check_state (reader);
+	gboolean clear = (state & E_MAIL_READER_SELECTION_HAS_IMPORTANT) &&
+		!(state & E_MAIL_READER_SELECTION_HAS_UNIMPORTANT);
+	e_mail_reader_mark_selected (reader, CAMEL_MESSAGE_FLAGGED,
+		clear ? 0 : CAMEL_MESSAGE_FLAGGED);
+}
+
+static void
 action_mail_mark_important_cb (EUIAction *action,
 			       GVariant *parameter,
 			       gpointer user_data)
@@ -3348,6 +3361,10 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		  NULL,
 		  N_("Mark new mails in this thread as read automatically"),
 		  action_mail_mark_ignore_thread_whole_cb, NULL, NULL, NULL },
+
+		{ "oma-mail-flag-toggle", "oma-mail-flag", N_("Flag"),
+		  "<Control><Alt>l", N_("Flag or unflag selected messages for attention"),
+		  action_oma_mail_flag_toggle_cb, NULL, NULL, NULL },
 
 		{ "mail-mark-important",
 		  "mail-mark-important",
@@ -5593,6 +5610,9 @@ mail_reader_update_actions (EMailReader *reader,
 	action = e_mail_reader_get_action (reader, "mail-mark-ignore-thread-whole");
 	e_ui_action_set_sensitive (action, sensitive);
 	e_ui_action_set_visible (action, sensitive);
+
+	action = e_mail_reader_get_action (reader, "oma-mail-flag-toggle");
+	e_ui_action_set_sensitive (action, any_messages_selected);
 
 	sensitive = selection_has_unimportant_messages;
 	action = e_mail_reader_get_action (reader, "mail-mark-important");

@@ -5,6 +5,7 @@
       <item action='mail-jump-top' icon_only='false' label_priority='0'/>
     </start>
     <end>
+      <item action='oma-mail-flag-toggle'/>
       <item action='mail-archive'/>
       <item action='mail-delete'/>
       <item action='mail-reply-sender'/>
