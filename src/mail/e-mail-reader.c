@@ -684,6 +684,11 @@ action_mail_delete_cb (EUIAction *action,
 
 	if (e_mail_reader_mark_selected (reader, mask, set) != 0 &&
 	    !e_mail_reader_close_on_delete_or_junk (reader)) {
+		/* With deleted messages hidden, list regeneration selects the nearest
+		 * surviving row. Advancing here as well scrolls before removal and
+		 * can race the rebuild, making Delete look like navigation. */
+		if (e_mail_reader_get_hide_deleted (reader))
+			return;
 		if (e_mail_reader_get_delete_selects_previous (reader))
 			e_mail_reader_select_previous_message (reader, FALSE);
 		else

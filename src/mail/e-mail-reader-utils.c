@@ -1051,7 +1051,7 @@ e_mail_reader_mark_selected (EMailReader *reader,
 		/* This function is called on user interaction, thus make sure the message list
 		   will scroll to the selected message, which can eventually change due to
 		   view filters on the folder. */
-		if (uids->len > 0) {
+		if (uids->len > 0 && !(mask & set & CAMEL_MESSAGE_DELETED)) {
 			GtkWidget *message_list = e_mail_reader_get_message_list (reader);
 
 			if (message_list)

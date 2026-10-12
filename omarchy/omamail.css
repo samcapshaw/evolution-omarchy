@@ -41,3 +41,7 @@ statusbar { background-color:#13141c; color:#565f89; }
 @define-color oma_calendar_today #7aa2f7;
 
 @define-color oma_mail_separator #414868;
+
+/* Breathing room between search controls, list heading and first row. */
+#omamail-searchbar { padding:8px 12px; margin-bottom:6px; }
+#omamail-message-list { margin-top:8px; }

@@ -900,6 +900,7 @@ e_shell_searchbar_init (EShellSearchbar *searchbar)
 	GtkWidget *widget;
 
 	searchbar->priv = e_shell_searchbar_get_instance_private (searchbar);
+	gtk_widget_set_name (GTK_WIDGET (searchbar), "omamail-searchbar");
 
 	gtk_box_set_spacing (GTK_BOX (searchbar), 6);
 	gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (searchbar)),
