@@ -9,7 +9,8 @@ An unofficial Evolution 3.60.2 fork with an Apple Mail inspired layout and a Tok
 - Side-by-side reading pane with padded message rows, fine separators, emphasized sender/subject, and up to two lines of body preview when supplied by the mail backend.
 - Compact subject/sender/date reader header and plain compose/reply/forward/archive/delete controls that remain visible in fullscreen.
 - Search/filter controls stay hidden until Search or Ctrl+F; restored active searches remain visible, with extra room around the controls and list.
-- Delete holds the viewport through asynchronous folder updates and delayed cursor scrolling. Clicking, scrolling, or navigating in the list resumes normal movement.
+- Delete and Backspace remove the selected message. Backspace no longer runs Evolution's smart backward navigation.
+- Deletion holds the viewport through asynchronous folder updates and delayed cursor scrolling. Clicking, scrolling, or navigating in the list resumes normal movement.
 - Sidebar button or Ctrl+Shift+B folds folders into a Mail/Contacts/Calendar icon rail.
 - All Sent combines discovered sent folders alongside All Inboxes.
 - **Top** header button and **Alt+Home** scroll straight to the top without changing the selected message. Default wide views sort newest first.

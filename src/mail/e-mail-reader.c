@@ -3795,6 +3795,7 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 	action = e_mail_reader_get_action (self, "mail-delete");
 	e_ui_action_add_secondary_accel (action, "Delete");
 	e_ui_action_add_secondary_accel (action, "KP_Delete");
+	e_ui_action_add_secondary_accel (action, "BackSpace");
 
 	action = e_mail_reader_get_action (self, "mail-message-open");
 	e_ui_action_add_secondary_accel (action, "Return");

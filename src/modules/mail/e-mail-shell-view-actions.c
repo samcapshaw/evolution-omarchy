@@ -1812,7 +1812,7 @@ e_mail_shell_view_actions_init (EMailShellView *mail_shell_view)
 		{ "mail-smart-backward",
 		  "go-up", /* In case a user adds it to the UI */
 		  "Mail smart backward",
-		  "BackSpace",
+		  NULL,
 		  NULL,
 		  action_mail_smart_backward_cb, NULL, NULL, NULL },
 

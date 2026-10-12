@@ -626,7 +626,7 @@ mail_browser_constructed (GObject *object)
 		{ "mail-smart-backward",
 		  "go-up",
 		  "mail smart backward",
-		  "BackSpace",
+		  NULL,
 		  NULL,
 		  action_mail_smart_backward_cb, NULL, NULL, NULL },
 
