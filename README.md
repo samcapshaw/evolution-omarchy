@@ -25,6 +25,8 @@ The compose window uses a compact toolbar with attachment and formatting control
 
 The top toolbar includes an Unread toggle: click once to show unread mail in the current mailbox, and again to restore all messages. It stays synchronized with Evolution’s existing filter controls.
 
+Message dividers begin at the text column, the redundant column heading is hidden, and today’s messages show only their local time. Older messages retain the normal date format.
+
 ## Build and install
 
 On Omarchy/Arch, install Evolution and its build dependencies first:

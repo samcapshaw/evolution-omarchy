@@ -143,6 +143,21 @@ e_cell_date_value_to_text (ECellDate *ecd,
 	else
 		fmt_part = "table";
 
+	/* Keep today's mail timestamps compact enough for the message list. */
+	if (!date_only && g_strcmp0 (fmt_component, "mail") == 0) {
+		GDateTime *stamp = g_date_time_new_from_unix_local (value);
+		GDateTime *now = g_date_time_new_now_local ();
+		gboolean today = stamp &&
+			g_date_time_get_year (stamp) == g_date_time_get_year (now) &&
+			g_date_time_get_day_of_year (stamp) == g_date_time_get_day_of_year (now);
+		gchar *text = today ? g_date_time_format (stamp, "%-I:%M %p") : NULL;
+		if (stamp)
+			g_date_time_unref (stamp);
+		g_date_time_unref (now);
+		if (text)
+			return text;
+	}
+
 	return e_datetime_format_format (fmt_component, fmt_part,
 		date_only ? DTFormatKindDate : DTFormatKindDateTime, (time_t) value);
 }
