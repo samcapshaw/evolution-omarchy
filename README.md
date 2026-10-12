@@ -19,7 +19,7 @@ An unofficial Evolution 3.60.2 fork with an Apple Mail inspired layout and a Tok
 - App-specific stylesheet and matching envelope icon, with a dedicated `org.omarchy.Mail` desktop identity so dock pins launch the custom build; desktop-wide themes are untouched.
 - User-local installation alongside the packaged Evolution. The RSS module is omitted because it otherwise installs a provider globally.
 
-Unread messages have a blue dot and stronger text. The toolbar flag button (Ctrl+Alt+L) toggles follow-up flags; the Flagged mailbox gathers flagged messages across accounts. Replies default to HTML with your response above the quoted original, without a format-change prompt.
+Unread messages have a blue dot and stronger text. Read/flag markers sit in a separate gutter, with sender, subject, and preview text sharing a clean left edge. The toolbar flag button (Ctrl+Alt+L) toggles follow-up flags; the Flagged mailbox gathers flagged messages across accounts. Replies default to HTML with your response above the quoted original, without a format-change prompt.
 
 The compose window uses a compact toolbar with attachment and formatting controls on the left and Send on the right. Address fields use subtle dividers; formatting toolbars are hidden initially and can be toggled from the header. The toolbar stays available in fullscreen.
 
