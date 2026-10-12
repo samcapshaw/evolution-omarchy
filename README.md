@@ -6,8 +6,11 @@ An unofficial Evolution 3.60.2 fork with an Apple Mail inspired layout and a Tok
 
 - Unified **All Inboxes** under the first **Mailboxes** section. Account inboxes are discovered automatically; their subfolders are excluded.
 - Local folders move to **Local Storage** at the bottom, with a clearly named **Local Inbox**.
-- Flat message rows, thin separators, sender/date, subject and up to two body preview lines. Empty previews do not reserve extra space. Previews depend on the mail backend supplying message text.
-- Side-by-side reading pane and a compact compose/reply/forward/archive/delete header.
+- Side-by-side reading pane with padded message rows, fine separators, emphasized sender/subject, and up to two lines of body preview when supplied by the mail backend.
+- Compact subject/sender/date reader header and plain compose/reply/forward/archive/delete controls.
+- Search/filter controls stay hidden until Search or Ctrl+F; restored active searches remain visible.
+- Sidebar button or Ctrl+Shift+B folds folders into a Mail/Contacts/Calendar icon rail.
+- All Sent combines discovered sent folders alongside All Inboxes.
 - **Top** header button and **Alt+Home** scroll straight to the top without changing the selected message. Default wide views sort newest first.
 - Month is the calendar default, with Week/Month header controls, clearer grid lines, a soft blue today highlight and full weekend columns.
 - Calendar checkbox selections use Evolution's native persistent settings. The setup script never changes selected calendars.
@@ -33,7 +36,7 @@ cd evolution-omarchy
 
 Close Evolution before installing. The default prefix is `~/.local/opt/evolution-omarchy`. Set `EVOLUTION_OMARCHY_PREFIX` consistently for both commands to use another absolute path.
 
-Installation copies only the staged user-local prefix, never staged `/usr` files. It installs a wrapper at `~/.local/bin/evolution`, a desktop launcher override, stylesheet, icon and **All Inboxes** rule. Compatible packaged EWS/Microsoft365 configuration modules are linked when present. Account setup uses Evolution's normal Google/Microsoft sign-in; no account profiles or credentials are included here.
+Installation copies only the staged user-local prefix, never staged `/usr` files. It installs a wrapper at `~/.local/bin/evolution`, a desktop launcher override, stylesheet, icon and **All Inboxes** / **All Sent** rules. Compatible packaged EWS/Microsoft365 configuration modules are linked when present. Account setup uses Evolution's normal Google/Microsoft sign-in; no account profiles or credentials are included here.
 
 To apply the initial layout defaults once:
 

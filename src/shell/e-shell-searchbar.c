@@ -44,6 +44,7 @@
 #define STATE_KEY_SEARCH_TEXT		"SearchText"
 
 struct _EShellSearchbarPrivate {
+	gboolean initial_compact_applied;
 
 	gpointer shell_view;  /* weak pointer */
 
@@ -725,6 +726,24 @@ shell_searchbar_constructed (GObject *object)
 	G_OBJECT_CLASS (e_shell_searchbar_parent_class)->constructed (object);
 }
 
+static gboolean
+shell_searchbar_initial_compact_cb (gpointer user_data)
+{
+	EShellSearchbar *bar = E_SHELL_SEARCHBAR (user_data);
+	EShellView *view = e_shell_searchbar_get_shell_view (bar);
+	GKeyFile *state = e_shell_view_get_state_key_file (view);
+	const gchar *group = e_shell_searchbar_get_state_group (bar);
+	const gchar *text = e_shell_searchbar_get_search_text (bar);
+	gchar *filter = group ? g_key_file_get_string (state, group, "SearchFilter", NULL) : NULL;
+	/* Keep a restored active search/filter visible instead of concealing it. */
+	if ((!text || !*text) && (!filter || !*filter ||
+	    g_strcmp0 (filter, "mail-filter-all-messages") == 0 ||
+	    g_strcmp0 (filter, "calendar-filter-any-category") == 0))
+		gtk_widget_hide (GTK_WIDGET (bar));
+	g_free (filter);
+	return G_SOURCE_REMOVE;
+}
+
 static void
 shell_searchbar_map (GtkWidget *widget)
 {
@@ -735,6 +754,12 @@ shell_searchbar_map (GtkWidget *widget)
 	 * subclass initialization.  We wait until map() so we
 	 * have usable style colors for the entry box. */
 	e_shell_searchbar_load_state (E_SHELL_SEARCHBAR (widget));
+	if (!E_SHELL_SEARCHBAR (widget)->priv->initial_compact_applied) {
+		E_SHELL_SEARCHBAR (widget)->priv->initial_compact_applied = TRUE;
+		gtk_widget_set_no_show_all (widget, TRUE);
+		g_idle_add_full (G_PRIORITY_DEFAULT_IDLE, shell_searchbar_initial_compact_cb,
+			g_object_ref (widget), g_object_unref);
+	}
 }
 
 static void
@@ -900,7 +925,7 @@ e_shell_searchbar_init (EShellSearchbar *searchbar)
 	 * "Important Messages", or "Active Appointments". */
 	widget = gtk_label_new_with_mnemonic (_("Sho_w:"));
 	gtk_box_pack_start (box, widget, FALSE, FALSE, 0);
-	gtk_widget_show (widget);
+	gtk_widget_set_no_show_all (widget, TRUE);
 
 	label = GTK_LABEL (widget);
 
@@ -916,7 +941,7 @@ e_shell_searchbar_init (EShellSearchbar *searchbar)
 	box = GTK_BOX (searchbar);
 
 	widget = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 3);
-	gtk_widget_set_margin_start (widget, 12);
+	gtk_widget_set_margin_start (widget, 0);
 	gtk_box_pack_start (box, widget, TRUE, TRUE, 0);
 	gtk_widget_show (widget);
 
@@ -926,7 +951,7 @@ e_shell_searchbar_init (EShellSearchbar *searchbar)
 	 * example: Search: [_______________] in [ Current Folder ] */
 	widget = gtk_label_new_with_mnemonic (_("Sear_ch:"));
 	gtk_box_pack_start (box, widget, FALSE, FALSE, 0);
-	gtk_widget_show (widget);
+	gtk_widget_set_no_show_all (widget, TRUE);
 
 	label = GTK_LABEL (widget);
 
@@ -994,7 +1019,7 @@ e_shell_searchbar_init (EShellSearchbar *searchbar)
 	 * example: Search: [_______________] in [ Current Folder ] */
 	widget = gtk_label_new_with_mnemonic (_("i_n"));
 	gtk_box_pack_start (box, widget, FALSE, FALSE, 0);
-	gtk_widget_show (widget);
+	gtk_widget_set_no_show_all (widget, TRUE);
 
 	label = GTK_LABEL (widget);
 

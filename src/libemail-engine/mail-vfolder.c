@@ -1195,12 +1195,13 @@ folder_available_cb (MailFolderCache *cache,
                      const gchar *folder_name)
 {
 	CamelFolderInfoFlags flags = 0;
-	/* Maintain a specific inbox-only source list as accounts discover folders.
-	 * Do not include subfolders, archives, or sent mail in All Inboxes. */
+	/* Maintain separate unified inbox and sent source lists as folders appear. */
 	if (context && !CAMEL_IS_VEE_STORE (store) &&
 	    mail_folder_cache_get_folder_info_flags (cache, store, folder_name, &flags) &&
-	    (flags & CAMEL_FOLDER_TYPE_MASK) == CAMEL_FOLDER_TYPE_INBOX) {
-		EFilterRule *rule = e_rule_context_find_rule (E_RULE_CONTEXT (context), "All Inboxes", NULL);
+	    ((flags & CAMEL_FOLDER_TYPE_MASK) == CAMEL_FOLDER_TYPE_INBOX ||
+	     (flags & CAMEL_FOLDER_TYPE_MASK) == CAMEL_FOLDER_TYPE_SENT)) {
+		const gchar *title = (flags & CAMEL_FOLDER_TYPE_MASK) == CAMEL_FOLDER_TYPE_SENT ? "All Sent" : "All Inboxes";
+		EFilterRule *rule = e_rule_context_find_rule (E_RULE_CONTEXT (context), title, NULL);
 		if (rule && EM_IS_VFOLDER_RULE (rule)) {
 			gchar *uri = e_mail_folder_uri_build (store, folder_name);
 			if (!em_vfolder_rule_find_source (EM_VFOLDER_RULE (rule), uri)) {

@@ -2270,6 +2270,7 @@ create_composite_cell (GSettings *mail_settings,
 		NULL);
 
 	cell_from = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
+	g_object_set_data (G_OBJECT (cell_from), "oma-emphasize", GINT_TO_POINTER (1));
 	g_object_set (
 		cell_from,
 		"bold_column", COL_UNREAD,
@@ -2278,6 +2279,7 @@ create_composite_cell (GSettings *mail_settings,
 		NULL);
 
 	cell_preview = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
+	g_object_set_data (G_OBJECT (cell_preview), "oma-emphasize", GINT_TO_POINTER (1));
 	g_object_set (
 		cell_preview,
 		"bold-column", COL_UNREAD,

@@ -1925,6 +1925,9 @@ eti_draw (GnomeCanvasItem *item,
 
 	e_utils_get_theme_color (canvas, "theme_bg_color", E_UTILS_DEFAULT_THEME_BG_COLOR, &line_color);
 	e_utils_shade_color (&line_color, &line_color, E_UTILS_DARKNESS_MULT);
+	/* Keep message separators visible on the dark mail canvas only. */
+	if (g_strcmp0 (gtk_widget_get_name (gtk_widget_get_parent (canvas)), "omamail-message-list") == 0)
+		e_utils_get_theme_color (canvas, "oma_mail_separator", "#343a50", &line_color);
 
 	/*
 	 * Find out our real position after grouping

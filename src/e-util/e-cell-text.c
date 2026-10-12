@@ -441,12 +441,12 @@ build_attr_list (ECellTextView *text_view,
 
 	#define ensure_attrs_span() { if (out_attrs_span && !*out_attrs_span) *out_attrs_span = g_string_new ("<span"); }
 
-	if (bold) {
+	if (bold || g_object_get_data (G_OBJECT (ect), "oma-emphasize")) {
 		if (out_attrs_span) {
 			ensure_attrs_span ();
-			g_string_append (*out_attrs_span, " weight='bold'");
+			g_string_append (*out_attrs_span, bold ? " weight='bold'" : " weight='semibold'");
 		} else {
-			PangoAttribute *attr = pango_attr_weight_new (PANGO_WEIGHT_BOLD);
+			PangoAttribute *attr = pango_attr_weight_new (bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_SEMIBOLD);
 			attr->start_index = 0;
 			attr->end_index = text_length;
 

@@ -805,6 +805,57 @@ search_options_selection_cancel_cb (GtkMenuShell *menu,
 	g_signal_handlers_disconnect_by_func (menu, search_options_selection_cancel_cb, self);
 }
 
+/* Keep the application switcher usable when the folder sidebar is folded. */
+static void
+shell_view_compact_sidebar_cb (EShellView *self,
+                               GParamSpec *pspec,
+                               gpointer user_data)
+{
+	GtkWidget *switcher = self->priv->switcher;
+	GtkWidget *parent;
+	gboolean expanded = e_shell_view_get_sidebar_visible (self);
+	gint width;
+	if (!switcher)
+		return;
+	parent = gtk_widget_get_parent (switcher);
+	if (!GTK_IS_PANED (parent))
+		return;
+	width = gtk_paned_get_position (GTK_PANED (parent));
+	if (!expanded && width > 80)
+		g_object_set_data (G_OBJECT (self), "oma-expanded-width", GINT_TO_POINTER (width));
+	e_shell_switcher_set_style (E_SHELL_SWITCHER (switcher),
+		expanded ? GTK_TOOLBAR_BOTH_HORIZ : GTK_TOOLBAR_ICONS);
+	gtk_widget_show (switcher);
+	gtk_paned_set_position (GTK_PANED (parent), expanded ?
+		MAX (230, GPOINTER_TO_INT (g_object_get_data (G_OBJECT (self), "oma-expanded-width"))) : 48);
+}
+
+static void
+action_oma_sidebar_toggle_cb (EUIAction *action,
+                             GVariant *parameter,
+                             gpointer user_data)
+{
+	EShellView *self = user_data;
+	e_shell_view_set_sidebar_visible (self, !e_shell_view_get_sidebar_visible (self));
+}
+
+static void
+action_oma_search_toggle_cb (EUIAction *action,
+                            GVariant *parameter,
+                            gpointer user_data)
+{
+	EShellView *self = user_data;
+	GtkWidget *bar = e_shell_view_get_searchbar (self);
+	if (!bar)
+		return;
+	if (gtk_widget_get_visible (bar))
+		gtk_widget_hide (bar);
+	else {
+		gtk_widget_show (bar);
+		e_shell_searchbar_search_entry_grab_focus (E_SHELL_SEARCHBAR (bar));
+	}
+}
+
 static void
 action_search_options_cb (EUIAction *action,
 			  GVariant *parameter,
@@ -815,6 +866,7 @@ action_search_options_cb (EUIAction *action,
 	GtkWidget *popup_menu;
 
 	search_bar = E_SHELL_SEARCHBAR (e_shell_view_get_searchbar (self));
+	gtk_widget_show (GTK_WIDGET (search_bar));
 	if (!e_shell_searchbar_search_entry_has_focus (search_bar)) {
 		e_shell_searchbar_search_entry_grab_focus (search_bar);
 		return;
@@ -1030,6 +1082,17 @@ static void
 shell_view_init_ui_data (EShellView *self)
 {
 	static const EUIActionEntry search_entries[] = {
+
+		{ "oma-sidebar-toggle", "sidebar-show-symbolic", N_("Sidebar"),
+		  "<Control><Shift>b", N_("Expand or fold the sidebar into application icons"),
+		  action_oma_sidebar_toggle_cb, NULL, NULL, NULL },
+
+		{ "oma-search-toggle",
+		  "edit-find",
+		  N_("Search"),
+		  NULL,
+		  N_("Show or hide search and filter controls"),
+		  action_oma_search_toggle_cb, NULL, NULL, NULL },
 
 		{ "search-advanced",
 		  NULL,
@@ -1554,7 +1617,10 @@ shell_view_ui_manager_create_item_cb (EUIManager *manager,
 
 			menu = gtk_menu_new_from_model (G_MENU_MODEL (self->priv->new_menu));
 			button = e_header_bar_button_new (C_("toolbar-button", "New"), fallback_action, manager);
-			e_header_bar_button_take_menu (E_HEADER_BAR_BUTTON (button), menu);
+			if (g_strcmp0 (e_shell_view_get_name (self), "mail") == 0)
+				gtk_widget_destroy (menu);
+			else
+				e_header_bar_button_take_menu (E_HEADER_BAR_BUTTON (button), menu);
 			gtk_widget_set_visible (GTK_WIDGET (button), TRUE);
 
 			shell_backend = e_shell_view_get_shell_backend (self);
@@ -2208,7 +2274,7 @@ shell_view_constructed (GObject *object)
 
 	e_binding_bind_property (
 		shell_view, "sidebar-visible",
-		shell_view->priv->switcher, "visible",
+		shell_view->priv->shell_sidebar, "visible",
 		G_BINDING_SYNC_CREATE);
 
 	e_binding_bind_property (
@@ -2256,6 +2322,9 @@ shell_view_constructed (GObject *object)
 	g_signal_connect_object (action, "notify::state",
 		G_CALLBACK (shell_view_switcher_style_cb), shell_view->priv->switcher, 0);
 	shell_view_switcher_style_cb (action, NULL, shell_view->priv->switcher);
+	g_signal_connect (shell_view, "notify::sidebar-visible",
+		G_CALLBACK (shell_view_compact_sidebar_cb), NULL);
+	shell_view_compact_sidebar_cb (shell_view, NULL, NULL);
 
 	e_signal_connect_notify (
 		shell_view, "notify::view-id",

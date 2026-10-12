@@ -1,9 +1,11 @@
 <eui>
   <headerbar id='main-headerbar'>
     <start>
+      <item action='oma-sidebar-toggle'/>
       <item action='EShellView::new-menu' label_priority='999999'/>
     </start>
     <end>
+      <item action='oma-search-toggle' order='999998'/>
       <item action='EShellView::menu-button' order='999999'/>
     </end>
   </headerbar>

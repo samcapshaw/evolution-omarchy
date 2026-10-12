@@ -252,7 +252,7 @@ shell_switcher_get_preferred_width (GtkWidget *widget,
 	*minimum = *natural = 0;
 
 	child = gtk_bin_get_child (GTK_BIN (widget));
-	if (child != NULL)
+	if (child != NULL && gtk_widget_get_visible (child))
 		gtk_widget_get_preferred_width (child, minimum, natural);
 
 	if (!self->priv->toolbar_visible)
@@ -285,7 +285,7 @@ shell_switcher_get_preferred_height (GtkWidget *switcher_widget,
 	*minimum = *natural = 0;
 
 	child = gtk_bin_get_child (GTK_BIN (switcher_widget));
-	if (child != NULL)
+	if (child != NULL && gtk_widget_get_visible (child))
 		gtk_widget_get_preferred_height (child, minimum, natural);
 
 	if (!self->priv->toolbar_visible)

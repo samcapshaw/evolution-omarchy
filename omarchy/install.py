@@ -46,6 +46,10 @@ for alternate in apps.glob('userapp-Evolution-*.desktop'):
 icons = home / '.local/share/icons/hicolor/scalable/apps'
 icons.mkdir(parents=True, exist_ok=True)
 shutil.copy2(repo / 'omarchy/sam-mail.svg', icons / 'sam-mail.svg')
+actions = home / '.local/share/icons/hicolor/scalable/actions'
+actions.mkdir(parents=True, exist_ok=True)
+for name in ['sidebar-show.svg', 'sidebar-show-symbolic.svg']:
+    shutil.copy2(repo / 'omarchy/sidebar-show.svg', actions / name)
 config = home / '.config/evolution'
 config.mkdir(parents=True, exist_ok=True)
 shutil.copy2(repo / 'omarchy/omamail.css', config / 'omamail.css')
@@ -60,15 +64,20 @@ else:
 ruleset = root.find('ruleset')
 if ruleset is None:
     ruleset = ET.SubElement(root, 'ruleset')
-if not any(rule.findtext('title') == 'All Inboxes' for rule in ruleset):
+changed = False
+for title in ['All Inboxes', 'All Sent']:
+    if any(rule.findtext('title') == title for rule in ruleset):
+        continue
     if rules.exists():
         backup = rules.with_suffix('.xml.before-omarchy')
         if not backup.exists():
             shutil.copy2(rules, backup)
     rule = ET.SubElement(ruleset, 'rule', grouping='all', source='incoming', enabled='true')
-    ET.SubElement(rule, 'title').text = 'All Inboxes'
+    ET.SubElement(rule, 'title').text = title
     ET.SubElement(ET.SubElement(rule, 'partset'), 'part', name='all')
     ET.SubElement(rule, 'sources', {'with': 'specific', 'autoupdate': 'true'})
+    changed = True
+if changed:
     tree.write(rules, encoding='utf-8', xml_declaration=True)
 if shutil.which('update-desktop-database'):
     subprocess.run(['update-desktop-database', str(apps)], check=True)

@@ -60,6 +60,8 @@ format_short_headers (EMailFormatter *formatter,
 	gchar *hdr_charset;
 	gchar *evolution_imagesdir;
 	gchar *subject = NULL;
+	gchar *date = NULL;
+	GString *to;
 	struct _camel_header_address *addrs = NULL;
 	const CamelNameValueArray *headers;
 	guint ii, len;
@@ -78,6 +80,7 @@ format_short_headers (EMailFormatter *formatter,
 
 	evolution_imagesdir = g_filename_to_uri (EVOLUTION_IMAGESDIR, NULL, NULL);
 	from = g_string_new ("");
+	to = g_string_new ("");
 
 	g_string_append_printf (
 		buffer,
@@ -105,11 +108,23 @@ format_short_headers (EMailFormatter *formatter,
 				!(flags & E_MAIL_FORMATTER_HEADER_FLAG_NOELIPSIZE));
 
 			if (tmp->len > 0)
-				g_string_printf (
-					from, "%s: %s",
-					_("From"), tmp->str);
+				g_string_assign (from, tmp->str);
 			g_string_free (tmp, TRUE);
 
+		} else if (!g_ascii_strcasecmp (header_name, "To")) {
+			struct _camel_header_address *recipients = camel_header_address_decode (header_value, hdr_charset);
+			if (recipients) {
+				e_mail_formatter_format_address (formatter, to, recipients, header_name, FALSE, TRUE);
+				camel_header_address_list_clear (&recipients);
+			}
+		} else if (!g_ascii_strcasecmp (header_name, "Date")) {
+			time_t timestamp = camel_header_decode_date (header_value, NULL);
+			if (timestamp > 0) {
+				gchar *formatted = e_datetime_format_format ("mail", "header", DTFormatKindDateTime, timestamp);
+				g_free (date);
+				date = g_markup_escape_text (formatted, -1);
+				g_free (formatted);
+			}
 		} else if (!g_ascii_strcasecmp (header_name, "Subject")) {
 			gchar *buf = NULL;
 			subject = camel_header_unfold (header_value);
@@ -128,14 +143,19 @@ format_short_headers (EMailFormatter *formatter,
 		g_string_append (buffer, "<td class=\"header rtl\">");
 	else
 		g_string_append (buffer, "<td class=\"header ltr\">");
-	g_string_append (buffer, "<strong>");
+	g_string_append (buffer, "<div class=\"oma-message-subject\">");
 	if (subject != NULL && *subject != '\0')
 		g_string_append (buffer, subject);
 	else
 		g_string_append (buffer, _("(no subject)"));
-	g_string_append (buffer, "</strong>");
+	g_string_append (buffer, "</div><div class=\"oma-message-meta\">");
 	if (from->len > 0)
-		g_string_append_printf (buffer, " (%s)", from->str);
+		g_string_append_printf (buffer, "<div class=\"oma-message-sender\">%s</div>", from->str);
+	if (date)
+		g_string_append_printf (buffer, "<div class=\"oma-message-date\">%s</div>", date);
+	g_string_append (buffer, "</div>");
+	if (to->len > 0)
+		g_string_append_printf (buffer, "<div class=\"oma-message-to\">%s: %s</div>", _("To"), to->str);
 	g_string_append (buffer, "</td>");
 
 	if (!gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &icon_width, &icon_height)) {
@@ -160,6 +180,8 @@ format_short_headers (EMailFormatter *formatter,
 	g_string_append (buffer, "</tr></table>");
 
 	g_free (subject);
+	g_free (date);
+	g_string_free (to, TRUE);
 	if (addrs)
 		camel_header_address_list_clear (&addrs);
 
