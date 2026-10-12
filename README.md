@@ -1,152 +1,56 @@
-![icon] Evolution
-============
+# Evolution for Omarchy
 
-**Evolution** is the integrated mail, calendar and address book suite from
-the Evolution Team.
+An unofficial Evolution 3.60.2 fork with an Apple Mail inspired layout and a Tokyo Night palette. Upstream: [GNOME Evolution](https://gitlab.gnome.org/GNOME/evolution), mirrored at [GNOME/evolution](https://github.com/GNOME/evolution).
 
-See [the Evolution GNOME Wiki page][gnome-wiki] for more information.
+## Changes
 
-If you are using Evolution, you may wish to subscribe to [the Evolution
-users mailing list][mailing-list]. Visit there to subscribe or view archives
-of the Evolution mailing list.
+- Unified **All Inboxes** under the first **Mailboxes** section. Account inboxes are discovered automatically; their subfolders are excluded.
+- Local folders move to **Local Storage** at the bottom, with a clearly named **Local Inbox**.
+- Flat message rows, thin separators, sender/date, subject and up to two body preview lines. Empty previews do not reserve extra space. Previews depend on the mail backend supplying message text.
+- Side-by-side reading pane and a compact compose/reply/forward/archive/delete header.
+- **Top** header button and **Alt+Home** scroll straight to the top without changing the selected message. Default wide views sort newest first.
+- Month is the calendar default, with Week/Month header controls, clearer grid lines, a soft blue today highlight and full weekend columns.
+- Calendar checkbox selections use Evolution's native persistent settings. The setup script never changes selected calendars.
+- App-specific stylesheet and a matching envelope icon; desktop-wide themes are untouched.
+- User-local installation alongside the packaged Evolution. The RSS module is omitted because it otherwise installs a provider globally.
 
-There is also a [#gnome-evolution] IRC channel on [Libera.Chat].
+## Build and install
 
-Help for Evolution is available in the user manual (select "Help" from
-the menu after running the application), at the
-[GNOME users help site][gnome-help], and in the --help strings (run
-`evolution --help` at the command line).
+On Omarchy/Arch, install Evolution and its build dependencies first:
 
-The rest of this file is dedicated to building Evolution.
+```sh
+omarchy pkg add evolution evolution-ews cmake ninja intltool glib2-devel
+```
 
-[icon]: https://raw.github.com/gnome-design-team/gnome-icons/master/apps/hicolor/48x48/apps/evolution.png "Evolution app icon"
-[gnome-wiki]: https://gitlab.gnome.org/GNOME/evolution/-/wikis/home
-[mailing-list]: https://lists.osuosl.org/mailman/listinfo/evolution-users
-[#gnome-evolution]: ircs://irc.libera.chat:6697/gnome-evolution
-[Libera.Chat]: https://libera.chat/
-[gnome-help]: https://gnome.pages.gitlab.gnome.org/evolution/help/
+Evolution's upstream CMake checks report any additional development dependencies required by your system. The custom app and system Evolution Data Server/EWS modules must have compatible versions; this branch targets 3.60.2.
 
-DEPENDENCIES
-------------
+```sh
+git clone --branch omarchy https://github.com/samcapshaw/evolution-omarchy.git
+cd evolution-omarchy
+./omarchy/build.sh
+./omarchy/install.py
+```
 
-In order to build Evolution you need to have the full set of GNOME 3
-(or greater) development libraries installed.
+Close Evolution before installing. The default prefix is `~/.local/opt/evolution-omarchy`. Set `EVOLUTION_OMARCHY_PREFIX` consistently for both commands to use another absolute path.
 
-GNOME 3 or greater comes with most of the modern distributions, so
-in most cases it should be enough to just install all the devel
-packages from your distribution.
+Installation copies only the staged user-local prefix, never staged `/usr` files. It installs a wrapper at `~/.local/bin/evolution`, a desktop launcher override, stylesheet, icon and **All Inboxes** rule. Compatible packaged EWS/Microsoft365 configuration modules are linked when present. Account setup uses Evolution's normal Google/Microsoft sign-in; no account profiles or credentials are included here.
 
-Please make sure you have the most recent versions of the libraries
-installed, since bugs in the libraries can cause bugs in Evolution.
+To apply the initial layout defaults once:
 
-Additional dependencies, besides the stock GNOME libraries (the
-dependencies should be compiled in the order they are listed here):
+```sh
+./omarchy/preferences.py
+```
 
-* [evolution-data-server of the same version as the Evolution is][eds]
-* [libsoup 3.0 or later][libsoup]
-* [WebKitGTK 2.34.0][webkitgtk]
-* [Mozilla NSPR/NSS libraries][mozilla]
-  These are needed if you want to compile Evolution with SSL and S/MIME
-  support. Many distributions ship these as Mozilla development packages.
+The preferences script backs up existing Evolution settings before applying defaults. Do not run it on every launch: later user choices should remain persistent. Configure individual calendars normally in Evolution.
 
-Other dependencies are claimed during the configure phase. If these are
-optional, also a parameter for the CMake configure to not use that dependency
-is shown.
+On desktops whose PATH prioritizes `/usr/bin`, launching plain `evolution` in a terminal still opens the packaged app. Use the desktop launcher or `~/.local/bin/evolution` explicitly.
 
-[eds]: https://download.gnome.org/sources/evolution-data-server/
-[libsoup]: https://download.gnome.org/sources/libsoup/
-[webkitgtk]: https://webkitgtk.org/releases/
-[mozilla]: https://www.mozilla.org/
+## Validation
 
-CONFIGURING EVOLUTION
----------------------
+The matching source changes were compiled and exercised on an Omarchy desktop with Google Workspace and Microsoft365 mail/calendar backends. Unified mail and calendar views were inspected, calendar checkbox choices matched after reopening, and the custom viewer loaded without missing-library errors. No test email was sent. This is a personal desktop fork, not an upstream-supported release.
 
-First you have to decide whether you want to install Evolution (and
-its dependencies) into the same prefix as the rest of your GNOME
-install, or into a new prefix.
+## Recovery and updates
 
-Installing everything into the same prefix as the rest of your GNOME
-install will make it much easier to build and run programs, and easier
-to switch between using packages and building it yourself, but it may
-also make it harder to uninstall later.  Also, it increases the chance
-that something goes wrong and your GNOME installation gets ruined.
+The packaged app remains `/usr/bin/evolution`. Remove the local desktop override and wrapper to restore that launcher. Accounts and cached mail remain in Evolution's native locations. Rebuild and check the fork when system Evolution/Data Server versions change.
 
-If you want to install in a different prefix, you need to do the
-following things:
-
-* Set the environment variables to contain a colon-separated list
-  of all the directories that will be involved in the build.
-  The environment variables are `GSETTINGS_SCHEMA_DIR`,
-  `LD_LIBRARY_PATH`, `PATH` and `PKG_CONFIG_PATH`.
-
-  For example, if you have GNOME installed in `/usr` and you
-  are installing Evolution and its dependencies in
-  `/opt/evolution`, you want to do something like the following
-  (assuming you are using Bash):
-
-  ```bash
-  export GSETTINGS_SCHEMA_DIR="/opt/evolution/share/glib-2.0/schemas"
-  export LD_LIBRARY_PATH=/opt/evolution/lib:$LD_LIBRARY_PATH
-  export PATH=/opt/evolution/bin:$PATH
-  export PKG_CONFIG_PATH=/opt/evolution/lib/pkgconfig:$PKG_CONFIG_PATH
-  ```
-
-* Edit the D-Bus `session-local.conf` file (which is normally
-  search for by D-Bus in `/etc/dbus-1/`) to include the
-  location where you are installing Evolution.
-
-  In the example given above (GNOME in `/usr`, Evolution and
-  dependencies in `/opt/evolution`), your
-  `session-local.conf` will have to look like this:
-
-  ```xml
-  <!DOCTYPE busconfig PUBLIC
-        "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
-        "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
-  <busconfig>
-        <!-- Search for .service files in /usr/local -->
-        <servicedir>/opt/evolution/share/dbus-1/services</servicedir>
-  </busconfig>
-    ```
-
-* Pass an appropriate `CMAKE_INSTALL_PREFIX` parameter to the configure
-  scripts of Evolution and its dependencies, eg:
-
-  ```bash
-  cd ..../sources/evolution
-  mkdir build
-  cd build
-  cmake -G "Unix Makefiles" \
-        -DCMAKE_INSTALL_PREFIX=/opt/evolution \
-        -DCMAKE_BUILD_TYPE=Release \
-        ..
-  ```
-
-* Run `cmake --help` to get list of available generators (the -G argument)
-          on your platform.
-
-OPTIONAL FEATURES
------------------
-
-Some optional features can be enabled at compilation time by passing
-appropriate flags to the CMake. These options are shown at the end
-of the successful configure phase.
-
-BUILDING EVOLUTION
-------------------
-
-After the Evolution is properly configured, run:
-
-  ```bash
-  make -j
-  make -j install
-  ```
-
-to build it.
-
-ONLINE BUILD MANUAL
--------------------
-
-An [online build manual][Build Manual] is also available.
-
-[Build Manual]: https://gitlab.gnome.org/GNOME/evolution/-/wikis/Building
+The original project README is preserved in `README.upstream.md`. Original source licenses remain in `COPYING*` and individual file headers. This fork is not affiliated with Apple or GNOME.

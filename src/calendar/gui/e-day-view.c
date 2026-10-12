@@ -3113,10 +3113,10 @@ e_day_view_set_colors (EDayView *day_view)
 	day_view->colors[E_DAY_VIEW_COLOR_BG_NOT_WORKING] = bg_bg;
 	day_view->colors[E_DAY_VIEW_COLOR_BG_SELECTED] = selected_bg;
 	day_view->colors[E_DAY_VIEW_COLOR_BG_SELECTED_UNFOCUSSED] = unfocused_selected_bg;
-	day_view->colors[E_DAY_VIEW_COLOR_BG_GRID] = dark_bg;
+	e_utils_get_theme_color (widget, "oma_calendar_grid", "#414868", &day_view->colors[E_DAY_VIEW_COLOR_BG_GRID]);
 	day_view->colors[E_DAY_VIEW_COLOR_BG_TOP_CANVAS] = dark_bg;
 	day_view->colors[E_DAY_VIEW_COLOR_BG_TOP_CANVAS_SELECTED] = selected_bg;
-	day_view->colors[E_DAY_VIEW_COLOR_BG_TOP_CANVAS_GRID] = light_bg;
+	e_utils_get_theme_color (widget, "oma_calendar_grid", "#414868", &day_view->colors[E_DAY_VIEW_COLOR_BG_TOP_CANVAS_GRID]);
 	day_view->colors[E_DAY_VIEW_COLOR_EVENT_VBAR] = selected_bg;
 	day_view->colors[E_DAY_VIEW_COLOR_EVENT_BACKGROUND] = base_bg;
 	day_view->colors[E_DAY_VIEW_COLOR_EVENT_BORDER] = dark_bg;

@@ -86,7 +86,7 @@ add_subdirectory(offline-alert)
 add_subdirectory(plugin-lib)
 add_subdirectory(plugin-manager)
 add_subdirectory(prefer-plain)
-add_subdirectory(rss)
+# RSS is omitted from this user-local mail/calendar build.
 add_subdirectory(settings)
 add_subdirectory(startup-wizard)
 add_subdirectory(vcard-inline)

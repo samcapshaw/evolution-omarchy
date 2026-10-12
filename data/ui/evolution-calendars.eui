@@ -1,6 +1,9 @@
 <eui>
   <headerbar id='main-headerbar'>
-    <start/>
+    <start>
+      <item action='calendar-view-week' important='true' icon_only='false' label_priority='0'/>
+      <item action='calendar-view-month' important='true' icon_only='false' label_priority='0'/>
+    </start>
     <end>
       <item action='ECalShellView::navigation-buttons'/>
     </end>

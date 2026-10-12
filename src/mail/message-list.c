@@ -2243,7 +2243,7 @@ create_composite_cell (GSettings *mail_settings,
 		       gint col)
 {
 	ECell *cell_vbox, *cell_hbox, *cell_date, *cell_from, *top_cell_tree, *bottom_cell_tree, *cell_attach;
-	ECell *cell_preview;
+	ECell *cell_preview, *cell_body, *body_cell_tree;
 	gboolean show_email;
 	gboolean show_subject_above_sender;
 
@@ -2283,11 +2283,11 @@ create_composite_cell (GSettings *mail_settings,
 		"bold-column", COL_UNREAD,
 		"italic-column", COL_ITALIC,
 		"color-column", COL_COLOUR,
-		"is-markup", TRUE,
+		"is-markup", FALSE,
 		NULL);
 
 	if (show_subject_above_sender)
-		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_preview, COL_SUBJECT_WITH_BODY_PREVIEW, 68);
+		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_preview, COL_SUBJECT, 68);
 	else
 		e_cell_hbox_append (E_CELL_HBOX (cell_hbox), cell_from, col, 68);
 
@@ -2301,9 +2301,17 @@ create_composite_cell (GSettings *mail_settings,
 	else
 		bottom_cell_tree = e_cell_tree_new (TRUE, TRUE, cell_preview);
 
-	e_cell_vbox_append (E_CELL_VBOX (cell_vbox), top_cell_tree, show_subject_above_sender ? COL_SUBJECT_WITH_BODY_PREVIEW : col);
-	e_cell_vbox_append (E_CELL_VBOX (cell_vbox), bottom_cell_tree, show_subject_above_sender ? col : COL_SUBJECT_WITH_BODY_PREVIEW);
+	e_cell_vbox_append (E_CELL_VBOX (cell_vbox), top_cell_tree, show_subject_above_sender ? COL_SUBJECT : col);
+	e_cell_vbox_append (E_CELL_VBOX (cell_vbox), bottom_cell_tree, show_subject_above_sender ? col : COL_SUBJECT);
 
+
+	/* Sender/date, subject, then two quiet lines of actual message text. */
+	cell_body = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
+	g_object_set_data (G_OBJECT (cell_body), "oma-preview-lines", GINT_TO_POINTER (2));
+	body_cell_tree = e_cell_tree_new (TRUE, TRUE, cell_body);
+	e_cell_vbox_append (E_CELL_VBOX (cell_vbox), body_cell_tree, COL_BODY_PREVIEW);
+	g_object_unref (body_cell_tree);
+	g_object_unref (cell_body);
 	g_object_unref (top_cell_tree);
 	g_object_unref (bottom_cell_tree);
 	g_object_unref (cell_hbox);
@@ -4289,6 +4297,7 @@ message_list_init (MessageList *message_list)
 	GtkTargetList *target_list;
 	GdkAtom matom;
 
+	gtk_widget_set_name (GTK_WIDGET (message_list), "omamail-message-list");
 	message_list->priv = message_list_get_instance_private (message_list);
 
 	message_list->normalised_hash = g_hash_table_new_full (

@@ -870,6 +870,10 @@ folder_tree_render_display_name (GtkTreeViewColumn *column,
 		const gchar *display_name;
 
 		display_name = camel_service_get_display_name (service);
+		if (g_strcmp0 (camel_service_get_uid (service), "vfolder") == 0)
+			display_name = "Mailboxes";
+		else if (g_strcmp0 (camel_service_get_uid (service), "local") == 0)
+			display_name = "Local Storage";
 		g_object_set (renderer, "text", display_name, NULL);
 
 	} else if (!editable && unread > 0 && self->priv->show_unread_count) {

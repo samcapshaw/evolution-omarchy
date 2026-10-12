@@ -1,0 +1,41 @@
+/* Evolution-only Tokyo Night palette; no desktop-wide GTK changes. */
+@define-color theme_bg_color #1a1b26;
+@define-color theme_fg_color #a9b1d6;
+@define-color theme_base_color #1a1b26;
+@define-color theme_text_color #c0caf5;
+@define-color theme_selected_bg_color #292e42;
+@define-color theme_selected_fg_color #c0caf5;
+@define-color theme_unfocused_selected_bg_color #24283b;
+@define-color theme_unfocused_selected_fg_color #c0caf5;
+@define-color borders rgba(169,177,214,0.16);
+@define-color warning_color #7aa2f7;
+@define-color theme_unfocused_bg_color #1a1b26;
+@define-color theme_unfocused_fg_color #a9b1d6;
+window, dialog { background-color:#1a1b26; color:#a9b1d6; font-family:"Liberation Sans",sans-serif; font-size:13px; }
+headerbar, toolbar, .primary-toolbar { background-image:none; background-color:#13141c; color:#c0caf5; border:0; box-shadow:none; padding:5px 8px; min-height:34px; }
+headerbar button, toolbar button, .primary-toolbar button { background-image:none; background-color:transparent; border:0; box-shadow:none; border-radius:5px; padding:5px 7px; min-width:20px; min-height:20px; color:#c0caf5; }
+headerbar button:hover, toolbar button:hover { background-color:#292e42; }
+headerbar button:checked, toolbar button:checked { background-color:#292e42; color:#7aa2f7; }
+headerbar button:disabled, toolbar button:disabled { color:#565f89; }
+#omamail-sidebar, #omamail-sidebar scrolledwindow, #omamail-sidebar treeview, #omamail-sidebar viewport { background-color:#13141c; color:#c0caf5; }
+#omamail-sidebar treeview { -gtk-icon-style:symbolic; -GtkTreeView-vertical-separator:8; border:0; }
+#omamail-sidebar treeview:selected { background-color:#292e42; color:#c0caf5; }
+#omamail-message-list { -ETree-alternating-row-colors:false; -ETree-vertical-spacing:2; background-color:#1a1b26; color:#a9b1d6; }
+#omamail-message-list:selected { background-color:#292e42; color:#c0caf5; }
+treeview.view, .view { background-color:#1a1b26; color:#a9b1d6; }
+.view:selected { background-color:#292e42; color:#c0caf5; }
+entry, searchentry { background-image:none; background-color:#24283b; border:1px solid rgba(169,177,214,.16); border-radius:6px; color:#c0caf5; box-shadow:none; min-height:26px; }
+entry:focus { border-color:#7aa2f7; }
+button.suggested-action { background-image:none; background-color:#292e42; color:#c0caf5; border-color:#414868; }
+button { border-radius:5px; }
+check, radio { background-image:none; background-color:#24283b; border-color:#414868; }
+check:checked, radio:checked { background-color:#7aa2f7; color:#13141c; }
+notebook > header { background-color:#13141c; }
+paned > separator { background-color:rgba(169,177,214,.14); min-width:1px; min-height:1px; }
+scrollbar { background-color:transparent; }
+scrollbar slider { background-color:#414868; min-width:5px; min-height:5px; border:0; }
+statusbar { background-color:#13141c; color:#565f89; }
+
+/* Calendar grid uses these separately from window borders. */
+@define-color oma_calendar_grid #414868;
+@define-color oma_calendar_today #7aa2f7;

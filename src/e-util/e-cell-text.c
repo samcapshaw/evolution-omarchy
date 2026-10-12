@@ -663,7 +663,7 @@ build_layout (ECellTextView *text_view,
 	pango_layout_set_wrap (layout, PANGO_WRAP_WORD_CHAR);
 
 	pango_layout_set_ellipsize (layout, priv->ellipsize_mode);
-	pango_layout_set_height (layout, 0);
+	pango_layout_set_height (layout, -MAX (1, GPOINTER_TO_INT (g_object_get_data (G_OBJECT (ect), "oma-preview-lines"))));
 
 	switch (ect->justify) {
 	case GTK_JUSTIFY_RIGHT:
@@ -1222,6 +1222,17 @@ ect_height (ECellView *ecell_view,
 
 	layout = generate_layout (text_view, model_col, view_col, row, 0);
 	pango_layout_get_pixel_size (layout, NULL, &height);
+	if (g_object_get_data (G_OBJECT (ecell_view->ecell), "oma-preview-lines")) {
+		PangoLayout *sample;
+		if (!*pango_layout_get_text (layout)) {
+			g_object_unref (layout);
+			return 0;
+		}
+		sample = build_layout (text_view, row, "Ag", 0);
+		pango_layout_get_pixel_size (sample, NULL, &height);
+		g_object_unref (sample);
+		height *= GPOINTER_TO_INT (g_object_get_data (G_OBJECT (ecell_view->ecell), "oma-preview-lines"));
+	}
 	g_object_unref (layout);
 	return height + (get_vertical_spacing (GTK_WIDGET (text_view->canvas)) * 2);
 }

@@ -451,9 +451,17 @@ folder_tree_model_sort (GtkTreeModel *model,
 		else
 			rv = 1;
 	} else if (a_is_store && b_is_store) {
-		rv = e_mail_account_store_compare_services (
-			folder_tree_model->priv->account_store,
-			service_a, service_b);
+		/* Put unified mailboxes first and local storage last. */
+		const gchar *uid_a = camel_service_get_uid (service_a);
+		const gchar *uid_b = camel_service_get_uid (service_b);
+		gint rank_a = g_strcmp0 (uid_a, "vfolder") == 0 ? 0 : (g_strcmp0 (uid_a, "local") == 0 ? 2 : 1);
+		gint rank_b = g_strcmp0 (uid_b, "vfolder") == 0 ? 0 : (g_strcmp0 (uid_b, "local") == 0 ? 2 : 1);
+		if (rank_a != rank_b)
+			rv = rank_a < rank_b ? -1 : 1;
+		else
+			rv = e_mail_account_store_compare_services (
+				folder_tree_model->priv->account_store,
+				service_a, service_b);
 
 	} else {
 		/* Inbox is always first. */
@@ -1522,7 +1530,7 @@ em_folder_tree_model_set_folder_info (EMFolderTreeModel *model,
 		} else if (strcmp (fi->full_name, "Inbox") == 0) {
 			flags = (flags & ~CAMEL_FOLDER_TYPE_MASK) |
 				CAMEL_FOLDER_TYPE_INBOX;
-			display_name = _("Inbox");
+			display_name = _("Local Inbox");
 			folder_is_drafts = FALSE;
 			folder_is_sent = FALSE;
 		} else if (strcmp (fi->full_name, "Outbox") == 0) {
@@ -1961,6 +1969,10 @@ em_folder_tree_model_add_store (EMFolderTreeModel *model,
 	service = CAMEL_SERVICE (store);
 	provider = camel_service_get_provider (service);
 	display_name = camel_service_get_display_name (service);
+	if (g_strcmp0 (camel_service_get_uid (service), "vfolder") == 0)
+		display_name = "Mailboxes";
+	else if (g_strcmp0 (camel_service_get_uid (service), "local") == 0)
+		display_name = "Local Storage";
 
 	/* Ignore stores that should not be added to the tree model. */
 

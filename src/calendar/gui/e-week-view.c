@@ -2144,12 +2144,12 @@ e_week_view_set_colors (EWeekView *week_view)
 	week_view->colors[E_WEEK_VIEW_COLOR_EVENT_BACKGROUND] = base_bg;
 	week_view->colors[E_WEEK_VIEW_COLOR_EVENT_BORDER] = dark_bg;
 	week_view->colors[E_WEEK_VIEW_COLOR_EVENT_TEXT] = text_fg;
-	week_view->colors[E_WEEK_VIEW_COLOR_GRID] = dark_bg;
+	e_utils_get_theme_color (widget, "oma_calendar_grid", "#414868", &week_view->colors[E_WEEK_VIEW_COLOR_GRID]);
 	week_view->colors[E_WEEK_VIEW_COLOR_SELECTED] = selected_bg;
 	week_view->colors[E_WEEK_VIEW_COLOR_SELECTED_UNFOCUSSED] = unfocused_selected_bg;
 	week_view->colors[E_WEEK_VIEW_COLOR_DATES] = text_fg;
 	week_view->colors[E_WEEK_VIEW_COLOR_DATES_SELECTED] = selected_fg;
-	week_view->colors[E_WEEK_VIEW_COLOR_TODAY] = selected_bg;
+	e_utils_get_theme_color (widget, "oma_calendar_today", "#7aa2f7", &week_view->colors[E_WEEK_VIEW_COLOR_TODAY]);
 
 	if (!week_view->priv->today_background_color)
 		week_view->colors[E_WEEK_VIEW_COLOR_TODAY_BACKGROUND] = get_today_background (week_view->colors[E_WEEK_VIEW_COLOR_EVENT_BACKGROUND]);

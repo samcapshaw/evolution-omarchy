@@ -2,11 +2,14 @@
   <headerbar id='main-headerbar'>
     <start>
       <item action='EMailShellView::mail-send-receive' label_priority='999999'/>
+      <item action='mail-jump-top' icon_only='false' label_priority='0'/>
     </start>
     <end>
       <item action='mail-reply-sender'/>
       <item action='EMailReader::mail-reply-group'/>
       <item action='EMailReader::mail-forward-as-group'/>
+      <item action='mail-archive'/>
+      <item action='mail-delete'/>
     </end>
   </headerbar>
   <menu id='main-menu'>

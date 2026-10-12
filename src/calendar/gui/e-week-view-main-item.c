@@ -131,7 +131,7 @@ week_view_main_item_draw_day (EWeekViewMainItem *main_item,
 
 	cairo_save (cr);
 	gdk_cairo_set_source_rgba (cr,  &week_view->colors[E_WEEK_VIEW_COLOR_GRID]);
-	cairo_set_line_width (cr, 0.5);
+	cairo_set_line_width (cr, 1.0);
 	cairo_move_to (cr, right_edge + 0.5, y);
 	cairo_line_to (cr, right_edge + 0.5, bottom_edge);
 	cairo_move_to (cr, x, bottom_edge + 0.5);

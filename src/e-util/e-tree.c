@@ -3438,3 +3438,13 @@ e_tree_customize_view (ETree *tree)
 	if (header_item)
 		e_table_header_item_customize_view (E_TABLE_HEADER_ITEM (header_item));
 }
+
+/* Jump directly to the first visible row without changing the reader. */
+void
+e_tree_scroll_to_top (ETree *tree)
+{
+	GtkAdjustment *adjustment;
+	g_return_if_fail (E_IS_TREE (tree));
+	adjustment = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (tree->priv->table_canvas));
+	gtk_adjustment_set_value (adjustment, gtk_adjustment_get_lower (adjustment));
+}

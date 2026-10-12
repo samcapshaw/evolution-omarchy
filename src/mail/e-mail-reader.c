@@ -1633,6 +1633,15 @@ action_mail_move_cb (EUIAction *action,
 }
 
 static void
+action_mail_jump_top_cb (EUIAction *action,
+                         GVariant *parameter,
+                         gpointer user_data)
+{
+	GtkWidget *message_list = e_mail_reader_get_message_list (E_MAIL_READER (user_data));
+	e_tree_scroll_to_top (E_TREE (message_list));
+}
+
+static void
 action_mail_next_cb (EUIAction *action,
 		     GVariant *parameter,
 		     gpointer user_data)
@@ -3457,6 +3466,13 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		  "<Shift><Control>v",
 		  N_("Move selected messages to another folder"),
 		  action_mail_move_cb, NULL, NULL, NULL },
+
+		{ "mail-jump-top",
+		  "go-top",
+		  N_("Top"),
+		  "<Alt>Home",
+		  N_("Jump to the newest messages at the top of the list"),
+		  action_mail_jump_top_cb, NULL, NULL, NULL },
 
 		{ "mail-next",
 		  "go-next",

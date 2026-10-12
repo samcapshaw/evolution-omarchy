@@ -1194,6 +1194,25 @@ folder_available_cb (MailFolderCache *cache,
                      CamelStore *store,
                      const gchar *folder_name)
 {
+	CamelFolderInfoFlags flags = 0;
+	/* Maintain a specific inbox-only source list as accounts discover folders.
+	 * Do not include subfolders, archives, or sent mail in All Inboxes. */
+	if (context && !CAMEL_IS_VEE_STORE (store) &&
+	    mail_folder_cache_get_folder_info_flags (cache, store, folder_name, &flags) &&
+	    (flags & CAMEL_FOLDER_TYPE_MASK) == CAMEL_FOLDER_TYPE_INBOX) {
+		EFilterRule *rule = e_rule_context_find_rule (E_RULE_CONTEXT (context), "All Inboxes", NULL);
+		if (rule && EM_IS_VFOLDER_RULE (rule)) {
+			gchar *uri = e_mail_folder_uri_build (store, folder_name);
+			if (!em_vfolder_rule_find_source (EM_VFOLDER_RULE (rule), uri)) {
+				gchar *path;
+				em_vfolder_rule_add_source (EM_VFOLDER_RULE (rule), uri);
+				path = g_build_filename (mail_session_get_config_dir (), "vfolders.xml", NULL);
+				e_rule_context_save (E_RULE_CONTEXT (context), path);
+				g_free (path);
+			}
+			g_free (uri);
+		}
+	}
 	mail_vfolder_note_folder (store, folder_name, FALSE);
 }
 

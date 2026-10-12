@@ -210,6 +210,9 @@ void		e_tree_get_cell_geometry	(ETree *tree,
 						 gint *width_return,
 						 gint *height_return);
 
+/* Scroll without changing selection or marking a message as read. */
+void e_tree_scroll_to_top (ETree *tree);
+
 /* Useful accessors */
 ETreeModel *	e_tree_get_model		(ETree *tree);
 ESelectionModel *

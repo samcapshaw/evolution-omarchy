@@ -408,6 +408,7 @@ e_shell_sidebar_init (EShellSidebar *shell_sidebar)
 	PangoAttrList *attribute_list;
 	const gchar *icon_name;
 
+	gtk_widget_set_name (GTK_WIDGET (shell_sidebar), "omamail-sidebar");
 	shell_sidebar->priv = e_shell_sidebar_get_instance_private (shell_sidebar);
 
 	gtk_widget_set_has_window (GTK_WIDGET (shell_sidebar), FALSE);

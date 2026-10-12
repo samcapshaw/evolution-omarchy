@@ -323,8 +323,20 @@ main (gint argc,
 		gboolean skip_warning_dialog;
 		#endif
 
+
+		{
+			gchar *css_path = g_build_filename (g_get_user_config_dir (), "evolution", "omamail.css", NULL);
+			GtkCssProvider *provider = gtk_css_provider_new ();
+			GError *css_error = NULL;
+			g_object_set (gtk_settings_get_default (), "gtk-application-prefer-dark-theme", TRUE, "gtk-icon-theme-name", "Adwaita", NULL);
+			if (g_file_test (css_path, G_FILE_TEST_EXISTS) && gtk_css_provider_load_from_path (provider, css_path, &css_error))
+				gtk_style_context_add_provider_for_screen (gdk_screen_get_default (), GTK_STYLE_PROVIDER (provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
+			if (css_error) { g_warning ("OmaMail appearance: %s", css_error->message); g_error_free (css_error); }
+			g_object_unref (provider);
+			g_free (css_path);
+		}
 		e_passwords_init ();
-		gtk_window_set_default_icon_name ("evolution");
+		gtk_window_set_default_icon_name ("sam-mail");
 
 		#ifdef ENABLE_MAINTAINER_MODE
 		icon_theme = gtk_icon_theme_get_default ();
