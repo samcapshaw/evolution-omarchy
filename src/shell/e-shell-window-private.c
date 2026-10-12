@@ -127,7 +127,10 @@ e_shell_window_private_constructed (EShellWindow *shell_window)
 		gtk_style_context_remove_class (style_context, "vertical");
 		g_clear_object (&provider);
 
-		gtk_window_set_titlebar (window, widget);
+		/* GTK hides window titlebars in fullscreen. Keep mail actions in
+		 * the content area so compose/reply stay available in every mode. */
+		gtk_window_set_titlebar (window, gtk_box_new (GTK_ORIENTATION_VERTICAL, 0));
+		gtk_box_pack_start (box, widget, FALSE, FALSE, 0);
 	}
 
 	widget = e_alert_bar_new ();

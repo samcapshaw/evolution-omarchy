@@ -7,7 +7,7 @@ An unofficial Evolution 3.60.2 fork with an Apple Mail inspired layout and a Tok
 - Unified **All Inboxes** under the first **Mailboxes** section. Account inboxes are discovered automatically; their subfolders are excluded.
 - Local folders move to **Local Storage** at the bottom, with a clearly named **Local Inbox**.
 - Side-by-side reading pane with padded message rows, fine separators, emphasized sender/subject, and up to two lines of body preview when supplied by the mail backend.
-- Compact subject/sender/date reader header and plain compose/reply/forward/archive/delete controls.
+- Compact subject/sender/date reader header and plain compose/reply/forward/archive/delete controls that remain visible in fullscreen.
 - Search/filter controls stay hidden until Search or Ctrl+F; restored active searches remain visible.
 - Sidebar button or Ctrl+Shift+B folds folders into a Mail/Contacts/Calendar icon rail.
 - All Sent combines discovered sent folders alongside All Inboxes.
