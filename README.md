@@ -9,13 +9,13 @@ An unofficial Evolution 3.60.2 fork with an Apple Mail inspired layout and a Tok
 - Side-by-side reading pane with padded message rows, fine separators, emphasized sender/subject, and up to two lines of body preview when supplied by the mail backend.
 - Compact subject/sender/date reader header and plain compose/reply/forward/archive/delete controls that remain visible in fullscreen.
 - Search/filter controls stay hidden until Search or Ctrl+F; restored active searches remain visible, with extra room around the controls and list.
-- Delete removes the selected message without forcing the viewport back to an older stored cursor.
+- Delete holds the viewport through asynchronous folder updates and delayed cursor scrolling. Clicking, scrolling, or navigating in the list resumes normal movement.
 - Sidebar button or Ctrl+Shift+B folds folders into a Mail/Contacts/Calendar icon rail.
 - All Sent combines discovered sent folders alongside All Inboxes.
 - **Top** header button and **Alt+Home** scroll straight to the top without changing the selected message. Default wide views sort newest first.
 - Month is the calendar default, with Week/Month header controls, clearer grid lines, a soft blue today highlight and full weekend columns.
 - Calendar checkbox selections use Evolution's native persistent settings. The setup script never changes selected calendars.
-- App-specific stylesheet and a matching envelope icon; desktop-wide themes are untouched.
+- App-specific stylesheet and matching envelope icon, with a dedicated `org.omarchy.Mail` desktop identity so dock pins launch the custom build; desktop-wide themes are untouched.
 - User-local installation alongside the packaged Evolution. The RSS module is omitted because it otherwise installs a provider globally.
 
 ## Build and install

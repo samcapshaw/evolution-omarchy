@@ -38,7 +38,10 @@ apps.mkdir(parents=True, exist_ok=True)
 desktop = (prefix / 'share/applications/org.gnome.Evolution.desktop').read_text()
 desktop = re.sub(r'^Exec=evolution(?=\s|$)', 'Exec="' + str(wrapper).replace('"', '\\"') + '"', desktop, flags=re.M)
 desktop = re.sub(r'^Icon=.*$', 'Icon=sam-mail', desktop, flags=re.M)
-(apps / 'org.gnome.Evolution.desktop').write_text(desktop)
+desktop = desktop.replace('[Desktop Entry]\n', '[Desktop Entry]\nStartupWMClass=org.omarchy.Mail\n', 1)
+custom_desktop = desktop.replace('Name=Evolution\n', 'Name=Mail (Omarchy)\n', 1)
+(apps / 'org.omarchy.Mail.desktop').write_text(custom_desktop)
+(apps / 'org.gnome.Evolution.desktop').write_text(desktop.replace('[Desktop Entry]\n', '[Desktop Entry]\nNoDisplay=true\n', 1))
 for alternate in apps.glob('userapp-Evolution-*.desktop'):
     text = alternate.read_text()
     text = re.sub(r'^Exec=(?:/usr/bin/)?evolution(?=\s|$)', 'Exec="' + str(wrapper) + '"', text, flags=re.M)
@@ -46,6 +49,7 @@ for alternate in apps.glob('userapp-Evolution-*.desktop'):
 icons = home / '.local/share/icons/hicolor/scalable/apps'
 icons.mkdir(parents=True, exist_ok=True)
 shutil.copy2(repo / 'omarchy/sam-mail.svg', icons / 'sam-mail.svg')
+shutil.copy2(repo / 'omarchy/sam-mail.svg', icons / 'org.omarchy.Mail.svg')
 actions = home / '.local/share/icons/hicolor/scalable/actions'
 actions.mkdir(parents=True, exist_ok=True)
 for name in ['sidebar-show.svg', 'sidebar-show-symbolic.svg']:
@@ -79,6 +83,8 @@ for title in ['All Inboxes', 'All Sent']:
     changed = True
 if changed:
     tree.write(rules, encoding='utf-8', xml_declaration=True)
+if shutil.which('gtk-update-icon-cache'):
+    subprocess.run(['gtk-update-icon-cache', '-f', '-t', str(home / '.local/share/icons/hicolor')], check=True)
 if shutil.which('update-desktop-database'):
     subprocess.run(['update-desktop-database', str(apps)], check=True)
 print('Installed. Launch ~/.local/bin/evolution or the Evolution desktop entry.')

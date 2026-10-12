@@ -212,6 +212,8 @@ void		e_tree_get_cell_geometry	(ETree *tree,
 
 /* Scroll without changing selection or marking a message as read. */
 void e_tree_scroll_to_top (ETree *tree);
+void e_tree_preserve_viewport (ETree *tree);
+void e_tree_release_viewport (ETree *tree);
 
 /* Useful accessors */
 ETreeModel *	e_tree_get_model		(ETree *tree);

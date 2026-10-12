@@ -1017,6 +1017,9 @@ eti_show_cursor (ETableItem *eti,
 
 	item = GNOME_CANVAS_ITEM (eti);
 
+	if (g_object_get_data (G_OBJECT (gtk_widget_get_parent (GTK_WIDGET (item->canvas))), "oma-preserve-scroll"))
+		return;
+
 	if (!((item->flags & GNOME_CANVAS_ITEM_REALIZED) && eti->cell_views_realized))
 		return;
 

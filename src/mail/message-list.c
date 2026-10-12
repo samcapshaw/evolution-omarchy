@@ -5307,6 +5307,8 @@ message_list_set_folder (MessageList *message_list,
 	if (folder == message_list->priv->folder)
 		return;
 
+	e_tree_release_viewport (E_TREE (message_list));
+
 	if (folder != NULL) {
 		g_return_if_fail (CAMEL_IS_FOLDER (folder));
 		g_object_ref (folder);

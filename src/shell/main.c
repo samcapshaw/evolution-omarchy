@@ -70,7 +70,7 @@
 #ifdef OVERRIDE_APPLICATION_ID
 #define APPLICATION_ID OVERRIDE_APPLICATION_ID
 #else
-#define APPLICATION_ID "org.gnome.Evolution"
+#define APPLICATION_ID "org.omarchy.Mail"
 #endif
 
 /* STABLE_VERSION is only defined for development versions. */
@@ -284,7 +284,7 @@ main (gint argc,
 	}
 
 	/* To pair the app with the desktop file */
-	g_set_prgname ("org.gnome.Evolution");
+	g_set_prgname ("org.omarchy.Mail");
 
 	/* Pre-cache list of supported locales */
 	e_util_enum_supported_locales ();

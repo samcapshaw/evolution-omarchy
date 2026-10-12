@@ -137,6 +137,7 @@ struct _ETreePrivate {
 	gint hover_idle_id;
 
 	gboolean show_cursor_after_reflow;
+	gdouble oma_scroll_anchor;
 
 	gint table_model_change_id;
 	gint table_row_change_id;
@@ -843,7 +844,12 @@ tree_canvas_reflow_idle (ETree *tree)
 
 	tree->priv->reflow_idle_id = 0;
 
-	if (tree->priv->show_cursor_after_reflow) {
+	if (g_object_get_data (G_OBJECT (tree), "oma-preserve-scroll")) {
+		GtkAdjustment *adjustment = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (tree->priv->table_canvas));
+		tree->priv->show_cursor_after_reflow = FALSE;
+		e_table_item_cancel_scroll_to_cursor (E_TABLE_ITEM (tree->priv->item));
+		gtk_adjustment_set_value (adjustment, tree->priv->oma_scroll_anchor);
+	} else if (tree->priv->show_cursor_after_reflow) {
 		tree->priv->show_cursor_after_reflow = FALSE;
 		scroll_to_cursor (tree);
 	}
@@ -1311,6 +1317,20 @@ et_setup_table_canvas_vadjustment (ETree *tree)
 	}
 }
 
+/* Explicit list input resumes normal cursor navigation after a deletion. */
+static gboolean
+oma_tree_input_cb (GtkWidget *widget,
+                   GdkEvent *event,
+                   gpointer user_data)
+{
+	ETree *tree = user_data;
+	if (event->type == GDK_BUTTON_PRESS || event->type == GDK_SCROLL ||
+	    (event->type == GDK_KEY_PRESS && event->key.keyval != GDK_KEY_Delete &&
+	     event->key.keyval != GDK_KEY_KP_Delete && event->key.keyval != GDK_KEY_BackSpace))
+		e_tree_release_viewport (tree);
+	return FALSE;
+}
+
 static void
 e_tree_setup_table (ETree *tree)
 {
@@ -1318,6 +1338,7 @@ e_tree_setup_table (ETree *tree)
 	GdkRGBA color;
 
 	tree->priv->table_canvas = GNOME_CANVAS (e_canvas_new ());
+	g_signal_connect (tree->priv->table_canvas, "event", G_CALLBACK (oma_tree_input_cb), tree);
 	gtk_widget_set_hexpand (GTK_WIDGET (tree->priv->table_canvas), TRUE);
 	gtk_widget_set_vexpand (GTK_WIDGET (tree->priv->table_canvas), TRUE);
 	g_signal_connect (
@@ -3447,4 +3468,24 @@ e_tree_scroll_to_top (ETree *tree)
 	g_return_if_fail (E_IS_TREE (tree));
 	adjustment = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (tree->priv->table_canvas));
 	gtk_adjustment_set_value (adjustment, gtk_adjustment_get_lower (adjustment));
+}
+
+/* Hold the viewport through asynchronous folder updates until the next list input. */
+void
+e_tree_preserve_viewport (ETree *tree)
+{
+	GtkAdjustment *adjustment;
+	g_return_if_fail (E_IS_TREE (tree));
+	adjustment = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (tree->priv->table_canvas));
+	tree->priv->oma_scroll_anchor = gtk_adjustment_get_value (adjustment);
+	tree->priv->show_cursor_after_reflow = FALSE;
+	e_table_item_cancel_scroll_to_cursor (E_TABLE_ITEM (tree->priv->item));
+	g_object_set_data (G_OBJECT (tree), "oma-preserve-scroll", GINT_TO_POINTER (1));
+}
+
+void
+e_tree_release_viewport (ETree *tree)
+{
+	g_return_if_fail (E_IS_TREE (tree));
+	g_object_set_data (G_OBJECT (tree), "oma-preserve-scroll", NULL);
 }

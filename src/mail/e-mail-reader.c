@@ -679,6 +679,9 @@ action_mail_delete_cb (EUIAction *action,
 	if (!e_mail_reader_confirm_delete (reader))
 		return;
 
+	/* Keep asynchronous reflow and delayed cursor callbacks at this viewport. */
+	e_tree_preserve_viewport (E_TREE (e_mail_reader_get_message_list (reader)));
+
 	/* FIXME Verify all selected messages are deletable.
 	 *       But handle it by disabling this action. */
 
