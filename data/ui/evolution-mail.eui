@@ -11,6 +11,7 @@
       <item action='mail-reply-sender'/>
       <item action='mail-reply-all'/>
       <item action='mail-forward'/>
+      <item action='oma-unread-filter' icon_only='false' label_priority='0'/>
     </end>
   </headerbar>
   <menu id='main-menu'>

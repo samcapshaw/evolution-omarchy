@@ -422,6 +422,15 @@ mail_shell_view_search_filter_changed_cb (EMailShellView *mail_shell_view)
 	g_return_if_fail (mail_shell_view != NULL);
 	g_return_if_fail (mail_shell_view->priv != NULL);
 
+	{
+		EUIAction *action = e_shell_view_get_action (E_SHELL_VIEW (mail_shell_view), "oma-unread-filter");
+		EShellSearchbar *searchbar = e_mail_shell_content_get_searchbar (mail_shell_view->priv->mail_shell_content);
+		EActionComboBox *combo = e_shell_searchbar_get_filter_combo_box (searchbar);
+		if (action)
+			e_ui_action_set_state (action, g_variant_new_boolean (
+				e_action_combo_box_get_current_value (combo) == MAIL_FILTER_UNREAD_MESSAGES));
+	}
+
 	if (e_shell_view_is_execute_search_blocked (E_SHELL_VIEW (mail_shell_view)))
 		return;
 

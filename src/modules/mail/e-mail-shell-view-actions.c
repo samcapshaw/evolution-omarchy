@@ -26,6 +26,19 @@
 #include "e-mail-shell-view-actions.h"
 
 static void
+action_oma_unread_filter_cb (EUIAction *action,
+                           GVariant *parameter,
+                           gpointer user_data)
+{
+	EMailShellView *view = user_data;
+	EShellSearchbar *searchbar = e_mail_shell_content_get_searchbar (view->priv->mail_shell_content);
+	EActionComboBox *combo = e_shell_searchbar_get_filter_combo_box (searchbar);
+	e_ui_action_set_state (action, parameter);
+	e_action_combo_box_set_current_value (combo, g_variant_get_boolean (parameter) ?
+		MAIL_FILTER_UNREAD_MESSAGES : MAIL_FILTER_ALL_MESSAGES);
+}
+
+static void
 mail_shell_view_folder_created_cb (EMailFolderCreateDialog *dialog,
                                    CamelStore *store,
                                    const gchar *folder_name,
@@ -1883,6 +1896,10 @@ e_mail_shell_view_actions_init (EMailShellView *mail_shell_view)
 	};
 
 	static const EUIActionEntry mail_toggle_entries[] = {
+
+		{ "oma-unread-filter", "oma-mail-filter", N_("Unread"), NULL,
+		  N_("Show only unread messages; click again to show all messages"),
+		  NULL, NULL, "false", action_oma_unread_filter_cb },
 
 		{ "mail-preview",
 		  NULL,

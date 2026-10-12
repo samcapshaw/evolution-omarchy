@@ -54,7 +54,7 @@ actions = home / '.local/share/icons/hicolor/scalable/actions'
 actions.mkdir(parents=True, exist_ok=True)
 for name in ['sidebar-show.svg', 'sidebar-show-symbolic.svg']:
     shutil.copy2(repo / 'omarchy/sidebar-show.svg', actions / name)
-for name in ['oma-mail-unread', 'oma-mail-flag']:
+for name in ['oma-mail-unread', 'oma-mail-flag', 'oma-mail-filter']:
     for suffix in ['', '-symbolic']:
         shutil.copy2(repo / ('omarchy/' + name + '.svg'), actions / (name + suffix + '.svg'))
 config = home / '.config/evolution'

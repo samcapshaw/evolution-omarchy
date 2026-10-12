@@ -23,6 +23,8 @@ Unread messages have a blue dot and stronger text. Status markers are painted in
 
 The compose window uses a compact toolbar with attachment and formatting controls on the left and Send on the right. Address fields use subtle dividers; formatting toolbars are hidden initially and can be toggled from the header. The toolbar stays available in fullscreen.
 
+The top toolbar includes an Unread toggle: click once to show unread mail in the current mailbox, and again to restore all messages. It stays synchronized with Evolution’s existing filter controls.
+
 ## Build and install
 
 On Omarchy/Arch, install Evolution and its build dependencies first:
@@ -56,7 +58,7 @@ On desktops whose PATH prioritizes `/usr/bin`, launching plain `evolution` in a 
 
 ## Validation
 
-The matching source changes were compiled and exercised on an Omarchy desktop with Google Workspace and Microsoft365 mail/calendar backends. Unified mail and calendar views were inspected, calendar checkbox choices matched after reopening, and the custom viewer loaded without missing-library errors. Flagging was checked in both directions using synthetic local mail. The editor sandbox includes the custom library path so HTML replies can load their quoted content. No test email was sent. This is a personal desktop fork, not an upstream-supported release.
+The matching source changes were compiled and exercised on an Omarchy desktop with Google Workspace and Microsoft365 mail/calendar backends. Unified mail and calendar views were inspected, calendar checkbox choices matched after reopening, and the custom viewer loaded without missing-library errors. Flagging was checked in both directions using synthetic local mail. The editor sandbox includes the custom library path so HTML replies can load their quoted content. The unread toolbar toggle was exercised against three synthetic messages: one unread message remained when enabled, and all three returned when disabled. No test email was sent. This is a personal desktop fork, not an upstream-supported release.
 
 ## Recovery and updates
 
