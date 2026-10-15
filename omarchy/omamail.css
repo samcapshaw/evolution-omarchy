@@ -20,7 +20,7 @@ headerbar button:disabled, toolbar button:disabled { color:#565f89; }
 #omamail-sidebar, #omamail-sidebar scrolledwindow, #omamail-sidebar treeview, #omamail-sidebar viewport { background-color:#13141c; color:#c0caf5; }
 #omamail-sidebar treeview { -gtk-icon-style:symbolic; -GtkTreeView-vertical-separator:8; border:0; }
 #omamail-sidebar treeview:selected { background-color:#292e42; color:#c0caf5; }
-#omamail-message-list { -ETree-alternating-row-colors:false; -ETree-vertical-spacing:6; background-color:#1a1b26; color:#a9b1d6; }
+#omamail-message-list { -ETree-alternating-row-colors:false; -ETree-vertical-spacing:6; -MessageList-important-fg-color:#7aa2f7; background-color:#1a1b26; color:#a9b1d6; }
 #omamail-message-list:selected { background-color:#292e42; color:#c0caf5; }
 treeview.view, .view { background-color:#1a1b26; color:#a9b1d6; }
 .view:selected { background-color:#292e42; color:#c0caf5; }
