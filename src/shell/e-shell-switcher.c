@@ -1,21 +1,6 @@
 /*
- * e-shell-switcher.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /**
@@ -48,8 +33,11 @@ struct _EShellSwitcherPrivate {
 enum {
 	PROP_0,
 	PROP_TOOLBAR_STYLE,
-	PROP_TOOLBAR_VISIBLE
+	PROP_TOOLBAR_VISIBLE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	STYLE_CHANGED,
@@ -419,7 +407,7 @@ shell_switcher_style_changed (EShellSwitcher *switcher,
 		(GFunc) gtk_tool_item_toolbar_reconfigured, NULL);
 
 	gtk_widget_queue_resize (GTK_WIDGET (switcher));
-	g_object_notify (G_OBJECT (switcher), "toolbar-style");
+	g_object_notify_by_pspec (G_OBJECT (switcher), properties[PROP_TOOLBAR_STYLE]);
 }
 
 static GtkIconSize
@@ -484,35 +472,39 @@ e_shell_switcher_class_init (EShellSwitcherClass *class)
 	 *
 	 * The switcher's toolbar style.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_TOOLBAR_STYLE,
+	/**
+	 * EShellSwitcher:toolbar-style
+	 *
+	 * The switcher's toolbar style
+	 **/
+	properties[PROP_TOOLBAR_STYLE] =
 		g_param_spec_enum (
-			"toolbar-style",
-			"Toolbar Style",
-			"The switcher's toolbar style",
+			"toolbar-style", NULL, NULL,
 			GTK_TYPE_TOOLBAR_STYLE,
 			E_SHELL_SWITCHER_DEFAULT_TOOLBAR_STYLE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * EShellSwitcher:toolbar-visible
 	 *
 	 * Whether the switcher is visible.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_TOOLBAR_VISIBLE,
+	/**
+	 * EShellSwitcher:toolbar-visible
+	 *
+	 * Whether the switcher is visible
+	 **/
+	properties[PROP_TOOLBAR_VISIBLE] =
 		g_param_spec_boolean (
-			"toolbar-visible",
-			"Toolbar Visible",
-			"Whether the switcher is visible",
+			"toolbar-visible", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	/**
 	 * EShellSwitcher::style-changed
@@ -826,5 +818,5 @@ e_shell_switcher_set_visible (EShellSwitcher *switcher,
 
 	gtk_widget_queue_resize (GTK_WIDGET (switcher));
 
-	g_object_notify (G_OBJECT (switcher), "toolbar-visible");
+	g_object_notify_by_pspec (G_OBJECT (switcher), properties[PROP_TOOLBAR_VISIBLE]);
 }

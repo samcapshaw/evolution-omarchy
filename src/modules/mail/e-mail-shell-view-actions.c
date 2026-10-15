@@ -1,21 +1,6 @@
 /*
- * e-mail-shell-view-actions.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -1717,13 +1702,6 @@ e_mail_shell_view_actions_init (EMailShellView *mail_shell_view)
 		  N_("Create a new folder for storing mail"),
 		  action_mail_folder_new_cb, NULL, NULL, NULL },
 
-		{ "mail-folder-new-full",
-		  "folder-new",
-		  N_("_New Folder…"),
-		  NULL,
-		  N_("Create a new folder for storing mail"),
-		  action_mail_folder_new_cb, NULL, NULL, NULL },
-
 		{ "mail-folder-properties",
 		  "document-properties",
 		  N_("_Properties"),
@@ -2061,8 +2039,13 @@ e_mail_shell_view_actions_init (EMailShellView *mail_shell_view)
 	EShellView *shell_view;
 	EShellWindow *shell_window;
 	EShellBackend *shell_backend;
+	static const EUIActionRename folder_renames[] = {
+		{ "mail-folder-new-full", "mail-folder-new" },
+	};
 	EShell *shell;
 	EUIManager *ui_manager;
+	EUICustomizer *customizer;
+	EUIAction *action;
 	GPtrArray *group;
 	guint ii;
 
@@ -2086,6 +2069,14 @@ e_mail_shell_view_actions_init (EMailShellView *mail_shell_view)
 	e_ui_manager_add_actions_enum (ui_manager, "mail", NULL,
 		mail_scope_entries, G_N_ELEMENTS (mail_scope_entries), mail_shell_view);
 
+	action = e_ui_manager_get_action (ui_manager, "mail-folder-new");
+	if (action)
+		e_ui_action_set_secondary_label (action, _("_New Folder…"));
+
+	customizer = e_ui_manager_get_customizer (ui_manager);
+	if (customizer)
+		e_ui_customizer_rename_actions (customizer, folder_renames, G_N_ELEMENTS (folder_renames));
+
 	/* Search Folder Actions */
 	e_ui_manager_add_actions (ui_manager, "search-folders", NULL,
 		search_folder_entries, G_N_ELEMENTS (search_folder_entries), mail_shell_view);
@@ -2095,8 +2086,7 @@ e_mail_shell_view_actions_init (EMailShellView *mail_shell_view)
 	group = g_ptr_array_sized_new (G_N_ELEMENTS (mail_scope_entries));
 
 	for (ii = 0; ii < G_N_ELEMENTS (mail_scope_entries); ii++) {
-		EUIAction *action = e_ui_manager_get_action (ui_manager, mail_scope_entries[ii].name);
-
+		action = e_ui_manager_get_action (ui_manager, mail_scope_entries[ii].name);
 		e_ui_action_set_radio_group (action, group);
 	}
 

@@ -1,18 +1,5 @@
 /*
- * e-mail-formatter-vcard.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -112,6 +99,7 @@ mail_formatter_vcard_format (EMailFormatterExtension *extension,
 		const gchar *info = NULL;
 		gchar *access_key = NULL;
 		gchar *html_label;
+		const gchar *page_token;
 
 		length = g_slist_length ((GSList *) contacts);
 
@@ -119,6 +107,7 @@ mail_formatter_vcard_format (EMailFormatterExtension *extension,
 		message_uid = e_mail_part_list_get_message_uid (context->part_list);
 		default_charset = e_mail_formatter_get_default_charset (formatter);
 		charset = e_mail_formatter_get_charset (formatter);
+		page_token = e_mail_formatter_ensure_page_token (formatter);
 
 		if (!default_charset)
 			default_charset = "";
@@ -159,10 +148,11 @@ mail_formatter_vcard_format (EMailFormatterExtension *extension,
 				"class=\"org-gnome-vcard-display-mode-button\" "
 				"value=\"%d\" "
 				"evo-iframe-uri=\"%s\" "
+				"evo-token=\"%s\" "
 				"style=\"margin-left: 0px\""
 				"accesskey=\"%s\">%s</button>",
 			e_mail_part_get_id (part),
-			EAB_CONTACT_DISPLAY_RENDER_NORMAL, button_iframe_uri, access_key,
+			EAB_CONTACT_DISPLAY_RENDER_NORMAL, button_iframe_uri, page_token, access_key,
 			html_label);
 		g_output_stream_write_all (
 			stream, str, strlen (str), NULL, cancellable, NULL);
@@ -189,10 +179,11 @@ mail_formatter_vcard_format (EMailFormatterExtension *extension,
 				"class=\"org-gnome-vcard-display-mode-button\" "
 				"value=\"%d\" "
 				"evo-iframe-uri=\"%s\" "
+				"evo-token=\"%s\" "
 				"style=\"margin-left: 0px\""
 				"accesskey=\"%s\" hidden>%s</button>",
 			e_mail_part_get_id (part),
-			EAB_CONTACT_DISPLAY_RENDER_COMPACT, button_iframe_uri, access_key,
+			EAB_CONTACT_DISPLAY_RENDER_COMPACT, button_iframe_uri, page_token, access_key,
 			html_label);
 		g_output_stream_write_all (
 			stream, str, strlen (str), NULL, cancellable, NULL);
@@ -200,6 +191,7 @@ mail_formatter_vcard_format (EMailFormatterExtension *extension,
 		g_free (html_label);
 		g_free (button_iframe_uri);
 		g_clear_pointer (&access_key, g_free);
+		g_clear_pointer (&page_token, camel_pstring_free);
 
 		html_label = e_mail_formatter_parse_html_mnemonics (
 				_("Save _To Addressbook"), &access_key);

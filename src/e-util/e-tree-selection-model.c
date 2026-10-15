@@ -1,23 +1,8 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *		Mike Kestner <mkestner@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
+ * SPDX-FileContributor: Mike Kestner <mkestner@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -33,8 +18,11 @@ enum {
 	PROP_CURSOR_ROW,
 	PROP_CURSOR_COL,
 	PROP_MODEL,
-	PROP_ETTA
+	PROP_ETTA,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 struct _ETreeSelectionModelPrivate {
 	ETreeTableAdapter *etta;
@@ -678,45 +666,31 @@ e_tree_selection_model_class_init (ETreeSelectionModelClass *class)
 	esm_class->move_selection_end = tree_selection_model_move_selection_end;
 	esm_class->set_selection_end = tree_selection_model_set_selection_end;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CURSOR_ROW,
+	properties[PROP_CURSOR_ROW] =
 		g_param_spec_int (
-			"cursor_row",
-			"Cursor Row",
-			NULL,
+			"cursor-row", NULL, NULL,
 			0, G_MAXINT, 0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CURSOR_COL,
+	properties[PROP_CURSOR_COL] =
 		g_param_spec_int (
-			"cursor_col",
-			"Cursor Column",
-			NULL,
+			"cursor-col", NULL, NULL,
 			0, G_MAXINT, 0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MODEL,
+	properties[PROP_MODEL] =
 		g_param_spec_object (
-			"model",
-			"Model",
-			NULL,
+			"model", NULL, NULL,
 			E_TYPE_TREE_MODEL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ETTA,
+	properties[PROP_ETTA] =
 		g_param_spec_object (
-			"etta",
-			"ETTA",
-			NULL,
+			"etta", NULL, NULL,
 			E_TYPE_TREE_TABLE_ADAPTER,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

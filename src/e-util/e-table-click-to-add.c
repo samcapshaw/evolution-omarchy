@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -58,8 +43,11 @@ enum {
 	PROP_MESSAGE,
 	PROP_WIDTH,
 	PROP_HEIGHT,
-	PROP_IS_EDITING
+	PROP_IS_EDITING,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static void
 etcta_cursor_change (GObject *object,
@@ -229,7 +217,7 @@ etcta_set_property (GObject *object,
 		if (etcta->row)
 			gnome_canvas_item_set (
 				etcta->row,
-				"minimum_width", etcta->width,
+				"minimum-width", etcta->width,
 				NULL);
 		if (etcta->text)
 			gnome_canvas_item_set (
@@ -347,7 +335,11 @@ item_key_press (ETableItem *item,
                 GdkEvent *event,
                 ETableClickToAdd *etcta)
 {
-	switch (event->key.keyval) {
+	guint keyval = 0;
+
+	gdk_event_get_keyval (event, &keyval);
+
+	switch (keyval) {
 		case GDK_KEY_Return:
 		case GDK_KEY_KP_Enter:
 		case GDK_KEY_ISO_Enter:
@@ -374,7 +366,7 @@ table_click_to_add_row_is_editing_changed_cb (ETableItem *item,
 {
 	g_return_if_fail (E_IS_TABLE_CLICK_TO_ADD (etcta));
 
-	g_object_notify (G_OBJECT (etcta), "is-editing");
+	g_object_notify_by_pspec (G_OBJECT (etcta), properties[PROP_IS_EDITING]);
 }
 
 static void
@@ -409,11 +401,11 @@ finish_editing (ETableClickToAdd *etcta)
 			e_table_item_get_type (),
 			"ETableHeader", etcta->eth,
 			"ETableModel", etcta->one,
-			"minimum_width", etcta->width,
-			"horizontal_draw_grid", TRUE,
-			"vertical_draw_grid", TRUE,
-			"selection_model", etcta->selection,
-			"cursor_mode", E_CURSOR_SPREADSHEET,
+			"minimum-width", etcta->width,
+			"horizontal-draw-grid", TRUE,
+			"vertical-draw-grid", TRUE,
+			"selection-model", etcta->selection,
+			"cursor-mode", E_CURSOR_SPREADSHEET,
 			NULL);
 
 		g_signal_connect (
@@ -426,7 +418,7 @@ finish_editing (ETableClickToAdd *etcta)
 
 		set_initial_selection (etcta);
 
-		g_object_notify (G_OBJECT (etcta), "is-editing");
+		g_object_notify_by_pspec (G_OBJECT (etcta), properties[PROP_IS_EDITING]);
 	}
 }
 
@@ -438,7 +430,7 @@ etcta_event (GnomeCanvasItem *item,
 {
 	ETableClickToAdd *etcta = E_TABLE_CLICK_TO_ADD (item);
 
-	switch (e->type) {
+	switch (gdk_event_get_event_type (e)) {
 	case GDK_FOCUS_CHANGE:
 		if (!e->focus_change.in)
 			return TRUE;
@@ -468,11 +460,11 @@ etcta_event (GnomeCanvasItem *item,
 				e_table_item_get_type (),
 				"ETableHeader", etcta->eth,
 				"ETableModel", etcta->one,
-				"minimum_width", etcta->width,
-				"horizontal_draw_grid", TRUE,
-				"vertical_draw_grid", TRUE,
-				"selection_model", etcta->selection,
-				"cursor_mode", E_CURSOR_SPREADSHEET,
+				"minimum-width", etcta->width,
+				"horizontal-draw-grid", TRUE,
+				"vertical-draw-grid", TRUE,
+				"selection-model", etcta->selection,
+				"cursor-mode", E_CURSOR_SPREADSHEET,
 				NULL);
 
 			g_signal_connect (
@@ -487,12 +479,16 @@ etcta_event (GnomeCanvasItem *item,
 
 			set_initial_selection (etcta);
 
-			g_object_notify (G_OBJECT (etcta), "is-editing");
+			g_object_notify_by_pspec (G_OBJECT (etcta), properties[PROP_IS_EDITING]);
 		}
 		break;
 
-	case GDK_KEY_PRESS:
-		switch (e->key.keyval) {
+	case GDK_KEY_PRESS: {
+		guint keyval = 0;
+
+		gdk_event_get_keyval (e, &keyval);
+
+		switch (keyval) {
 		case GDK_KEY_Tab:
 		case GDK_KEY_KP_Tab:
 		case GDK_KEY_ISO_Left_Tab:
@@ -512,6 +508,7 @@ etcta_event (GnomeCanvasItem *item,
 			break;
 		}
 		break;
+	}
 
 	default:
 		return FALSE;
@@ -569,67 +566,50 @@ e_table_click_to_add_class_init (ETableClickToAddClass *class)
 	item_class->unrealize = etcta_unrealize;
 	item_class->event = etcta_event;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HEADER,
+	properties[PROP_HEADER] =
 		g_param_spec_object (
-			"header",
-			"Header",
-			NULL,
+			"header", NULL, NULL,
 			E_TYPE_TABLE_HEADER,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MODEL,
+	properties[PROP_MODEL] =
 		g_param_spec_object (
-			"model",
-			"Model",
-			NULL,
+			"model", NULL, NULL,
 			E_TYPE_TABLE_MODEL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MESSAGE,
+	properties[PROP_MESSAGE] =
 		g_param_spec_string (
-			"message",
-			"Message",
+			"message", NULL, NULL,
 			NULL,
-			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_WIDTH,
+	properties[PROP_WIDTH] =
 		g_param_spec_double (
-			"width",
-			"Width",
-			NULL,
+			"width", NULL, NULL,
 			0.0, G_MAXDOUBLE, 0.0,
 			G_PARAM_READWRITE |
-			G_PARAM_LAX_VALIDATION));
+			G_PARAM_LAX_VALIDATION | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HEIGHT,
+	properties[PROP_HEIGHT] =
 		g_param_spec_double (
-			"height",
-			"Height",
-			NULL,
+			"height", NULL, NULL,
 			0.0, G_MAXDOUBLE, 0.0,
 			G_PARAM_READABLE |
-			G_PARAM_LAX_VALIDATION));
+			G_PARAM_LAX_VALIDATION | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_IS_EDITING,
+	/**
+	 * ETableClickToAdd:is-editing
+	 *
+	 * Whether is in an editing mode
+	 **/
+	properties[PROP_IS_EDITING] =
 		g_param_spec_boolean (
-			"is-editing",
-			"Whether is in an editing mode",
-			"Whether is in an editing mode",
+			"is-editing", NULL, NULL,
 			FALSE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	etcta_signals[CURSOR_CHANGE] = g_signal_new (
 		"cursor_change",

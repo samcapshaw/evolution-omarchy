@@ -1,21 +1,6 @@
 /*
- * e-mail-reader.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -231,13 +216,12 @@ action_add_to_address_book_cb (EUIAction *action,
 	EMailDisplay *display;
 	EMailSession *session;
 	EShellBackend *shell_backend;
-	CamelInternetAddress *cia;
+	CamelInternetAddress *cia = NULL;
 	EPhotoCache *photo_cache;
 	EWebView *web_view;
-	CamelURL *curl;
 	const gchar *uri;
 	const gchar *address_only = NULL;
-	gchar *email;
+	gchar *email, *path = NULL;
 
 	/* This action is defined in EMailDisplay. */
 
@@ -252,16 +236,25 @@ action_add_to_address_book_cb (EUIAction *action,
 	uri = e_web_view_get_selected_uri (web_view);
 	g_return_if_fail (uri != NULL);
 
-	curl = camel_url_new (uri, NULL);
-	g_return_if_fail (curl != NULL);
+	if (g_uri_split (uri, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL, NULL, NULL,
+			 NULL, &path, NULL, NULL, NULL) && path && *path) {
+		gchar *decoded_path = g_uri_unescape_string (path, NULL);
+		g_clear_pointer (&path, g_free);
 
-	if (curl->path == NULL || *curl->path == '\0')
-		goto exit;
-
-	cia = camel_internet_address_new ();
-	if (camel_address_decode (CAMEL_ADDRESS (cia), curl->path) < 0) {
-		g_object_unref (cia);
-		goto exit;
+		if (decoded_path) {
+			cia = camel_internet_address_new ();
+			if (camel_address_decode (CAMEL_ADDRESS (cia), decoded_path) < 0) {
+				g_clear_object (&cia);
+				g_free (decoded_path);
+				return;
+			}
+			g_free (decoded_path);
+		} else {
+			return;
+		}
+	} else {
+		g_clear_pointer (&path, g_free);
+		return;
 	}
 
 	/* XXX EBookShellBackend should be listening for this
@@ -278,10 +271,7 @@ action_add_to_address_book_cb (EUIAction *action,
 	if (camel_internet_address_get (cia, 0, NULL, &address_only))
 		e_photo_cache_remove_photo (photo_cache, address_only);
 
-	g_object_unref (cia);
-
-exit:
-	camel_url_free (curl);
+	g_clear_object (&cia);
 }
 
 static void
@@ -2913,7 +2903,7 @@ action_search_folder_recipient_cb (EUIAction *action,
 	EMailBackend *backend;
 	EMailSession *session;
 	EWebView *web_view;
-	CamelURL *curl;
+	gchar *path = NULL;
 	const gchar *uri;
 
 	/* This action is defined in EMailDisplay. */
@@ -2923,28 +2913,31 @@ action_search_folder_recipient_cb (EUIAction *action,
 	uri = e_web_view_get_selected_uri (web_view);
 	g_return_if_fail (uri != NULL);
 
-	curl = camel_url_new (uri, NULL);
-	g_return_if_fail (curl != NULL);
-
 	backend = e_mail_reader_get_backend (reader);
 	session = e_mail_backend_get_session (backend);
 
-	if (curl->path != NULL && *curl->path != '\0') {
+	if (g_uri_split (uri, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL, NULL, NULL,
+			 NULL, &path, NULL, NULL, NULL) && path && *path) {
 		CamelFolder *folder;
 		CamelInternetAddress *inet_addr;
+		gchar *decoded_path;
 
+		decoded_path = g_uri_unescape_string (path, NULL);
 		folder = e_mail_reader_ref_folder (reader);
 
-		inet_addr = camel_internet_address_new ();
-		camel_address_decode (CAMEL_ADDRESS (inet_addr), curl->path);
-		vfolder_gui_add_from_address (
-			session, inet_addr, AUTO_TO, folder);
-		g_object_unref (inet_addr);
+		if (decoded_path) {
+			inet_addr = camel_internet_address_new ();
+			camel_address_decode (CAMEL_ADDRESS (inet_addr), decoded_path);
+			vfolder_gui_add_from_address (
+				session, inet_addr, AUTO_TO, folder);
+			g_object_unref (inet_addr);
+			g_free (decoded_path);
+		}
 
 		g_clear_object (&folder);
 	}
 
-	camel_url_free (curl);
+	g_clear_pointer (&path, g_free);
 }
 
 static void
@@ -2956,7 +2949,7 @@ action_search_folder_sender_cb (EUIAction *action,
 	EMailBackend *backend;
 	EMailSession *session;
 	EWebView *web_view;
-	CamelURL *curl;
+	gchar *path = NULL;
 	const gchar *uri;
 
 	/* This action is defined in EMailDisplay. */
@@ -2966,28 +2959,31 @@ action_search_folder_sender_cb (EUIAction *action,
 	uri = e_web_view_get_selected_uri (web_view);
 	g_return_if_fail (uri != NULL);
 
-	curl = camel_url_new (uri, NULL);
-	g_return_if_fail (curl != NULL);
-
 	backend = e_mail_reader_get_backend (reader);
 	session = e_mail_backend_get_session (backend);
 
-	if (curl->path != NULL && *curl->path != '\0') {
+	if (g_uri_split (uri, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL, NULL, NULL,
+			 NULL, &path, NULL, NULL, NULL) && path && *path) {
 		CamelFolder *folder;
 		CamelInternetAddress *inet_addr;
+		gchar *decoded_path;
 
+		decoded_path = g_uri_unescape_string (path, NULL);
 		folder = e_mail_reader_ref_folder (reader);
 
-		inet_addr = camel_internet_address_new ();
-		camel_address_decode (CAMEL_ADDRESS (inet_addr), curl->path);
-		vfolder_gui_add_from_address (
-			session, inet_addr, AUTO_FROM, folder);
-		g_object_unref (inet_addr);
+		if (decoded_path) {
+			inet_addr = camel_internet_address_new ();
+			camel_address_decode (CAMEL_ADDRESS (inet_addr), decoded_path);
+			vfolder_gui_add_from_address (
+				session, inet_addr, AUTO_FROM, folder);
+			g_object_unref (inet_addr);
+			g_free (decoded_path);
+		}
 
 		g_clear_object (&folder);
 	}
 
-	camel_url_free (curl);
+	g_clear_pointer (&path, g_free);
 }
 
 static void
@@ -3255,13 +3251,6 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		  N_("Flag the selected messages for follow-up"),
 		  action_mail_flag_for_followup_cb, NULL, NULL, NULL },
 
-		{ "mail-flag-for-followup-full",
-		  "stock_mail-flag-for-followup",
-		  N_("Mark for Follo_w Up…"),
-		  NULL,
-		  N_("Flag the selected messages for follow-up"),
-		  action_mail_flag_for_followup_cb, NULL, NULL, NULL },
-
 		{ "mail-forward",
 		  "mail-forward",
 		  N_("_Forward"),
@@ -3276,13 +3265,6 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		  N_("Forward the selected message to someone as an attachment"),
 		  action_mail_forward_attached_cb, NULL, NULL, NULL },
 
-		{ "mail-forward-attached-full",
-		  NULL,
-		  N_("Forward As _Attached"),
-		  NULL,
-		  N_("Forward the selected message to someone as an attachment"),
-		  action_mail_forward_attached_cb, NULL, NULL, NULL },
-
 		{ "mail-forward-inline",
 		  NULL,
 		  N_("_Inline"),
@@ -3290,23 +3272,9 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		  N_("Forward the selected message in the body of a new message"),
 		  action_mail_forward_inline_cb, NULL, NULL, NULL },
 
-		{ "mail-forward-inline-full",
-		  NULL,
-		  N_("Forward As _Inline"),
-		  NULL,
-		  N_("Forward the selected message in the body of a new message"),
-		  action_mail_forward_inline_cb, NULL, NULL, NULL },
-
 		{ "mail-forward-quoted",
 		  NULL,
 		  N_("_Quoted"),
-		  NULL,
-		  N_("Forward the selected message quoted like a reply"),
-		  action_mail_forward_quoted_cb, NULL, NULL, NULL },
-
-		{ "mail-forward-quoted-full",
-		  NULL,
-		  N_("Forward As _Quoted"),
 		  NULL,
 		  N_("Forward the selected message quoted like a reply"),
 		  action_mail_forward_quoted_cb, NULL, NULL, NULL },
@@ -3373,24 +3341,10 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		  N_("Mark the selected messages as important"),
 		  action_mail_mark_important_cb, NULL, NULL, NULL },
 
-		{ "mail-mark-important-full",
-		  "mail-mark-important",
-		  N_("Mark as _Important"),
-		  NULL,
-		  N_("Mark the selected messages as important"),
-		  action_mail_mark_important_cb, NULL, NULL, NULL },
-
 		{ "mail-mark-junk",
 		  "mail-mark-junk",
 		  N_("_Junk"),
 		  "<Control>j",
-		  N_("Mark the selected messages as junk"),
-		  action_mail_mark_junk_cb, NULL, NULL, NULL },
-
-		{ "mail-mark-junk-full",
-		  "mail-mark-junk",
-		  N_("Mark as _Junk"),
-		  NULL,
 		  N_("Mark the selected messages as junk"),
 		  action_mail_mark_junk_cb, NULL, NULL, NULL },
 
@@ -3401,23 +3355,9 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		  N_("Mark the selected messages as not being junk"),
 		  action_mail_mark_notjunk_cb, NULL, NULL, NULL },
 
-		{ "mail-mark-notjunk-full",
-		  "mail-mark-notjunk",
-		  N_("Mark as _Not Junk"),
-		  NULL,
-		  N_("Mark the selected messages as not being junk"),
-		  action_mail_mark_notjunk_cb, NULL, NULL, NULL },
-
 		{ "mail-mark-read",
 		  "mail-mark-read",
 		  N_("_Read"),
-		  "<Control>k",
-		  N_("Mark the selected messages as having been read"),
-		  action_mail_mark_read_cb, NULL, NULL, NULL },
-
-		{ "mail-mark-read-full",
-		  "mail-mark-read",
-		  N_("Mar_k as Read"),
 		  "<Control>k",
 		  N_("Mark the selected messages as having been read"),
 		  action_mail_mark_read_cb, NULL, NULL, NULL },
@@ -3443,24 +3383,10 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		  N_("Mark the selected messages as unimportant"),
 		  action_mail_mark_unimportant_cb, NULL, NULL, NULL },
 
-		{ "mail-mark-unimportant-full",
-		  NULL,
-		  N_("Mark as Uni_mportant"),
-		  NULL,
-		  N_("Mark the selected messages as unimportant"),
-		  action_mail_mark_unimportant_cb, NULL, NULL, NULL },
-
 		{ "mail-mark-unread",
 		  "mail-mark-unread",
 		  N_("_Unread"),
 		  "<Shift><Control>k",
-		  N_("Mark the selected messages as not having been read"),
-		  action_mail_mark_unread_cb, NULL, NULL, NULL },
-
-		{ "mail-mark-unread-full",
-		  "mail-mark-unread",
-		  N_("Mark as _Unread"),
-		  NULL,
 		  N_("Mark the selected messages as not having been read"),
 		  action_mail_mark_unread_cb, NULL, NULL, NULL },
 
@@ -3742,23 +3668,37 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		  action_mail_search_folder_from_subject_cb, NULL, NULL, NULL },
 	};
 
-	const struct _name_pair {
-		const gchar *src_name;
-		const gchar *dst_name;
-	} name_pairs[] = {
-		{ "mail-flag-for-followup", "mail-flag-for-followup-full" },
-		{ "mail-forward-attached", "mail-forward-attached-full" },
-		{ "mail-forward-inline", "mail-forward-inline-full" },
-		{ "mail-forward-quoted", "mail-forward-quoted-full" },
-		{ "mail-mark-important", "mail-mark-important-full" },
-		{ "mail-mark-junk", "mail-mark-junk-full" },
-		{ "mail-mark-notjunk", "mail-mark-notjunk-full" },
-		{ "mail-mark-unimportant", "mail-mark-unimportant-full" },
-		{ "mail-mark-unread", "mail-mark-unread-full" }
+	static const struct _secondary_label {
+		const gchar *action_name;
+		const gchar *secondary_label;
+	} secondary_labels[] = {
+		{ "mail-mark-read", N_("Mar_k as Read") },
+		{ "mail-mark-unread", N_("Mark as _Unread") },
+		{ "mail-mark-important", N_("Mark as _Important") },
+		{ "mail-mark-unimportant", N_("Mark as Uni_mportant") },
+		{ "mail-mark-junk", N_("Mark as _Junk") },
+		{ "mail-mark-notjunk", N_("Mark as _Not Junk") },
+		{ "mail-flag-for-followup", N_("Mark for Follo_w Up…") },
+		{ "mail-forward-attached", N_("Forward As _Attached") },
+		{ "mail-forward-inline", N_("Forward As _Inline") },
+		{ "mail-forward-quoted", N_("Forward As _Quoted") },
+	};
+	static const EUIActionRename action_renames[] = {
+		{ "mail-flag-for-followup-full", "mail-flag-for-followup" },
+		{ "mail-forward-attached-full", "mail-forward-attached" },
+		{ "mail-forward-inline-full", "mail-forward-inline" },
+		{ "mail-forward-quoted-full", "mail-forward-quoted" },
+		{ "mail-mark-important-full", "mail-mark-important" },
+		{ "mail-mark-junk-full", "mail-mark-junk" },
+		{ "mail-mark-notjunk-full", "mail-mark-notjunk" },
+		{ "mail-mark-read-full", "mail-mark-read" },
+		{ "mail-mark-unimportant-full", "mail-mark-unimportant" },
+		{ "mail-mark-unread-full", "mail-mark-unread" },
 	};
 	EUIManager *ui_manager;
 	EMailReaderPrivate *priv;
 	EMailDisplay *display;
+	EUICustomizer *customizer;
 	EUIAction *action;
 	GSettings *settings;
 	gint ii;
@@ -3793,12 +3733,15 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		"EMailReader::mail-label-actions",
 		NULL);
 
-	for (ii = 0; ii < G_N_ELEMENTS (name_pairs); ii++) {
-		e_binding_bind_property (
-			e_ui_manager_get_action (ui_manager, name_pairs[ii].src_name), "sensitive",
-			e_ui_manager_get_action (ui_manager, name_pairs[ii].dst_name), "sensitive",
-			G_BINDING_SYNC_CREATE);
+	for (ii = 0; ii < G_N_ELEMENTS (secondary_labels); ii++) {
+		action = e_ui_manager_get_action (ui_manager, secondary_labels[ii].action_name);
+		if (action)
+			e_ui_action_set_secondary_label (action, g_dgettext (NULL, secondary_labels[ii].secondary_label));
 	}
+
+	customizer = e_ui_manager_get_customizer (ui_manager);
+	if (customizer)
+		e_ui_customizer_rename_actions (customizer, action_renames, G_N_ELEMENTS (action_renames));
 
 	if (!e_ui_parser_merge_file (e_ui_manager_get_parser (ui_manager), "evolution-mail-reader.eui", &local_error))
 		g_warning ("%s: Failed to read %s file: %s", G_STRFUNC, "evolution-mail-reader.eui", local_error ? local_error->message : "Unknown error");
@@ -5206,6 +5149,50 @@ mail_label_change_more_set_none_clicked_cb (GtkWidget *button,
 }
 
 static void
+mail_label_change_more_search_mnemonic_cb (GtkWidget *widget,
+					   gpointer user_data)
+{
+	guint *pdata = user_data;
+	guint keyval = pdata[0];
+	GtkWidget *mnemonic_widget;
+
+	if (pdata[1])
+		return;
+
+	if (GTK_IS_LABEL (widget)) {
+		if (gtk_label_get_mnemonic_keyval (GTK_LABEL (widget)) == keyval) {
+			mnemonic_widget = gtk_label_get_mnemonic_widget (GTK_LABEL (widget));
+			if (mnemonic_widget && gtk_widget_get_visible (mnemonic_widget)) {
+				gtk_widget_mnemonic_activate (mnemonic_widget, FALSE);
+				pdata[1] = 1;
+				return;
+			}
+		}
+	}
+
+	if (GTK_IS_CONTAINER (widget))
+		gtk_container_forall (GTK_CONTAINER (widget), mail_label_change_more_search_mnemonic_cb, user_data);
+}
+
+static gboolean
+mail_label_change_more_key_press_cb (GtkWidget *popover,
+				     GdkEventKey *event,
+				     gpointer user_data)
+{
+	guint pdata[2];
+
+	if ((event->state & gtk_accelerator_get_default_mod_mask ()) != GDK_MOD1_MASK)
+		return GDK_EVENT_PROPAGATE;
+
+	pdata[0] = gdk_keyval_to_lower (event->keyval);
+	pdata[1] = 0;
+
+	gtk_container_forall (GTK_CONTAINER (popover), mail_label_change_more_search_mnemonic_cb, pdata);
+
+	return pdata[1] ? GDK_EVENT_STOP : GDK_EVENT_PROPAGATE;
+}
+
+static void
 action_mail_label_change_more_cb (EUIAction *action,
 				  GVariant *parameter,
 				  gpointer user_data)
@@ -5363,6 +5350,8 @@ action_mail_label_change_more_cb (EUIAction *action,
 
 	g_signal_connect (popover, "closed",
 		G_CALLBACK (gtk_widget_destroy), NULL);
+	g_signal_connect (popover, "key-press-event",
+		G_CALLBACK (mail_label_change_more_key_press_cb), NULL);
 
 	widget = gtk_popover_get_relative_to (GTK_POPOVER (popover));
 	if (widget) {

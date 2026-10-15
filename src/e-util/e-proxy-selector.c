@@ -1,18 +1,5 @@
 /*
- * e-proxy-selector.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /**
@@ -52,8 +39,11 @@ struct _AsyncContext {
 enum {
 	PROP_0,
 	PROP_REGISTRY,
-	PROP_SELECTED
+	PROP_SELECTED,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	COLUMN_DISPLAY_NAME,
@@ -325,7 +315,7 @@ static void
 proxy_selector_selection_changed_cb (GtkTreeSelection *selection,
                                      EProxySelector *selector)
 {
-	g_object_notify (G_OBJECT (selector), "selected");
+	g_object_notify_by_pspec (G_OBJECT (selector), properties[PROP_SELECTED]);
 }
 
 static void
@@ -558,28 +548,32 @@ e_proxy_selector_class_init (EProxySelectorClass *class)
 	tree_view_frame_class->update_toolbar_actions =
 				proxy_selector_update_toolbar_actions;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_REGISTRY,
+	/**
+	 * EProxySelector:registry
+	 *
+	 * Data source registry
+	 **/
+	properties[PROP_REGISTRY] =
 		g_param_spec_object (
-			"registry",
-			"Registry",
-			"Data source registry",
+			"registry", NULL, NULL,
 			E_TYPE_SOURCE_REGISTRY,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SELECTED,
+	/**
+	 * EProxySelector:selected
+	 *
+	 * The selected data source
+	 **/
+	properties[PROP_SELECTED] =
 		g_param_spec_object (
-			"selected",
-			"Selected",
-			"The selected data source",
+			"selected", NULL, NULL,
 			E_TYPE_SOURCE,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

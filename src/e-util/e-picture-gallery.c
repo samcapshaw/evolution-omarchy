@@ -1,21 +1,6 @@
 /*
- * e-picture-gallery.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -33,8 +18,11 @@ struct _EPictureGalleryPrivate {
 
 enum {
 	PROP_0,
-	PROP_PATH
+	PROP_PATH,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	COL_PIXBUF = 0,
@@ -432,15 +420,13 @@ e_picture_gallery_class_init (EPictureGalleryClass *class)
 	object_class->constructed = picture_gallery_constructed;
 	object_class->dispose = picture_gallery_dispose;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PATH,
+	properties[PROP_PATH] =
 		g_param_spec_string (
-			"path",
-			"Gallery path",
+			"path", NULL, NULL,
 			NULL,
-			NULL,
-			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

@@ -1,18 +1,5 @@
 /*
- * e-activity-bar.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -44,8 +31,11 @@ struct _EActivityBarPrivate {
 
 enum {
 	PROP_0,
-	PROP_ACTIVITY
+	PROP_ACTIVITY,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EActivityBar, e_activity_bar, GTK_TYPE_INFO_BAR)
 
@@ -303,16 +293,14 @@ e_activity_bar_class_init (EActivityBarClass *class)
 	object_class->constructed = activity_bar_constructed;
 	object_class->dispose = activity_bar_dispose;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ACTIVITY,
+	properties[PROP_ACTIVITY] =
 		g_param_spec_object (
-			"activity",
-			NULL,
-			NULL,
+			"activity", NULL, NULL,
 			E_TYPE_ACTIVITY,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -419,5 +407,5 @@ e_activity_bar_set_activity (EActivityBar *bar,
 
 	activity_bar_update (bar);
 
-	g_object_notify (G_OBJECT (bar), "activity");
+	g_object_notify_by_pspec (G_OBJECT (bar), properties[PROP_ACTIVITY]);
 }

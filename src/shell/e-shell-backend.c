@@ -1,23 +1,8 @@
 /*
- * e-shell-backend.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *   Jonathon Jongsma <jonathon.jongsma@collabora.co.uk>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- * Copyright (C) 2009 Intel Corporation
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 2009 Intel Corporation
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jonathon Jongsma <jonathon.jongsma@collabora.co.uk>
  */
 
 /**
@@ -62,8 +47,11 @@ struct _EShellBackendPrivate {
 enum {
 	PROP_0,
 	PROP_BUSY,
-	PROP_PREFER_NEW_ITEM
+	PROP_PREFER_NEW_ITEM,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	ACTIVITY_ADDED,
@@ -120,7 +108,7 @@ shell_backend_notify_busy_idle_cb (gpointer user_data)
 {
 	EShellBackend *shell_backend = user_data;
 
-	g_object_notify (G_OBJECT (shell_backend), "busy");
+	g_object_notify_by_pspec (G_OBJECT (shell_backend), properties[PROP_BUSY]);
 
 	return G_SOURCE_REMOVE;
 }
@@ -134,7 +122,7 @@ shell_backend_activity_finalized_cb (EShellBackend *shell_backend,
 	/* Only emit "notify::busy" when switching from busy to idle. */
 	if (g_queue_is_empty (shell_backend->priv->activities)) {
 		if (e_util_is_main_thread (g_thread_self ())) {
-			g_object_notify (G_OBJECT (shell_backend), "busy");
+			g_object_notify_by_pspec (G_OBJECT (shell_backend), properties[PROP_BUSY]);
 			g_object_unref (shell_backend);
 		} else {
 			GSource *idle_source = g_idle_source_new ();
@@ -362,32 +350,36 @@ e_shell_backend_class_init (EShellBackendClass *class)
 	 *
 	 * Whether any activities are still in progress.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_BUSY,
+	/**
+	 * EShellBackend:busy
+	 *
+	 * Whether any activities are still in progress
+	 **/
+	properties[PROP_BUSY] =
 		g_param_spec_boolean (
-			"busy",
-			"Busy",
-			"Whether any activities are still in progress",
+			"busy", NULL, NULL,
 			FALSE,
 			G_PARAM_READABLE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * EShellBackend:prefer-new-item
 	 *
 	 * Name of an item to prefer in New toolbar button; can be NULL
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_PREFER_NEW_ITEM,
+	/**
+	 * EShellBackend:prefer-new-item
+	 *
+	 * Name of an item to prefer in New toolbar button
+	 **/
+	properties[PROP_PREFER_NEW_ITEM] =
 		g_param_spec_string (
-			"prefer-new-item",
-			"Prefer New Item",
-			"Name of an item to prefer in New toolbar button",
+			"prefer-new-item", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	/**
 	 * EShellBackend::activity-added
@@ -557,7 +549,7 @@ e_shell_backend_add_activity (EShellBackend *shell_backend,
 
 	/* Only emit "notify::busy" when switching from idle to busy. */
 	if (g_queue_get_length (shell_backend->priv->activities) == 1)
-		g_object_notify (G_OBJECT (shell_backend), "busy");
+		g_object_notify_by_pspec (G_OBJECT (shell_backend), properties[PROP_BUSY]);
 }
 
 /**
@@ -618,7 +610,7 @@ e_shell_backend_set_prefer_new_item (EShellBackend *shell_backend,
 	g_free (shell_backend->priv->prefer_new_item);
 	shell_backend->priv->prefer_new_item = g_strdup (prefer_new_item);
 
-	g_object_notify (G_OBJECT (shell_backend), "prefer-new-item");
+	g_object_notify_by_pspec (G_OBJECT (shell_backend), properties[PROP_PREFER_NEW_ITEM]);
 }
 
 /**

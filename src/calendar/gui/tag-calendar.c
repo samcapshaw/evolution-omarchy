@@ -1,26 +1,8 @@
 /*
- *
- * Evolution calendar - Utilities for tagging ECalendar widgets
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Damon Chaplin <damon@ximian.com>
- *      Federico Mena-Quintero <federico@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Damon Chaplin <damon@ximian.com>
+ * SPDX-FileContributor: Federico Mena-Quintero <federico@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -48,8 +30,11 @@ struct _ETagCalendarPrivate
 enum {
 	PROP_0,
 	PROP_CALENDAR,
-	PROP_RECUR_EVENTS_ITALIC
+	PROP_RECUR_EVENTS_ITALIC,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static void e_tag_calendar_cal_data_model_subscriber_init (ECalDataModelSubscriberInterface *iface);
 
@@ -749,26 +734,20 @@ e_tag_calendar_class_init (ETagCalendarClass *class)
 	object_class->dispose = e_tag_calendar_dispose;
 	object_class->finalize = e_tag_calendar_finalize;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CALENDAR,
+	properties[PROP_CALENDAR] =
 		g_param_spec_object (
-			"calendar",
-			"Calendar",
-			NULL,
+			"calendar", NULL, NULL,
 			E_TYPE_CALENDAR,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_RECUR_EVENTS_ITALIC,
+	properties[PROP_RECUR_EVENTS_ITALIC] =
 		g_param_spec_boolean (
-			"recur-events-italic",
-			"Recur Events Italic",
-			NULL,
+			"recur-events-italic", NULL, NULL,
 			FALSE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -832,7 +811,7 @@ e_tag_calendar_set_recur_events_italic (ETagCalendar *tag_calendar,
 
 	tag_calendar->priv->recur_events_italic = recur_events_italic;
 
-	g_object_notify (G_OBJECT (tag_calendar), "recur-events-italic");
+	g_object_notify_by_pspec (G_OBJECT (tag_calendar), properties[PROP_RECUR_EVENTS_ITALIC]);
 
 	e_tag_calendar_remark_days (tag_calendar);
 }

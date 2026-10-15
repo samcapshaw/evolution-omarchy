@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -39,8 +24,11 @@ enum {
 	PROP_0,
 	PROP_FULL_HEADER,
 	PROP_HEADER,
-	PROP_DND_CODE
+	PROP_DND_CODE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE (
 	ETableFieldChooser,
@@ -58,35 +46,25 @@ e_table_field_chooser_class_init (ETableFieldChooserClass *class)
 	object_class->get_property = e_table_field_chooser_get_property;
 	object_class->dispose = e_table_field_chooser_dispose;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DND_CODE,
+	properties[PROP_DND_CODE] =
 		g_param_spec_string (
-			"dnd_code",
-			"DnD code",
+			"dnd-code", NULL, NULL,
 			NULL,
-			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FULL_HEADER,
+	properties[PROP_FULL_HEADER] =
 		g_param_spec_object (
-			"full_header",
-			"Full Header",
-			NULL,
+			"full-header", NULL, NULL,
 			E_TYPE_TABLE_HEADER,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HEADER,
+	properties[PROP_HEADER] =
 		g_param_spec_object (
-			"header",
-			"Header",
-			NULL,
+			"header", NULL, NULL,
 			E_TYPE_TABLE_HEADER,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -213,9 +191,9 @@ e_table_field_chooser_init (ETableFieldChooser *etfc)
 		gnome_canvas_root (etfc->canvas),
 		e_table_field_chooser_item_get_type (),
 		"width", (gdouble) 100,
-		"full_header", etfc->full_header,
+		"full-header", etfc->full_header,
 		"header", etfc->header,
-		"dnd_code", etfc->dnd_code,
+		"dnd-code", etfc->dnd_code,
 		NULL);
 
 	g_signal_connect (
@@ -270,7 +248,7 @@ e_table_field_chooser_set_property (GObject *object,
 		if (etfc->item)
 			g_object_set (
 				etfc->item,
-				"dnd_code", etfc->dnd_code,
+				"dnd-code", etfc->dnd_code,
 				NULL);
 		break;
 	case PROP_FULL_HEADER:
@@ -285,7 +263,7 @@ e_table_field_chooser_set_property (GObject *object,
 		if (etfc->item)
 			g_object_set (
 				etfc->item,
-				"full_header", etfc->full_header,
+				"full-header", etfc->full_header,
 				NULL);
 		break;
 	case PROP_HEADER:

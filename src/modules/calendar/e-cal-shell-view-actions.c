@@ -1,21 +1,6 @@
 /*
- * e-cal-shell-view-actions.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -252,6 +237,26 @@ action_calendar_print_cb (EUIAction *action,
 	ECalShellView *cal_shell_view = user_data;
 
 	cal_shell_view_actions_print_or_preview (cal_shell_view, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG);
+}
+
+static void
+action_calendar_print_details_cb (EUIAction *action,
+				  GVariant *parameter,
+				  gpointer user_data)
+{
+	ECalShellView *cal_shell_view = user_data;
+	ECalShellContent *cal_shell_content;
+	ECalendarView *cal_view;
+	ECalModel *model;
+	time_t start = 0, end = 0;
+
+	cal_shell_content = cal_shell_view->priv->cal_shell_content;
+	cal_view = e_cal_shell_content_get_current_calendar_view (cal_shell_content);
+	model = e_calendar_view_get_model (cal_view);
+
+	e_cal_model_get_time_range (model, &start, &end);
+
+	print_calendar_detailed (cal_view, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, start, end);
 }
 
 static void
@@ -550,11 +555,10 @@ cal_shell_view_transfer_selected (ECalShellView *cal_shell_view,
 	g_return_if_fail (selected != NULL);
 
 	if (selected->data && is_move) {
-		ECalendarViewEvent *event = selected->data;
+		ECalendarViewSelectionData *sel_data = selected->data;
 
-		if (is_comp_data_valid (event) && event->comp_data->client)
-			source_source = e_client_get_source (
-				E_CLIENT (event->comp_data->client));
+		if (sel_data->client)
+			source_source = e_client_get_source (E_CLIENT (sel_data->client));
 	}
 
 	/* Get a destination source from the user. */
@@ -1814,6 +1818,13 @@ e_cal_shell_view_actions_init (ECalShellView *self)
 		  "<Control>p",
 		  N_("Print this calendar"),
 		  action_calendar_print_cb, NULL, NULL, NULL },
+
+		{ "calendar-print-details",
+		  "document-print",
+		  N_("Print _Details…"),
+		  NULL,
+		  N_("Print calendar with full event details"),
+		  action_calendar_print_details_cb, NULL, NULL, NULL },
 
 		{ "calendar-print-preview",
 		  "document-print-preview",

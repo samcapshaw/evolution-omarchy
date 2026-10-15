@@ -1,18 +1,5 @@
 /*
- * evolution-cal-config-weather.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -284,10 +271,20 @@ cal_config_weather_insert_widgets (ESourceConfigBackend *backend,
 	extension_name = E_SOURCE_EXTENSION_WEATHER_BACKEND;
 	extension = e_source_get_extension (scratch_source, extension_name);
 
-	if (is_new_source)
+	if (is_new_source) {
+		ESourceAlarms *alarms;
+		ESourceConflictSearch *conflict_search;
+
+		alarms = e_source_get_extension (scratch_source, E_SOURCE_EXTENSION_ALARMS);
+		e_source_alarms_set_include_me (alarms, FALSE);
+
+		conflict_search = e_source_get_extension (scratch_source, E_SOURCE_EXTENSION_CONFLICT_SEARCH);
+		e_source_conflict_search_set_include_me (conflict_search, FALSE);
+
 		e_source_weather_set_units (
 			E_SOURCE_WEATHER (extension),
 			cal_config_weather_get_units_from_locale ());
+	}
 
 	e_binding_bind_property_full (
 		extension, "location",

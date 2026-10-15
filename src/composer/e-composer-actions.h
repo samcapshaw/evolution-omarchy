@@ -1,17 +1,6 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifndef E_COMPOSER_ACTIONS_H
@@ -86,6 +75,8 @@
 	E_COMPOSER_ACTION ((composer), "view-mail-reply-to")
 #define E_COMPOSER_ACTION_VIEW_REPLY_TO(composer) \
 	E_COMPOSER_ACTION ((composer), "view-reply-to")
+#define E_COMPOSER_ACTION_VIEW_USE_THEME_COLORS(composer) \
+	E_COMPOSER_ACTION ((composer), "view-use-theme-colors")
 #define E_COMPOSER_ACTION_VISUALLY_WRAP_LONG_LINES(composer) \
 	E_COMPOSER_ACTION ((composer), "visually-wrap-long-lines")
 

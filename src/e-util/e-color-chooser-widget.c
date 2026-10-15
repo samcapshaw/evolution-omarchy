@@ -1,21 +1,6 @@
-
-/* e-color-chooser-widget.c
- *
- * Copyright (C) 2012 Dan Vrátil <dvratil@redhat.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of version 2 of the GNU Lesser General Public
- * License as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+/*
+ * SPDX-FileCopyrightText: (C) 2012 Dan Vrátil <dvratil@redhat.com>
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -65,6 +50,7 @@ color_chooser_widget_button_press_event (GtkWidget *widget,
                                          GdkEventButton *event)
 {
 	GtkWidget *parent;
+	guint button = 0;
 
 	g_return_val_if_fail (origin_swatch_button_press_event != NULL, FALSE);
 
@@ -73,9 +59,11 @@ color_chooser_widget_button_press_event (GtkWidget *widget,
 	while (parent && !E_IS_COLOR_CHOOSER_WIDGET (parent))
 		parent = gtk_widget_get_parent (parent);
 
+	gdk_event_get_button ((GdkEvent *) event, &button);
+
 	if (parent &&
-	    event->type == GDK_BUTTON_PRESS &&
-	    event->button == GDK_BUTTON_PRIMARY) {
+	    gdk_event_get_event_type ((GdkEvent *) event) == GDK_BUTTON_PRESS &&
+	    button == GDK_BUTTON_PRIMARY) {
 		g_signal_emit_by_name (widget, "activate");
 		return TRUE;
 	}

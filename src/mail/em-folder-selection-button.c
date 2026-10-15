@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Jeffrey Stedfast <fejj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jeffrey Stedfast <fejj@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -53,8 +38,11 @@ enum {
 	PROP_FOLDER_URI,
 	PROP_SESSION,
 	PROP_STORE,
-	PROP_TITLE
+	PROP_TITLE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	SELECTED,
@@ -322,71 +310,54 @@ em_folder_selection_button_class_init (EMFolderSelectionButtonClass *class)
 	button_class = GTK_BUTTON_CLASS (class);
 	button_class->clicked = folder_selection_button_clicked;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CAN_NONE,
+	/**
+	 * EMFolderSelectionButton:can-none
+	 *
+	 * Whether can show 'None' button, to be able to unselect folder
+	 **/
+	properties[PROP_CAN_NONE] =
 		g_param_spec_boolean (
-			"can-none",
-			"Can None",
-			"Whether can show 'None' button, to be able to unselect folder",
+			"can-none", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CAPTION,
+	properties[PROP_CAPTION] =
 		g_param_spec_string (
-			"caption",
-			NULL,
-			NULL,
+			"caption", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FOLDER_URI,
+	properties[PROP_FOLDER_URI] =
 		g_param_spec_string (
-			"folder-uri",
-			NULL,
-			NULL,
+			"folder-uri", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SESSION,
+	properties[PROP_SESSION] =
 		g_param_spec_object (
-			"session",
-			NULL,
-			NULL,
+			"session", NULL, NULL,
 			E_TYPE_MAIL_SESSION,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_STORE,
+	properties[PROP_STORE] =
 		g_param_spec_object (
-			"store",
-			NULL,
-			NULL,
+			"store", NULL, NULL,
 			CAMEL_TYPE_STORE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TITLE,
+	properties[PROP_TITLE] =
 		g_param_spec_string (
-			"title",
-			NULL,
-			NULL,
+			"title", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[SELECTED] = g_signal_new (
 		"selected",
@@ -462,7 +433,7 @@ em_folder_selection_button_set_session (EMFolderSelectionButton *button,
 
 	button->priv->session = session;
 
-	g_object_notify (G_OBJECT (button), "session");
+	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_SESSION]);
 }
 
 gboolean
@@ -484,7 +455,7 @@ em_folder_selection_button_set_can_none (EMFolderSelectionButton *button,
 
 	button->priv->can_none = can_none;
 
-	g_object_notify (G_OBJECT (button), "can-none");
+	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_CAN_NONE]);
 }
 
 const gchar *
@@ -507,7 +478,7 @@ em_folder_selection_button_set_caption (EMFolderSelectionButton *button,
 	g_free (button->priv->caption);
 	button->priv->caption = g_strdup (caption);
 
-	g_object_notify (G_OBJECT (button), "caption");
+	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_CAPTION]);
 }
 
 const gchar *
@@ -536,7 +507,7 @@ em_folder_selection_button_set_folder_uri (EMFolderSelectionButton *button,
 
 	folder_selection_button_set_contents (button);
 
-	g_object_notify (G_OBJECT (button), "folder-uri");
+	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_FOLDER_URI]);
 }
 
 CamelStore *
@@ -566,7 +537,7 @@ em_folder_selection_button_set_store (EMFolderSelectionButton *button,
 
 	button->priv->store = store;
 
-	g_object_notify (G_OBJECT (button), "store");
+	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_STORE]);
 }
 
 const gchar *
@@ -589,5 +560,5 @@ em_folder_selection_button_set_title (EMFolderSelectionButton *button,
 	g_free (button->priv->title);
 	button->priv->title = g_strdup (title);
 
-	g_object_notify (G_OBJECT (button), "title");
+	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_TITLE]);
 }

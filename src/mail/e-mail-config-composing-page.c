@@ -1,16 +1,5 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -18,6 +7,8 @@
 #include <glib/gi18n-lib.h>
 
 #include <libedataserver/libedataserver.h>
+
+#include <e-util/e-util.h>
 
 #include "e-mail-config-page.h"
 #include "e-mail-config-activity-page.h"
@@ -31,8 +22,11 @@ struct _EMailConfigComposingPagePrivate {
 
 enum {
 	PROP_0,
-	PROP_IDENTITY_SOURCE
+	PROP_IDENTITY_SOURCE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Forward Declarations */
 static void	e_mail_config_composing_page_interface_init
@@ -209,6 +203,47 @@ mail_config_composing_page_string_to_reply_style (GBinding *binding,
 	g_warn_if_fail (enum_value != NULL);
 
 	g_type_class_unref (enum_class);
+
+	return TRUE;
+}
+
+static gboolean
+mail_config_composing_page_mode_string_to_int (GBinding *binding,
+					       const GValue *source_value,
+					       GValue *target_value,
+					       gpointer data)
+{
+	const gchar *nick;
+	gint mode_value;
+
+	nick = g_value_get_string (source_value);
+	if (!nick || !*nick) {
+		g_value_set_int (target_value, E_CONTENT_EDITOR_MODE_UNKNOWN);
+		return TRUE;
+	}
+
+	if (!e_enum_from_string (E_TYPE_CONTENT_EDITOR_MODE, nick, &mode_value))
+		mode_value = E_CONTENT_EDITOR_MODE_UNKNOWN;
+	g_value_set_int (target_value, mode_value);
+
+	return TRUE;
+}
+
+static gboolean
+mail_config_composing_page_mode_int_to_string (GBinding *binding,
+					       const GValue *source_value,
+					       GValue *target_value,
+					       gpointer data)
+{
+	gint mode;
+
+	mode = g_value_get_int (source_value);
+	if (mode == E_CONTENT_EDITOR_MODE_UNKNOWN) {
+		g_value_set_string (target_value, NULL);
+		return TRUE;
+	}
+
+	g_value_set_string (target_value, e_enum_to_string (E_TYPE_CONTENT_EDITOR_MODE, mode));
 
 	return TRUE;
 }
@@ -522,6 +557,31 @@ mail_config_composing_page_constructed (GObject *object)
 	if (gtk_combo_box_get_active (GTK_COMBO_BOX (widget)) == -1)
 		gtk_combo_box_set_active (GTK_COMBO_BOX (widget), 0);
 
+	widget = gtk_label_new_with_mnemonic (_("_Format messages in:"));
+	gtk_widget_set_hexpand (widget, FALSE);
+	gtk_widget_set_margin_start (widget, 12);
+	gtk_label_set_xalign (GTK_LABEL (widget), 0);
+	gtk_grid_attach (GTK_GRID (container), widget, 0, 7, 1, 1);
+	gtk_widget_show (widget);
+
+	label = GTK_LABEL (widget);
+
+	widget = e_html_editor_util_new_mode_combobox (_("Use global setting"));
+	gtk_widget_set_halign (widget, GTK_ALIGN_START);
+	gtk_widget_set_hexpand (widget, TRUE);
+	gtk_label_set_mnemonic_widget (label, widget);
+	gtk_grid_attach (GTK_GRID (container), widget, 1, 7, 1, 1);
+	gtk_widget_show (widget);
+
+	e_binding_bind_property_full (
+		composition_ext, "composer-mode",
+		widget, "current-value",
+		G_BINDING_BIDIRECTIONAL |
+		G_BINDING_SYNC_CREATE,
+		mail_config_composing_page_mode_string_to_int,
+		mail_config_composing_page_mode_int_to_string,
+		NULL, (GDestroyNotify) NULL);
+
 	widget = gtk_check_button_new_with_mnemonic (_("Start _typing at the bottom"));
 	gtk_widget_set_margin_start (widget, 12);
 	gtk_box_pack_start (GTK_BOX (main_box), widget, FALSE, FALSE, 0);
@@ -622,17 +682,20 @@ e_mail_config_composing_page_class_init (EMailConfigComposingPageClass *class)
 	object_class->dispose = mail_config_composing_page_dispose;
 	object_class->constructed = mail_config_composing_page_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_IDENTITY_SOURCE,
+	/**
+	 * EMailConfigComposingPage:identity-source
+	 *
+	 * Mail identity source being edited
+	 **/
+	properties[PROP_IDENTITY_SOURCE] =
 		g_param_spec_object (
-			"identity-source",
-			"Identity Source",
-			"Mail identity source being edited",
+			"identity-source", NULL, NULL,
 			E_TYPE_SOURCE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

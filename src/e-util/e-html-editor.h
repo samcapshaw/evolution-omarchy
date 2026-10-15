@@ -1,21 +1,6 @@
 /*
- * e-html-editor.h
- *
- * Copyright (C) 2012 Dan Vrátil <dvratil@redhat.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of version 2 of the GNU Lesser General Public
- * License as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * SPDX-FileCopyrightText: (C) 2012 Dan Vrátil <dvratil@redhat.com>
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #if !defined (__E_UTIL_H_INSIDE__) && !defined (LIBEUTIL_COMPILATION)
@@ -142,9 +127,8 @@ CamelMimePart * e_html_editor_ref_cid_part	(EHTMLEditor *editor,
 						 const gchar *cid_uri);
 void		e_html_editor_clear_alerts	(EHTMLEditor *editor);
 EAlertBar *	e_html_editor_get_alert_bar	(EHTMLEditor *editor);
-EActionComboBox *
-		e_html_editor_util_new_mode_combobox
-						(void);
+GtkWidget *	e_html_editor_util_new_mode_combobox
+						(const gchar *unknown_label);
 G_END_DECLS
 
 #endif /* E_HTML_EDITOR_H */

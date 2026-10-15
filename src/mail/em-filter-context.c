@@ -1,23 +1,8 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Not Zed <notzed@lostzed.mmc.com.au>
- *      Jeffrey Stedfast <fejj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Not Zed <notzed@lostzed.mmc.com.au>
+ * SPDX-FileContributor: Jeffrey Stedfast <fejj@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -37,8 +22,11 @@ struct _EMFilterContextPrivate {
 
 enum {
 	PROP_0,
-	PROP_SESSION
+	PROP_SESSION,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EMFilterContext, em_filter_context, E_TYPE_RULE_CONTEXT)
 
@@ -244,16 +232,14 @@ em_filter_context_class_init (EMFilterContextClass *class)
 	rule_context_class->delete_uri = filter_context_delete_uri;
 	rule_context_class->new_element = filter_context_new_element;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SESSION,
+	properties[PROP_SESSION] =
 		g_param_spec_object (
-			"session",
-			NULL,
-			NULL,
+			"session", NULL, NULL,
 			E_TYPE_MAIL_SESSION,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

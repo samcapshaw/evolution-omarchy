@@ -1,18 +1,5 @@
 /*
- * e-mail-part-headers.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -30,8 +17,11 @@ struct _EMailPartHeadersPrivate {
 
 enum {
 	PROP_0,
-	PROP_DEFAULT_HEADERS
+	PROP_DEFAULT_HEADERS,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EMailPartHeaders, e_mail_part_headers, E_TYPE_MAIL_PART)
 
@@ -208,17 +198,20 @@ e_mail_part_headers_class_init (EMailPartHeadersClass *class)
 	object_class->finalize = mail_part_headers_finalize;
 	object_class->constructed = mail_part_headers_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DEFAULT_HEADERS,
+	/**
+	 * EMailPartHeaders:default-headers
+	 *
+	 * Headers to display by default
+	 **/
+	properties[PROP_DEFAULT_HEADERS] =
 		g_param_spec_boxed (
-			"default-headers",
-			"Default Headers",
-			"Headers to display by default",
+			"default-headers", NULL, NULL,
 			G_TYPE_STRV,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -272,7 +265,7 @@ e_mail_part_headers_set_default_headers (EMailPartHeaders *part,
 
 	g_mutex_unlock (&part->priv->property_lock);
 
-	g_object_notify (G_OBJECT (part), "default-headers");
+	g_object_notify_by_pspec (G_OBJECT (part), properties[PROP_DEFAULT_HEADERS]);
 }
 
 gboolean

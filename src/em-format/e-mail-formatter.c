@@ -1,18 +1,5 @@
 /*
- * e-mail-formatter.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -23,6 +10,7 @@
 
 #include <gdk/gdk.h>
 #include <libebackend/libebackend.h>
+#include <camel/camel.h>
 
 #include <e-util/e-util.h>
 #include <shell/e-shell.h>
@@ -49,6 +37,7 @@ struct _EMailFormatterPrivate {
 
 	gchar *charset;
 	gchar *default_charset;
+	const gchar *page_token; /* in camel string pool */
 
 	GdkRGBA colors[E_MAIL_FORMATTER_NUM_COLOR_TYPES];
 };
@@ -99,8 +88,12 @@ enum {
 	PROP_MARK_CITATIONS,
 	PROP_SHOW_REAL_DATE,
 	PROP_SHOW_SENDER_PHOTO,
-	PROP_TEXT_COLOR
+	PROP_TEXT_COLOR,
+	PROP_ERROR_COLOR,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	NEED_REDRAW,
@@ -251,6 +244,13 @@ e_mail_formatter_set_property (GObject *object,
 				E_MAIL_FORMATTER_COLOR_TEXT,
 				g_value_get_boxed (value));
 			return;
+
+		case PROP_ERROR_COLOR:
+			e_mail_formatter_set_color (
+				E_MAIL_FORMATTER (object),
+				E_MAIL_FORMATTER_COLOR_ERROR,
+				g_value_get_boxed (value));
+			return;
 	}
 
 	G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -359,6 +359,14 @@ e_mail_formatter_get_property (GObject *object,
 				E_MAIL_FORMATTER (object),
 				E_MAIL_FORMATTER_COLOR_TEXT));
 			return;
+
+		case PROP_ERROR_COLOR:
+			g_value_set_boxed (
+				value,
+				e_mail_formatter_get_color (
+				E_MAIL_FORMATTER (object),
+				E_MAIL_FORMATTER_COLOR_ERROR));
+			return;
 	}
 
 	G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -371,6 +379,7 @@ e_mail_formatter_finalize (GObject *object)
 
 	g_free (self->priv->charset);
 	g_free (self->priv->default_charset);
+	g_clear_pointer (&self->priv->page_token, camel_pstring_free);
 
 	g_mutex_clear (&self->priv->property_lock);
 
@@ -615,151 +624,108 @@ e_mail_formatter_class_init (EMailFormatterClass *class)
 	class->run = mail_formatter_run;
 	class->update_style = mail_formatter_update_style;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ANIMATE_IMAGES,
+	properties[PROP_ANIMATE_IMAGES] =
 		g_param_spec_boolean (
-			"animate-images",
-			"Animate images",
-			NULL,
+			"animate-images", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_BODY_COLOR,
+	properties[PROP_BODY_COLOR] =
 		g_param_spec_boxed (
-			"body-color",
-			"Body Color",
-			NULL,
+			"body-color", NULL, NULL,
 			GDK_TYPE_RGBA,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CHARSET,
+	properties[PROP_CHARSET] =
 		g_param_spec_string (
-			"charset",
-			NULL,
-			NULL,
+			"charset", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CITATION_COLOR,
+	properties[PROP_CITATION_COLOR] =
 		g_param_spec_boxed (
-			"citation-color",
-			"Citation Color",
-			NULL,
+			"citation-color", NULL, NULL,
 			GDK_TYPE_RGBA,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CONTENT_COLOR,
+	properties[PROP_CONTENT_COLOR] =
 		g_param_spec_boxed (
-			"content-color",
-			"Content Color",
-			NULL,
+			"content-color", NULL, NULL,
 			GDK_TYPE_RGBA,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DEFAULT_CHARSET,
+	properties[PROP_DEFAULT_CHARSET] =
 		g_param_spec_string (
-			"default-charset",
-			NULL,
-			NULL,
+			"default-charset", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FRAME_COLOR,
+	properties[PROP_FRAME_COLOR] =
 		g_param_spec_boxed (
-			"frame-color",
-			"Frame Color",
-			NULL,
+			"frame-color", NULL, NULL,
 			GDK_TYPE_RGBA,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HEADER_COLOR,
+	properties[PROP_HEADER_COLOR] =
 		g_param_spec_boxed (
-			"header-color",
-			"Header Color",
-			NULL,
+			"header-color", NULL, NULL,
 			GDK_TYPE_RGBA,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_IMAGE_LOADING_POLICY,
+	properties[PROP_IMAGE_LOADING_POLICY] =
 		g_param_spec_enum (
-			"image-loading-policy",
-			"Image Loading Policy",
-			NULL,
+			"image-loading-policy", NULL, NULL,
 			E_TYPE_IMAGE_LOADING_POLICY,
 			E_IMAGE_LOADING_POLICY_NEVER,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MARK_CITATIONS,
+	properties[PROP_MARK_CITATIONS] =
 		g_param_spec_boolean (
-			"mark-citations",
-			"Mark Citations",
-			NULL,
+			"mark-citations", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_REAL_DATE,
+	properties[PROP_SHOW_REAL_DATE] =
 		g_param_spec_boolean (
-			"show-real-date",
-			"Show real Date header value",
-			NULL,
+			"show-real-date", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_SENDER_PHOTO,
+	properties[PROP_SHOW_SENDER_PHOTO] =
 		g_param_spec_boolean (
-			"show-sender-photo",
-			"Show Sender Photo",
-			NULL,
+			"show-sender-photo", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TEXT_COLOR,
+	properties[PROP_TEXT_COLOR] =
 		g_param_spec_boxed (
-			"text-color",
-			"Text Color",
-			NULL,
+			"text-color", NULL, NULL,
 			GDK_TYPE_RGBA,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	properties[PROP_ERROR_COLOR] =
+		g_param_spec_boxed (
+			"error-color", NULL, NULL,
+			GDK_TYPE_RGBA,
+			G_PARAM_READWRITE |
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[CLAIM_ATTACHMENT] = g_signal_new (
 		"claim-attachment",
@@ -791,7 +757,7 @@ e_mail_formatter_init (EMailFormatter *formatter)
 	gdk_rgba_parse (rgba, "#eeeeee");
 
 	rgba = &formatter->priv->colors[E_MAIL_FORMATTER_COLOR_CONTENT];
-	gdk_rgba_parse (rgba, "#ffffff");
+	gdk_rgba_parse (rgba, "#f7f7f7");
 
 	rgba = &formatter->priv->colors[E_MAIL_FORMATTER_COLOR_FRAME];
 	gdk_rgba_parse (rgba, "#3f3f3f");
@@ -801,6 +767,9 @@ e_mail_formatter_init (EMailFormatter *formatter)
 
 	rgba = &formatter->priv->colors[E_MAIL_FORMATTER_COLOR_TEXT];
 	gdk_rgba_parse (rgba, "#000000");
+
+	rgba = &formatter->priv->colors[E_MAIL_FORMATTER_COLOR_ERROR];
+	gdk_rgba_parse (rgba, "#ee0000");
 }
 
 EMailFormatter *
@@ -1277,6 +1246,9 @@ e_mail_formatter_set_color (EMailFormatter *formatter,
 		case E_MAIL_FORMATTER_COLOR_TEXT:
 			property_name = "text-color";
 			break;
+		case E_MAIL_FORMATTER_COLOR_ERROR:
+			property_name = "error-color";
+			break;
 		default:
 			g_return_if_reached ();
 	}
@@ -1318,7 +1290,7 @@ e_mail_formatter_set_image_loading_policy (EMailFormatter *formatter,
 
 	formatter->priv->image_loading_policy = policy;
 
-	g_object_notify (G_OBJECT (formatter), "image-loading-policy");
+	g_object_notify_by_pspec (G_OBJECT (formatter), properties[PROP_IMAGE_LOADING_POLICY]);
 }
 
 gboolean
@@ -1353,7 +1325,7 @@ e_mail_formatter_set_mark_citations (EMailFormatter *formatter,
 	else
 		klass->text_html_flags &= ~CAMEL_MIME_FILTER_TOHTML_MARK_CITATION;
 
-	g_object_notify (G_OBJECT (formatter), "mark-citations");
+	g_object_notify_by_pspec (G_OBJECT (formatter), properties[PROP_MARK_CITATIONS]);
 }
 
 gboolean
@@ -1375,7 +1347,7 @@ e_mail_formatter_set_show_sender_photo (EMailFormatter *formatter,
 
 	formatter->priv->show_sender_photo = show_sender_photo;
 
-	g_object_notify (G_OBJECT (formatter), "show-sender-photo");
+	g_object_notify_by_pspec (G_OBJECT (formatter), properties[PROP_SHOW_SENDER_PHOTO]);
 }
 
 gboolean
@@ -1397,7 +1369,7 @@ e_mail_formatter_set_show_real_date (EMailFormatter *formatter,
 
 	formatter->priv->show_real_date = show_real_date;
 
-	g_object_notify (G_OBJECT (formatter), "show-real-date");
+	g_object_notify_by_pspec (G_OBJECT (formatter), properties[PROP_SHOW_REAL_DATE]);
 }
 
 gboolean
@@ -1419,7 +1391,7 @@ e_mail_formatter_set_animate_images (EMailFormatter *formatter,
 
 	formatter->priv->animate_images = animate_images;
 
-	g_object_notify (G_OBJECT (formatter), "animate-images");
+	g_object_notify_by_pspec (G_OBJECT (formatter), properties[PROP_ANIMATE_IMAGES]);
 }
 
 const gchar *
@@ -1466,7 +1438,7 @@ e_mail_formatter_set_charset (EMailFormatter *formatter,
 
 	g_mutex_unlock (&formatter->priv->property_lock);
 
-	g_object_notify (G_OBJECT (formatter), "charset");
+	g_object_notify_by_pspec (G_OBJECT (formatter), properties[PROP_CHARSET]);
 }
 
 const gchar *
@@ -1514,6 +1486,51 @@ e_mail_formatter_set_default_charset (EMailFormatter *formatter,
 
 	g_mutex_unlock (&formatter->priv->property_lock);
 
-	g_object_notify (G_OBJECT (formatter), "default-charset");
+	g_object_notify_by_pspec (G_OBJECT (formatter), properties[PROP_DEFAULT_CHARSET]);
+}
+
+const gchar * /* (transfer full) use camel_pstring_free() to unref/free it */
+e_mail_formatter_ensure_page_token (EMailFormatter *formatter)
+{
+	const gchar *page_token;
+
+	g_return_val_if_fail (E_IS_MAIL_FORMATTER (formatter), NULL);
+
+	g_mutex_lock (&formatter->priv->property_lock);
+
+	if (!formatter->priv->page_token)
+		formatter->priv->page_token = camel_pstring_add (e_util_generate_uid (), TRUE);
+
+	page_token = camel_pstring_strdup (formatter->priv->page_token);
+
+	g_mutex_unlock (&formatter->priv->property_lock);
+
+	return page_token;
+}
+
+const gchar * /* (transfer full) use camel_pstring_free() to unref/free it */
+e_mail_formatter_dup_page_token (EMailFormatter *formatter)
+{
+	const gchar *result;
+
+	g_return_val_if_fail (E_IS_MAIL_FORMATTER (formatter), NULL);
+
+	g_mutex_lock (&formatter->priv->property_lock);
+	result = camel_pstring_strdup (formatter->priv->page_token);
+	g_mutex_unlock (&formatter->priv->property_lock);
+
+	return result;
+}
+
+void
+e_mail_formatter_reset_page_token (EMailFormatter *formatter)
+{
+	g_return_if_fail (E_IS_MAIL_FORMATTER (formatter));
+
+	g_mutex_lock (&formatter->priv->property_lock);
+
+	g_clear_pointer (&formatter->priv->page_token, camel_pstring_free);
+
+	g_mutex_unlock (&formatter->priv->property_lock);
 }
 

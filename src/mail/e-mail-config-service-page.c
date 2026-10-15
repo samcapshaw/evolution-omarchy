@@ -1,18 +1,5 @@
 /*
- * e-mail-config-service-page.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -66,8 +53,11 @@ enum {
 	PROP_0,
 	PROP_ACTIVE_BACKEND,
 	PROP_EMAIL_ADDRESS,
-	PROP_REGISTRY
+	PROP_REGISTRY,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	COLUMN_BACKEND_NAME,
@@ -670,39 +660,44 @@ e_mail_config_service_page_class_init (EMailConfigServicePageClass *class)
 	object_class->finalize = mail_config_service_page_finalize;
 	object_class->constructed = mail_config_service_page_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ACTIVE_BACKEND,
+	/**
+	 * EMailConfigServicePage:active-backend
+	 *
+	 * The active service backend
+	 **/
+	properties[PROP_ACTIVE_BACKEND] =
 		g_param_spec_object (
-			"active-backend",
-			"Active Backend",
-			"The active service backend",
+			"active-backend", NULL, NULL,
 			E_TYPE_MAIL_CONFIG_SERVICE_BACKEND,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_EMAIL_ADDRESS,
+	/**
+	 * EMailConfigServicePage:email-address
+	 *
+	 * The user's email address
+	 **/
+	properties[PROP_EMAIL_ADDRESS] =
 		g_param_spec_string (
-			"email-address",
-			"Email Address",
-			"The user's email address",
+			"email-address", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_REGISTRY,
+	/**
+	 * EMailConfigServicePage:registry
+	 *
+	 * Data source registry
+	 **/
+	properties[PROP_REGISTRY] =
 		g_param_spec_object (
-			"registry",
-			"Registry",
-			"Data source registry",
+			"registry", NULL, NULL,
 			E_TYPE_SOURCE_REGISTRY,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -746,7 +741,7 @@ e_mail_config_service_page_set_active_backend (EMailConfigServicePage *page,
 
 	page->priv->active_backend = backend;
 
-	g_object_notify (G_OBJECT (page), "active-backend");
+	g_object_notify_by_pspec (G_OBJECT (page), properties[PROP_ACTIVE_BACKEND]);
 }
 
 const gchar *
@@ -769,7 +764,7 @@ e_mail_config_service_page_set_email_address (EMailConfigServicePage *page,
 	g_free (page->priv->email_address);
 	page->priv->email_address = g_strdup (email_address);
 
-	g_object_notify (G_OBJECT (page), "email-address");
+	g_object_notify_by_pspec (G_OBJECT (page), properties[PROP_EMAIL_ADDRESS]);
 }
 
 ESourceRegistry *

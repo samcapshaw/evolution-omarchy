@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Jeffrey Stedfast <fejj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jeffrey Stedfast <fejj@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -390,7 +375,8 @@ em_utils_flag_for_followup_completed (GtkWindow *parent,
 static gint
 em_utils_write_messages_to_stream (CamelFolder *folder,
                                    GPtrArray *uids,
-                                   CamelStream *stream)
+                                   CamelStream *stream,
+				   gboolean with_from_line)
 {
 	CamelStream *filtered_stream;
 	CamelMimeFilter *from_filter;
@@ -404,7 +390,6 @@ em_utils_write_messages_to_stream (CamelFolder *folder,
 
 	for (i = 0; i < uids->len; i++) {
 		CamelMimeMessage *message;
-		gchar *from;
 
 		/* FIXME camel_folder_get_message_sync() may block. */
 		message = camel_folder_get_message_sync (
@@ -414,20 +399,26 @@ em_utils_write_messages_to_stream (CamelFolder *folder,
 			break;
 		}
 
+		if (with_from_line) {
+			gchar *from;
+
+			from = camel_mime_message_build_mbox_from (message);
+			res = camel_stream_write_string (stream, from, NULL, NULL);
+			g_free (from);
+
+			if (res == -1) {
+				g_object_unref (message);
+				break;
+			}
+		}
 		/* We need to flush after each stream write since we are
 		 * writing to the same stream. */
-		from = camel_mime_message_build_mbox_from (message);
 
-		if (camel_stream_write_string (stream, from, NULL, NULL) == -1
-		    || camel_stream_flush (stream, NULL, NULL) == -1
-		    || camel_data_wrapper_write_to_stream_sync (
-			(CamelDataWrapper *) message, (CamelStream *)
-			filtered_stream, NULL, NULL) == -1
-		    || camel_stream_flush (
-			(CamelStream *) filtered_stream, NULL, NULL) == -1)
+		if (camel_stream_flush (stream, NULL, NULL) == -1 ||
+		    camel_data_wrapper_write_to_stream_sync ((CamelDataWrapper *) message, (CamelStream *) filtered_stream, NULL, NULL) == -1 ||
+		    camel_stream_flush ((CamelStream *) filtered_stream, NULL, NULL) == -1)
 			res = -1;
 
-		g_free (from);
 		g_object_unref (message);
 
 		if (res == -1)
@@ -586,7 +577,7 @@ em_utils_selection_set_mailbox (GtkSelectionData *data,
 	byte_array = g_byte_array_new ();
 	stream = camel_stream_mem_new_with_byte_array (byte_array);
 
-	if (em_utils_write_messages_to_stream (folder, uids, stream) == 0)
+	if (em_utils_write_messages_to_stream (folder, uids, stream, TRUE) == 0)
 		gtk_selection_data_set (
 			data, target, 8,
 			byte_array->data, byte_array->len);
@@ -931,12 +922,9 @@ em_utils_selection_set_urilist (GdkDragContext *context,
 	gchar *tmpdir;
 	gchar *uri;
 	gint fd;
-	/* This is waiting for https://bugs.webkit.org/show_bug.cgi?id=212814 */
-	#if 0
 	GSettings *settings;
 	gchar *save_file_format;
-	#endif
-	gboolean save_as_mbox;
+	gboolean save_as_pdf, save_as_eml;
 
 	g_return_if_fail (uids != NULL);
 
@@ -962,22 +950,22 @@ em_utils_selection_set_urilist (GdkDragContext *context,
 	if (tmpdir == NULL)
 		return;
 
-	/* This is waiting for https://bugs.webkit.org/show_bug.cgi?id=212814 */
-	#if 0
 	settings = e_util_ref_settings ("org.gnome.evolution.mail");
 
 	/* Save format is mbox unless pdf is explicitly requested. */
-	save_file_format = g_settings_get_string (
-		settings, "drag-and-drop-save-file-format");
-	save_as_mbox = (g_strcmp0 (save_file_format, "pdf") != 0);
+	save_file_format = g_settings_get_string (settings, "drag-and-drop-save-file-format");
+	/* This is waiting for https://bugs.webkit.org/show_bug.cgi?id=212814 */
+	#if 0
+	save_as_pdf = g_strcmp0 (save_file_format, "pdf") == 0;
+	#else
+	save_as_pdf = FALSE;
+	#endif
+	save_as_eml = !save_as_pdf && uids->len == 1 && g_strcmp0 (save_file_format, "eml") == 0;
 	g_free (save_file_format);
 
 	g_object_unref (settings);
-	#else
-	save_as_mbox = TRUE;
-	#endif
 
-	if (save_as_mbox) {
+	if (!save_as_pdf) {
 		CamelStream *fstream;
 		gchar *basename;
 		gchar *filename;
@@ -993,9 +981,9 @@ em_utils_selection_set_urilist (GdkDragContext *context,
 		e_util_make_safe_filename (basename);
 
 		/* Add .mbox extension to the filename */
-		if (!g_str_has_suffix (basename, ".mbox")) {
+		if (!g_str_has_suffix (basename, save_as_eml ? ".eml" : ".mbox")) {
 			gchar *tmp = basename;
-			basename = g_strconcat (basename, ".mbox", NULL);
+			basename = g_strconcat (basename, save_as_eml ? ".eml" : ".mbox", NULL);
 			g_free (tmp);
 		}
 
@@ -1013,7 +1001,7 @@ em_utils_selection_set_urilist (GdkDragContext *context,
 		uri = g_filename_to_uri (filename, NULL, NULL);
 		fstream = camel_stream_fs_new_with_fd (fd);
 		if (fstream != NULL) {
-			if (em_utils_write_messages_to_stream (folder, uids, fstream) == 0) {
+			if (em_utils_write_messages_to_stream (folder, uids, fstream, !save_as_eml) == 0) {
 				GdkAtom type;
 				gchar *uri_crlf;
 
@@ -1108,7 +1096,6 @@ em_utils_selection_get_urilist (GtkSelectionData *selection_data,
                                 CamelFolder *folder)
 {
 	CamelStream *stream;
-	CamelURL *url;
 	gint fd, i, res = 0;
 	gchar **uris;
 
@@ -1117,18 +1104,19 @@ em_utils_selection_get_urilist (GtkSelectionData *selection_data,
 	uris = gtk_selection_data_get_uris (selection_data);
 
 	for (i = 0; res == 0 && uris[i]; i++) {
+		gchar *scheme = NULL, *path = NULL;
 		g_strstrip (uris[i]);
 		if (uris[i][0] == '#')
 			continue;
 
-		url = camel_url_new (uris[i], NULL);
-		if (url == NULL)
+		if (!g_uri_split (uris[i], SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, &scheme,
+				  NULL, NULL, NULL, &path, NULL, NULL, NULL))
 			continue;
 
 		/* 'fd', if set, is freed within the 'stream' */
 		/* coverity[overwrite_var] */
-		if (strcmp (url->protocol, "file") == 0
-		    && (fd = g_open (url->path, O_RDONLY | O_BINARY, 0)) != -1) {
+		if (g_strcmp0 (scheme, "file") == 0
+		    && (fd = g_open (path, O_RDONLY | O_BINARY, 0)) != -1) {
 			stream = camel_stream_fs_new_with_fd (fd);
 			if (stream) {
 				res = em_utils_read_messages_from_stream (folder, stream);
@@ -1136,7 +1124,9 @@ em_utils_selection_get_urilist (GtkSelectionData *selection_data,
 			} else
 				close (fd);
 		}
-		camel_url_free (url);
+
+		g_free (scheme);
+		g_free (path);
 	}
 
 	g_strfreev (uris);

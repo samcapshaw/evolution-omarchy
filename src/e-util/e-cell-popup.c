@@ -1,23 +1,6 @@
 /*
- * e-cell-popup.c: Popup cell renderer
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /*
@@ -358,29 +341,38 @@ ecp_event (ECellView *ecv,
 	ETableItem *eti = E_TABLE_ITEM (ecv->e_table_item_view);
 	gint width;
 
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 	case GDK_BUTTON_PRESS:
 		if (e_table_model_is_cell_editable (ecv->e_table_model, model_col, row) &&
 		    flags & E_CELL_CURSOR
 		    && ecp->popup_arrow_shown) {
+			gdouble ex = 0, ey = 0;
+
+			gdk_event_get_coords (event, &ex, &ey);
 			width = e_table_header_col_diff (
 				eti->header, view_col,
 				view_col + 1);
 
 			/* FIXME: The event coords seem to be relative to the
 			 * text within the cell, so we have to add 4. */
-			if (event->button.x + 4 >= width - E_CELL_POPUP_ARROW_SIZE) {
+			if (ex + 4 >= width - E_CELL_POPUP_ARROW_SIZE) {
 				return e_cell_popup_do_popup (ecp_view, event, row, view_col);
 			}
 		}
 		break;
-	case GDK_KEY_PRESS:
+	case GDK_KEY_PRESS: {
+		GdkModifierType state = 0;
+		guint keyval = 0;
+
+		gdk_event_get_state (event, &state);
+		gdk_event_get_keyval (event, &keyval);
 		if (e_table_model_is_cell_editable (ecv->e_table_model, model_col, row) &&
-		    event->key.state & GDK_MOD1_MASK
-		    && event->key.keyval == GDK_KEY_Down) {
+		    state & GDK_MOD1_MASK
+		    && keyval == GDK_KEY_Down) {
 			return e_cell_popup_do_popup (ecp_view, event, row, view_col);
 		}
 		break;
+	}
 	default:
 		break;
 	}

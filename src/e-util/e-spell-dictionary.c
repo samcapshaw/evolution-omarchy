@@ -1,19 +1,5 @@
 /*
- * e-spell-dictionary.c
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of version 2 of the GNU Lesser General Public
- * License as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -35,8 +21,11 @@
 
 enum {
 	PROP_0,
-	PROP_SPELL_CHECKER
+	PROP_SPELL_CHECKER,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 struct _ESpellDictionaryPrivate {
 	GWeakRef spell_checker;
@@ -158,16 +147,19 @@ e_spell_dictionary_class_init (ESpellDictionaryClass *class)
 	object_class->dispose = spell_dictionary_dispose;
 	object_class->finalize = spell_dictionary_finalize;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SPELL_CHECKER,
+	/**
+	 * ESpellDictionary:spell-checker
+	 *
+	 * Parent spell checker
+	 **/
+	properties[PROP_SPELL_CHECKER] =
 		g_param_spec_object (
-			"spell-checker",
-			NULL,
-			"Parent spell checker",
+			"spell-checker", NULL, NULL,
 			E_TYPE_SPELL_CHECKER,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

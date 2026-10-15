@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		JP Rosevear <jpr@novell.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: JP Rosevear <jpr@novell.com>
  */
 
 #include "evolution-config.h"
@@ -219,8 +204,11 @@ struct _ItipViewPrivate {
 enum {
 	PROP_0,
 	PROP_CLIENT_CACHE,
-	PROP_EXTENSION_NAME
+	PROP_EXTENSION_NAME,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	SOURCE_SELECTED,
@@ -1935,25 +1923,29 @@ itip_view_class_init (ItipViewClass *class)
 	object_class->finalize = itip_view_finalize;
 	object_class->constructed = itip_view_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CLIENT_CACHE,
+	/**
+	 * ItipView:client-cache
+	 *
+	 * Cache of shared EClient instances
+	 **/
+	properties[PROP_CLIENT_CACHE] =
 		g_param_spec_object (
-			"client-cache",
-			"Client Cache",
-			"Cache of shared EClient instances",
+			"client-cache", NULL, NULL,
 			E_TYPE_CLIENT_CACHE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_EXTENSION_NAME,
+	/**
+	 * ItipView:extension-name
+	 *
+	 * Show only data sources with this extension
+	 **/
+	properties[PROP_EXTENSION_NAME] =
 		g_param_spec_string (
-			"extension-name",
-			"Extension Name",
-			"Show only data sources with this extension",
+			"extension-name", NULL, NULL,
 			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[SOURCE_SELECTED] = g_signal_new (
 		"source_selected",
@@ -2007,7 +1999,7 @@ itip_view_set_extension_name (ItipView *view,
 	g_free (view->priv->extension_name);
 	view->priv->extension_name = g_strdup (extension_name);
 
-	g_object_notify (G_OBJECT (view), "extension-name");
+	g_object_notify_by_pspec (G_OBJECT (view), properties[PROP_EXTENSION_NAME]);
 
 	itip_view_rebuild_source_list (view);
 }
@@ -2393,7 +2385,7 @@ itip_view_write (gpointer itip_part_ptr,
 			e_mail_part_get_id (part),
 			e_mail_part_get_id (part),
 			itip_part->alternative_html_is_from_plain_text ? "" :
-			g_settings_get_boolean (settings, "preview-unset-html-colors") ? "" : " background-color: #fff; color-scheme: light;",
+			g_settings_get_boolean (settings, "preview-unset-html-colors") ? "" : " background-color: #f7f7f7; color-scheme: light;",
 			itip_part->alternative_html_is_from_plain_text ? "" :
 			g_settings_get_boolean (settings, "preview-unset-html-colors") ? "x-e-unset-colors=\"1\"" : "");
 
@@ -2676,6 +2668,63 @@ itip_view_set_mode (ItipView *view,
 
         /* Always visible */
 	show_button (view, BUTTON_OPEN_CALENDAR);
+
+	/* Exchange servers allow to "hide attendee list", then try to guess
+	   the recipient and set it as the attendee */
+	if (mode == ITIP_VIEW_MODE_REQUEST && view->priv->message &&
+	    !e_cal_util_component_has_property (view->priv->ical_comp, I_CAL_ATTENDEE_PROPERTY) &&
+	    e_cal_util_component_has_property (view->priv->ical_comp, I_CAL_ORGANIZER_PROPERTY)) {
+		ESource *identity_source = NULL;
+		gchar *name = NULL, *address = NULL;
+
+		if (view->priv->folder) {
+			identity_source = em_utils_ref_mail_identity_for_store (view->priv->registry,
+				camel_folder_get_parent_store (view->priv->folder));
+		}
+
+		if (!identity_source) {
+			identity_source = em_utils_guess_mail_identity_with_recipients (view->priv->registry,
+				view->priv->message, view->priv->folder, view->priv->message_uid, &name, &address);
+		}
+
+		if (identity_source && (!address || !*address)) {
+			ESourceMailIdentity *identity;
+
+			g_free (name);
+			g_free (address);
+
+			identity = e_source_get_extension (identity_source, E_SOURCE_EXTENSION_MAIL_IDENTITY);
+			name = e_source_mail_identity_dup_name (identity);
+			address = e_source_mail_identity_dup_address (identity);
+		}
+
+		if (identity_source && address && *address) {
+			ICalProperty *prop;
+			ICalParameter *param;
+			gchar *with_mailto;
+
+			with_mailto = g_strconcat ("mailto:", address, NULL);
+			prop = i_cal_property_new_attendee (with_mailto);
+
+			if (name && *name) {
+				param = i_cal_parameter_new_cn (name);
+				i_cal_property_take_parameter (prop, param);
+			}
+
+			param = i_cal_parameter_new_partstat (I_CAL_PARTSTAT_NEEDSACTION);
+			i_cal_property_take_parameter (prop, param);
+
+			i_cal_component_take_property (view->priv->ical_comp, prop);
+
+			itip_view_add_upper_info_item (view, ITIP_VIEW_INFO_ITEM_TYPE_WARNING, _("The attendee was guessed, because the organizer did not provide any."));
+
+			g_free (with_mailto);
+		}
+
+		g_clear_object (&identity_source);
+		g_free (address);
+		g_free (name);
+	}
 
 	switch (mode) {
 	case ITIP_VIEW_MODE_PUBLISH:
@@ -6666,6 +6715,7 @@ extract_itip_data (ItipView *view,
 	GSettings *settings;
 	ICalProperty *prop;
 	ICalComponentKind kind = I_CAL_NO_COMPONENT;
+	ICalComponent *subcomp;
 	ICalComponent *tz_comp;
 	ICalComponent *alarm_comp;
 	ICalCompIter *iter;
@@ -6700,8 +6750,6 @@ extract_itip_data (ItipView *view,
 
 	prop = i_cal_component_get_first_property (view->priv->main_comp, I_CAL_METHOD_PROPERTY);
 	if (prop == NULL) {
-		ICalComponent *subcomp;
-
 		view->priv->method = I_CAL_METHOD_PUBLISH;
 
 		/* Search in sub-components for the METHOD property when not found in the VCALENDAR */
@@ -6726,6 +6774,12 @@ extract_itip_data (ItipView *view,
 	} else {
 		view->priv->method = i_cal_property_get_method (prop);
 		g_clear_object (&prop);
+	}
+
+	for (subcomp = i_cal_component_get_first_component (view->priv->main_comp, I_CAL_ANY_COMPONENT);
+	     subcomp;
+	     g_object_unref (subcomp), subcomp = i_cal_component_get_next_component (view->priv->main_comp, I_CAL_ANY_COMPONENT)) {
+		e_cal_util_sanitize_untrusted (subcomp);
 	}
 
 	iter = i_cal_component_begin_component (view->priv->main_comp, I_CAL_VTIMEZONE_COMPONENT);

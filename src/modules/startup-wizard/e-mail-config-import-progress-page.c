@@ -1,18 +1,5 @@
 /*
- * e-mail-config-import-progress-page.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -27,8 +14,11 @@ struct _EMailConfigImportProgressPagePrivate {
 
 enum {
 	PROP_0,
-	PROP_ACTIVITY
+	PROP_ACTIVITY,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Forward Declarations */
 static void	e_mail_config_import_progress_page_interface_init
@@ -283,16 +273,19 @@ e_mail_config_import_progress_page_class_init (EMailConfigImportProgressPageClas
 	object_class->dispose = mail_config_import_progress_page_dispose;
 	object_class->constructed = mail_config_import_progress_page_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ACTIVITY,
+	/**
+	 * EMailConfigImportProgressPage:activity
+	 *
+	 * Import activity
+	 **/
+	properties[PROP_ACTIVITY] =
 		g_param_spec_object (
-			"activity",
-			"Activity",
-			"Import activity",
+			"activity", NULL, NULL,
 			E_TYPE_ACTIVITY,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.15)
 cmake_policy(VERSION 3.15)
 
 project(evolution
-	VERSION 3.60.2
+	VERSION 3.62.1
 	LANGUAGES C)
 set(PROJECT_BUGREPORT "https://gitlab.gnome.org/GNOME/evolution/issues/")
 set(PROJECT_URL "https://gitlab.gnome.org/GNOME/evolution/-/wikis/home")
@@ -12,7 +12,7 @@ set(PROJECT_URL "https://gitlab.gnome.org/GNOME/evolution/-/wikis/home")
 # Base Version: This is for API/version tracking for things like
 # D-Bus server files. This should always be the major/minor of
 # the stable version or stable version to be.
-set(BASE_VERSION 3.60)
+set(BASE_VERSION 3.62)
 
 # Used for pkg-config files
 set(INTERFACE_VERSION 3.0)
@@ -120,6 +120,18 @@ include(CheckLibraryExists)
 # Project custom modules
 include(PrintableOptions)
 
+# Set a default build type if none was specified
+set(default_build_type "Release")
+if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+  set(default_build_type "Debug")
+endif()
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to ${default_build_type} as none was specified.")
+  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING "Choose the type of build." FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
+add_printable_variable_bare(CMAKE_BUILD_TYPE)
 add_printable_variable(LIB_SUFFIX "Library directory suffix, usually defined to '64' for x86_64 systems" "")
 add_printable_variable_bare(CMAKE_INSTALL_PREFIX)
 add_printable_variable_path(BIN_INSTALL_DIR "Install directory for binary files, defaults to CMAKE_INSTALL_PREFIX/bin" "")
@@ -267,6 +279,7 @@ pkg_check_modules(GNOME_PLATFORM REQUIRED
 	${GNOME_DESKTOP_DEPENDENCY}
 	gsettings-desktop-schemas>=${gsettings_desktop_schemas_minimum_version}
 	gtk+-3.0>=${gdk_minimum_version}
+	json-glib-1.0
 	libxml-2.0>=${libxml_minimum_version}
 	shared-mime-info>=${shared_mime_info_minimum_version}
 	webkit2gtk-4.1>=${webkit2gtk_minimum_version}

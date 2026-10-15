@@ -1,23 +1,8 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *		Miguel de Icaza <miguel@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
+ * SPDX-FileContributor: Miguel de Icaza <miguel@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -34,8 +19,11 @@ enum {
 	PROP_0,
 	PROP_SORT_INFO,
 	PROP_WIDTH,
-	PROP_WIDTH_EXTRAS
+	PROP_WIDTH_EXTRAS,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	STRUCTURE_CHANGE,
@@ -273,33 +261,40 @@ e_table_header_class_init (ETableHeaderClass *class)
 	object_class->set_property = eth_set_property;
 	object_class->get_property = eth_get_property;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_WIDTH,
+	/**
+	 * ETableHeader:width
+	 *
+	 * Width
+	 **/
+	properties[PROP_WIDTH] =
 		g_param_spec_double (
-			"width", "Width", "Width",
+			"width", NULL, NULL,
 			0.0, G_MAXDOUBLE, 0.0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_WIDTH_EXTRAS,
+	/**
+	 * ETableHeader:width-extras
+	 *
+	 * Width of Extras
+	 **/
+	properties[PROP_WIDTH_EXTRAS] =
 		g_param_spec_double (
-			"width_extras",
-			"Width of Extras",
-			"Width of Extras",
+			"width-extras", NULL, NULL,
 			0.0, G_MAXDOUBLE, 0.0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SORT_INFO,
+	/**
+	 * ETableHeader:sort-info
+	 *
+	 * Sort Info
+	 **/
+	properties[PROP_SORT_INFO] =
 		g_param_spec_object (
-			"sort_info",
-			"Sort Info",
-			"Sort Info",
+			"sort-info", NULL, NULL,
 			E_TYPE_TABLE_SORT_INFO,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	eth_signals[STRUCTURE_CHANGE] = g_signal_new (
 		"structure_change",

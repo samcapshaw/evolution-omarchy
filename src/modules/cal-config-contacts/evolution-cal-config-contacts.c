@@ -1,18 +1,5 @@
 /*
- * evolution-cal-config-contacts.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -82,6 +69,13 @@ cal_config_contacts_insert_widgets (ESourceConfigBackend *backend,
 	widget = e_contacts_selector_new (registry);
 	gtk_container_add (GTK_CONTAINER (container), widget);
 	gtk_widget_show (widget);
+
+	if (!e_source_has_extension (scratch_source, E_SOURCE_EXTENSION_CONFLICT_SEARCH)) {
+		ESourceConflictSearch *conflict_search;
+
+		conflict_search = e_source_get_extension (scratch_source, E_SOURCE_EXTENSION_CONFLICT_SEARCH);
+		e_source_conflict_search_set_include_me (conflict_search, FALSE);
+	}
 }
 
 static void

@@ -1,23 +1,8 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *      Chris Toshok <toshok@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
+ * SPDX-FileContributor: Chris Toshok <toshok@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -85,11 +70,14 @@ struct _EAddressbookViewPrivate {
 
 enum {
 	PROP_0,
-	PROP_COPY_TARGET_LIST,
-	PROP_PASTE_TARGET_LIST,
 	PROP_SHELL_VIEW,
-	PROP_SOURCE
+	PROP_SOURCE,
+	N_PROPS,
+	PROP_COPY_TARGET_LIST,
+	PROP_PASTE_TARGET_LIST
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	OPEN_CONTACT,
@@ -259,7 +247,7 @@ addressbook_view_card_event_cb (EContactCardBox *box,
 	EAddressbookView *view = user_data;
 	guint event_button = 0;
 
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 	case GDK_2BUTTON_PRESS:
 		gdk_event_get_button (event, &event_button);
 		if (event_button == GDK_BUTTON_PRIMARY) {
@@ -289,13 +277,20 @@ addressbook_view_card_event_cb (EContactCardBox *box,
 			return TRUE;
 		}
 		break;
-	case GDK_KEY_PRESS:
-		if (((event->key.state & GDK_SHIFT_MASK) != 0 && event->key.keyval == GDK_KEY_F10) ||
-		    ((event->key.state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK | GDK_MOD1_MASK)) == 0 && event->key.keyval == GDK_KEY_Menu)) {
+	case GDK_KEY_PRESS: {
+		guint keyval = 0;
+		GdkModifierType state = 0;
+
+		gdk_event_get_keyval (event, &keyval);
+		gdk_event_get_state (event, &state);
+
+		if (((state & GDK_SHIFT_MASK) != 0 && keyval == GDK_KEY_F10) ||
+		    ((state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK | GDK_MOD1_MASK)) == 0 && keyval == GDK_KEY_Menu)) {
 			addressbook_view_emit_popup_event (view, event);
 			return TRUE;
 		}
 		break;
+	}
 	default:
 		break;
 	}
@@ -410,7 +405,7 @@ table_white_space_event (ETable *table,
 
 	gdk_event_get_button (event, &event_button);
 
-	if (event->type == GDK_BUTTON_PRESS && event_button == 3) {
+	if (gdk_event_get_event_type (event) == GDK_BUTTON_PRESS && event_button == GDK_BUTTON_SECONDARY) {
 		addressbook_view_emit_popup_event (view, event);
 		return TRUE;
 	}
@@ -1167,27 +1162,21 @@ e_addressbook_view_class_init (EAddressbookViewClass *class)
 		PROP_PASTE_TARGET_LIST,
 		"paste-target-list");
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHELL_VIEW,
+	properties[PROP_SHELL_VIEW] =
 		g_param_spec_object (
-			"shell-view",
-			"Shell View",
-			NULL,
+			"shell-view", NULL, NULL,
 			E_TYPE_SHELL_VIEW,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SOURCE,
+	properties[PROP_SOURCE] =
 		g_param_spec_object (
-			"source",
-			"Source",
-			NULL,
+			"source", NULL, NULL,
 			E_TYPE_SOURCE,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[OPEN_CONTACT] = g_signal_new (
 		"open-contact",

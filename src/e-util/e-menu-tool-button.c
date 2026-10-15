@@ -1,21 +1,6 @@
 /*
- * e-menu-tool-button.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -35,8 +20,11 @@ enum {
 	PROP_0,
 	PROP_PREFER_ITEM,
 	PROP_UI_MANAGER,
-	PROP_FALLBACK_ACTION
+	PROP_FALLBACK_ACTION,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EMenuToolButton, e_menu_tool_button, GTK_TYPE_MENU_TOOL_BUTTON)
 
@@ -148,35 +136,30 @@ e_menu_tool_button_class_init (EMenuToolButtonClass *class)
 	object_class->get_property = menu_tool_button_get_property;
 	object_class->finalize = menu_tool_button_finalize;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PREFER_ITEM,
+	/**
+	 * EMenuToolButton:prefer-item
+	 *
+	 * Name of an item to show instead of the first
+	 **/
+	properties[PROP_PREFER_ITEM] =
 		g_param_spec_string (
-			"prefer-item",
-			"Prefer Item",
-			"Name of an item to show instead of the first",
+			"prefer-item", NULL, NULL,
 			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_UI_MANAGER,
+	properties[PROP_UI_MANAGER] =
 		g_param_spec_object (
-			"ui-manager",
-			NULL,
-			NULL,
+			"ui-manager", NULL, NULL,
 			E_TYPE_UI_MANAGER,
-			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FALLBACK_ACTION,
+	properties[PROP_FALLBACK_ACTION] =
 		g_param_spec_object (
-			"fallback-action",
-			NULL,
-			NULL,
+			"fallback-action", NULL, NULL,
 			E_TYPE_UI_ACTION,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -223,7 +206,7 @@ e_menu_tool_button_set_prefer_item (EMenuToolButton *button,
 
 	menu_tool_button_update_button (button);
 
-	g_object_notify (G_OBJECT (button), "prefer-item");
+	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_PREFER_ITEM]);
 }
 
 EUIAction *
@@ -248,5 +231,5 @@ e_menu_tool_button_set_fallback_action (EMenuToolButton *button,
 
 	menu_tool_button_update_button (button);
 
-	g_object_notify (G_OBJECT (button), "fallback-action");
+	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_FALLBACK_ACTION]);
 }

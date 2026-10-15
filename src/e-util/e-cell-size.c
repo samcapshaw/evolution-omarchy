@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -89,13 +74,13 @@ e_cell_size_init (ECellSize *e_cell_size)
  * arguments supported allow the control of strikeout, underline,
  * bold, color and a size filter.
  *
- * The arguments "strikeout_column", "underline_column", "bold_column"
- * and "color_column" set and return an integer that points to a
+ * The arguments "strikeout-column", "underline-column", "bold-column"
+ * and "color-column" set and return an integer that points to a
  * column in the model that controls these settings.  So controlling
  * the way things are rendered is achieved by having special columns
  * in the model that will be used to flag whether the size should be
  * rendered with strikeout, underline, or bolded.  In the case of the
- * "color_column" argument, the column in the model is expected to
+ * "color-column" argument, the column in the model is expected to
  * have a string that can be parsed by gdk_rgba_parse().
  *
  * Returns: an ECell object that can be used to render file sizes.  */

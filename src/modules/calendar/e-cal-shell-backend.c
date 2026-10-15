@@ -1,18 +1,7 @@
 /*
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- * Copyright (C) 2014 Red Hat, Inc. (www.redhat.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 2014 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -158,6 +147,47 @@ cal_shell_backend_init_importers (void)
 	e_import_class_add_importer (import_class, importer, NULL, NULL);
 }
 
+static gboolean
+can_run_alarm_notify (void)
+{
+#ifdef G_OS_WIN32
+	return TRUE;
+#else
+	static gint can_run = -1;
+
+	if (can_run == -1) {
+		const gchar *desktopenv = g_getenv ("XDG_CURRENT_DESKTOP");
+		GKeyFile *keyfile;
+
+		can_run = 1;
+
+		if (!desktopenv || !*desktopenv || e_util_is_running_flatpak ())
+			return TRUE;
+
+		keyfile = g_key_file_new ();
+
+		if (g_key_file_load_from_file (keyfile, EAN_DESKTOP_FILE, G_KEY_FILE_NONE, NULL)) {
+			gchar **not_show_in;
+
+			not_show_in = g_key_file_get_string_list (keyfile, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NOT_SHOW_IN, NULL, NULL);
+			if (not_show_in) {
+				gint ii;
+
+				for (ii = 0; not_show_in[ii] && can_run; ii++) {
+					can_run = g_ascii_strcasecmp (not_show_in[ii], desktopenv) != 0;
+				}
+
+				g_strfreev (not_show_in);
+			}
+		}
+
+		g_key_file_free (keyfile);
+	}
+
+	return can_run != 0;
+#endif
+}
+
 static void
 ensure_alarm_notify_is_running (void)
 {
@@ -255,7 +285,8 @@ cal_shell_backend_constructed (GObject *object)
 
 	cal_shell_backend_init_importers ();
 
-	ensure_alarm_notify_is_running ();
+	if (can_run_alarm_notify ())
+		ensure_alarm_notify_is_running ();
 }
 
 static void

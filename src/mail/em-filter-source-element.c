@@ -1,23 +1,8 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Jon Trowbridge <trow@ximian.com>
- *      Jeffrey Stedfast <fejj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jon Trowbridge <trow@ximian.com>
+ * SPDX-FileContributor: Jeffrey Stedfast <fejj@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -43,8 +28,11 @@ G_DEFINE_TYPE_WITH_PRIVATE (EMFilterSourceElement, em_filter_source_element, E_T
 
 enum {
 	PROP_0,
-	PROP_SESSION
+	PROP_SESSION,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static void
 filter_source_element_source_changed (GtkComboBox *combo_box,
@@ -414,17 +402,15 @@ em_filter_source_element_class_init (EMFilterSourceElementClass *class)
 	filter_element_class->format_sexp = filter_source_element_format_sexp;
 	filter_element_class->describe = filter_source_element_describe;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SESSION,
+	properties[PROP_SESSION] =
 		g_param_spec_object (
-			"session",
-			NULL,
-			NULL,
+			"session", NULL, NULL,
 			E_TYPE_MAIL_SESSION,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

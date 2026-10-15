@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Michael Zucchi <notzed@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Michael Zucchi <notzed@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -61,7 +46,7 @@ struct _widget_node {
 	EConfigItem *item;
 	GtkWidget *widget; /* widget created by the factory, if any */
 	GtkWidget *frame; /* if created by us */
-	GtkWidget *real_frame; /* used for sections and section grids, this is the real GtkFrame (whereas "frame" above is the internal vbox/grid) */
+	GtkWidget *real_frame; /* used for sections and section grids, this is the real GtkFrame (whereas "frame" above is the internal box/grid) */
 
 	guint empty:1;		/* set if empty (i.e. hidden) */
 };
@@ -431,7 +416,7 @@ ec_rebuild (EConfig *config)
 			sectionno = 0;
 			break;
 		case E_CONFIG_PAGE:
-			/* The page is a VBox, stored in the notebook. */
+			/* The page is a Box, stored in the notebook. */
 			sectionno = 0;
 			if (root == NULL) {
 				g_warning ("EConfig page defined before container widget: %s", item->path);
@@ -479,7 +464,7 @@ ec_rebuild (EConfig *config)
 		case E_CONFIG_SECTION:
 		case E_CONFIG_SECTION_GRID:
 			/* The section factory is always called with
-			 * the parent vbox object.  Even for assistant pages. */
+			 * the parent box object.  Even for assistant pages. */
 			if (page == NULL) {
 				/*g_warning("EConfig section '%s' has no parent page", item->path);*/
 				section = NULL;
@@ -590,7 +575,7 @@ ec_rebuild (EConfig *config)
 
 			/* ITEMs are called with the section parent.
 			 * The type depends on the section type,
-			 * either a GtkGrid, or a GtkVBox */
+			 * either a GtkGrid, or a GtkBox */
 			w = NULL;
 			if (section == NULL) {
 				wn->widget = NULL;

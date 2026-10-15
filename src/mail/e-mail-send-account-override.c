@@ -1,21 +1,6 @@
 /*
- * e-mail-send-account-override.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 2013 Red Hat, Inc. (www.redhat.com)
- *
+ * SPDX-FileCopyrightText: (C) 2013 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -49,8 +34,11 @@ struct _EMailSendAccountOverridePrivate {
 
 enum {
 	PROP_0,
-	PROP_PREFER_FOLDER
+	PROP_PREFER_FOLDER,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	CHANGED,
@@ -438,15 +426,13 @@ e_mail_send_account_override_class_init (EMailSendAccountOverrideClass *class)
 	object_class->get_property = mail_send_account_override_get_property;
 	object_class->finalize = mail_send_account_override_finalize;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PREFER_FOLDER,
+	properties[PROP_PREFER_FOLDER] =
 		g_param_spec_boolean (
-			"prefer-folder",
-			"Prefer Folder",
-			NULL,
+			"prefer-folder", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[CHANGED] = g_signal_new (
 		"changed",
@@ -523,7 +509,7 @@ e_mail_send_account_override_set_config_filename (EMailSendAccountOverride *over
 	g_mutex_unlock (&override->priv->property_lock);
 
 	if (prefer_folder_changed)
-		g_object_notify (G_OBJECT (override), "prefer-folder");
+		g_object_notify_by_pspec (G_OBJECT (override), properties[PROP_PREFER_FOLDER]);
 }
 
 gchar *
@@ -565,7 +551,7 @@ e_mail_send_account_override_set_prefer_folder (EMailSendAccountOverride *overri
 	g_mutex_unlock (&override->priv->property_lock);
 
 	if (changed)
-		g_object_notify (G_OBJECT (override), "prefer-folder");
+		g_object_notify_by_pspec (G_OBJECT (override), properties[PROP_PREFER_FOLDER]);
 	if (saved)
 		g_signal_emit (override, signals[CHANGED], 0);
 }

@@ -1,17 +1,6 @@
 /*
- * Copyright (C) 2017 Red Hat, Inc. (www.redhat.com)
- *
- * This library is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library. If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 2017 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /**
@@ -76,8 +65,11 @@ enum {
 	PROP_0,
 	PROP_REGISTRY,
 	PROP_CHANGED,
-	PROP_CAN_RUN
+	PROP_CAN_RUN,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	DONE,
@@ -381,7 +373,7 @@ collection_account_wizard_notify_can_run (GObject *wizard)
 {
 	g_return_if_fail (E_IS_COLLECTION_ACCOUNT_WIZARD (wizard));
 
-	g_object_notify (wizard, "can-run");
+	g_object_notify_by_pspec (wizard, properties[PROP_CAN_RUN]);
 }
 
 static gboolean
@@ -396,7 +388,7 @@ collection_account_wizard_set_changed (ECollectionAccountWizard *wizard,
 {
 	if ((wizard->priv->changed ? 1 : 0) != (changed ? 1 : 0)) {
 		wizard->priv->changed = changed;
-		g_object_notify (G_OBJECT (wizard), "changed");
+		g_object_notify_by_pspec (G_OBJECT (wizard), properties[PROP_CHANGED]);
 	}
 }
 
@@ -465,7 +457,7 @@ collection_account_wizard_worker_started_cb (EConfigLookup *config_lookup,
 			gtk_widget_set_sensitive (wd2->enabled_check, FALSE);
 		}
 
-		g_object_notify (G_OBJECT (wizard), "can-run");
+		g_object_notify_by_pspec (G_OBJECT (wizard), properties[PROP_CAN_RUN]);
 
 		gtk_label_set_text (GTK_LABEL (wizard->priv->results_label), "");
 	}
@@ -562,7 +554,7 @@ collection_account_wizard_worker_finished_cb (EConfigLookup *config_lookup,
 
 		g_clear_pointer (&wizard->priv->running_result, e_simple_async_result_complete_idle_take);
 
-		g_object_notify (G_OBJECT (wizard), "can-run");
+		g_object_notify_by_pspec (G_OBJECT (wizard), properties[PROP_CAN_RUN]);
 
 		n_results = e_config_lookup_count_results (wizard->priv->config_lookup);
 
@@ -581,7 +573,7 @@ collection_account_wizard_worker_finished_cb (EConfigLookup *config_lookup,
 		   in the "notify::changed" callback, because the above set_changed() can change
 		   only from FALSE to TRUE, but not vice versa, due to the 'changed' being FALSE
 		   already. */
-		g_object_notify (G_OBJECT (wizard), "changed");
+		g_object_notify_by_pspec (G_OBJECT (wizard), properties[PROP_CHANGED]);
 	}
 }
 
@@ -1069,7 +1061,7 @@ collection_account_wizard_part_enabled_toggled_cb (GtkCellRendererToggle *cell_r
 	g_clear_object (&src_result);
 
 	if (!is_radio)
-		g_object_notify (G_OBJECT (wizard), "can-run");
+		g_object_notify_by_pspec (G_OBJECT (wizard), properties[PROP_CAN_RUN]);
 }
 
 static ESource *
@@ -1418,7 +1410,7 @@ collection_account_wizard_write_changes_done (GObject *source_object,
 	gtk_widget_set_visible (wizard->priv->finish_label, !is_cancelled);
 	gtk_widget_set_visible (wizard->priv->finish_cancel_button, FALSE);
 
-	g_object_notify (source_object, "can-run");
+	g_object_notify_by_pspec (source_object, properties[PROP_CAN_RUN]);
 
 	if (!error) {
 		ESource *source = wizard->priv->sources[E_CONFIG_LOOKUP_RESULT_COLLECTION];
@@ -1570,7 +1562,7 @@ collection_account_wizard_save_sources (ECollectionAccountWizard *wizard)
 
 	g_object_unref (simple_result);
 
-	g_object_notify (G_OBJECT (wizard), "can-run");
+	g_object_notify_by_pspec (G_OBJECT (wizard), properties[PROP_CAN_RUN]);
 }
 
 static void
@@ -2258,17 +2250,18 @@ e_collection_account_wizard_class_init (ECollectionAccountWizardClass *klass)
 	 *
 	 * Since: 3.28
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_REGISTRY,
+	/**
+	 * ECollectionAccountWizard:registry
+	 *
+	 * Data source registry
+	 **/
+	properties[PROP_REGISTRY] =
 		g_param_spec_object (
-			"registry",
-			"Registry",
-			"Data source registry",
+			"registry", NULL, NULL,
 			E_TYPE_SOURCE_REGISTRY,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * ECollectionAccountWizard:can-run:
@@ -2278,16 +2271,12 @@ e_collection_account_wizard_class_init (ECollectionAccountWizardClass *klass)
 	 *
 	 * Since: 3.28
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_CAN_RUN,
+	properties[PROP_CAN_RUN] =
 		g_param_spec_boolean (
-			"can-run",
-			"Can Run",
-			NULL,
+			"can-run", NULL, NULL,
 			FALSE,
 			G_PARAM_READABLE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * ECollectionAccountWizard:changed:
@@ -2297,16 +2286,14 @@ e_collection_account_wizard_class_init (ECollectionAccountWizardClass *klass)
 	 *
 	 * Since: 3.34
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_CHANGED,
+	properties[PROP_CHANGED] =
 		g_param_spec_boolean (
-			"changed",
-			"Whether changed",
-			NULL,
+			"changed", NULL, NULL,
 			FALSE,
 			G_PARAM_READABLE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	/**
 	 * ECollectionAccountWizard::done:
@@ -2561,7 +2548,7 @@ e_collection_account_wizard_reset (ECollectionAccountWizard *wizard)
 
 	gtk_notebook_set_current_page (GTK_NOTEBOOK (wizard), 0);
 
-	g_object_notify (G_OBJECT (wizard), "can-run");
+	g_object_notify_by_pspec (G_OBJECT (wizard), properties[PROP_CAN_RUN]);
 }
 
 /**
@@ -2621,7 +2608,8 @@ e_collection_account_wizard_next (ECollectionAccountWizard *wizard)
 				text = gtk_entry_get_text (GTK_ENTRY (wizard->priv->servers_entry));
 
 				if (text && *text) {
-					gchar *ptr;
+					const gchar *ptr;
+					gchar *wptr;
 
 					if (g_ascii_strncasecmp (text, "http://", 7) == 0)
 						text += 7;
@@ -2633,9 +2621,9 @@ e_collection_account_wizard_next (ECollectionAccountWizard *wizard)
 					tmp = ptr ? g_strndup (text, ptr - text) : g_strdup (text);
 
 					/* eventually skip the path */
-					ptr = strchr (tmp, '/');
-					if (ptr)
-						*ptr = '\0';
+					wptr = strchr (tmp, '/');
+					if (wptr)
+						*wptr = '\0';
 
 					text = tmp;
 				}
@@ -2659,7 +2647,7 @@ e_collection_account_wizard_next (ECollectionAccountWizard *wizard)
 
 	/* To update sensitivity of the "Next"/"Finish" button */
 	if (changed)
-		g_object_notify (G_OBJECT (wizard), "can-run");
+		g_object_notify_by_pspec (G_OBJECT (wizard), properties[PROP_CAN_RUN]);
 
 	return changed;
 }
@@ -2691,7 +2679,7 @@ e_collection_account_wizard_prev (ECollectionAccountWizard *wizard)
 	gtk_notebook_set_current_page (GTK_NOTEBOOK (wizard), current_page - 1);
 
 	/* To update sensitivity of the "Next"/"Finish" button */
-	g_object_notify (G_OBJECT (wizard), "can-run");
+	g_object_notify_by_pspec (G_OBJECT (wizard), properties[PROP_CAN_RUN]);
 
 	return TRUE;
 }

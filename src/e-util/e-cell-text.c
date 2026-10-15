@@ -1,35 +1,10 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Miguel de Icaza <miguel@ximian.com>
- *      Chris Lahey <clahey@ximian.com>
- *
- * A lot of code taken from:
- *
- * Text item type for GnomeCanvas widget
- *
- * GnomeCanvas is basically a port of the Tk toolkit's most excellent
- * canvas widget.  Tk is copyrighted by the Regents of the University
- * of California, Sun Microsystems, and other parties.
- *
- * Copyright (C) 1998 The Free Software Foundation
- *
- * Author: Federico Mena <federico@nuclecu.unam.mx>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1998 The Free Software Foundation
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Miguel de Icaza <miguel@ximian.com>
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
+ * SPDX-FileContributor: Federico Mena <federico@nuclecu.unam.mx>
  */
 
 #include "evolution-config.h"
@@ -88,8 +63,11 @@ enum {
 	PROP_BG_COLOR_COLUMN,
 	PROP_USE_TABULAR_NUMBERS,
 	PROP_IS_MARKUP,
-	PROP_ELLIPSIZE_MODE
+	PROP_ELLIPSIZE_MODE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	E_SELECTION_PRIMARY,
@@ -1013,6 +991,7 @@ ect_event (ECellView *ecell_view,
 	gint preedit_len;
 	CellEdit *edit = text_view->edit;
 	GtkWidget *canvas = GTK_WIDGET (text_view->canvas);
+	GdkEventType event_type = gdk_event_get_event_type (event);
 	gint return_val = 0;
 	d (gboolean press = FALSE);
 
@@ -1026,8 +1005,8 @@ ect_event (ECellView *ecell_view,
 		edit_display = TRUE;
 	}
 
-	e_tep_event.type = event->type;
-	switch (event->type) {
+	e_tep_event.type = event_type;
+	switch (event_type) {
 	case GDK_FOCUS_CHANGE:
 		break;
 	case GDK_KEY_PRESS: /* Fall Through */
@@ -1038,7 +1017,9 @@ ect_event (ECellView *ecell_view,
 		}
 		return_val = TRUE;
 		/* Fallthrough */
-	case GDK_KEY_RELEASE:
+	case GDK_KEY_RELEASE: {
+		guint keyval = 0;
+
 		preedit_len = edit_display ? edit->preedit_length : 0;
 		if (edit_display && edit->im_context &&
 				gtk_im_context_filter_keypress (\
@@ -1052,7 +1033,8 @@ ect_event (ECellView *ecell_view,
 				return 1;
 		}
 
-		if (event->key.keyval == GDK_KEY_Escape) {
+		gdk_event_get_keyval (event, &keyval);
+		if (keyval == GDK_KEY_Escape) {
 			/* if not changed, then pass this even to parent */
 			return_val = text_view->edit != NULL && text_view->edit->text && text_view->edit->old_text && 0 != strcmp (text_view->edit->text, text_view->edit->old_text);
 			ect_cancel_edit (text_view);
@@ -1099,16 +1081,20 @@ ect_event (ECellView *ecell_view,
 		}
 
 		break;
+	}
 	case GDK_BUTTON_PRESS: /* Fall Through */
 		d (press = TRUE);
-	case GDK_BUTTON_RELEASE:
+	case GDK_BUTTON_RELEASE: {
+		guint button_num = 0;
+
 		d (g_print ("%s: %s\n", G_STRFUNC, press ? "GDK_BUTTON_PRESS" : "GDK_BUTTON_RELEASE"));
 		event->button.x -= 4;
 		event->button.y -= 1;
+		gdk_event_get_button (event, &button_num);
 		if ((!edit_display)
 		    && e_table_model_is_cell_editable (ecell_view->e_table_model, model_col, row)
-		    && event->type == GDK_BUTTON_RELEASE
-		    && event->button.button == 1) {
+		    && event_type == GDK_BUTTON_RELEASE
+		    && button_num == GDK_BUTTON_PRIMARY) {
 			GdkEventButton button = event->button;
 
 			e_table_item_enter_edit (text_view->cell_view.e_table_item_view, view_col, row);
@@ -1127,8 +1113,8 @@ ect_event (ECellView *ecell_view,
 			return_val = e_text_event_processor_handle_event (
 				edit->tep, &e_tep_event);
 			*actions = edit->actions;
-			if (event->button.button == 1) {
-				if (event->type == GDK_BUTTON_PRESS)
+			if (button_num == GDK_BUTTON_PRIMARY) {
+				if (event_type == GDK_BUTTON_PRESS)
 					edit->button_down = TRUE;
 				else
 					edit->button_down = FALSE;
@@ -1152,8 +1138,8 @@ ect_event (ECellView *ecell_view,
 			return_val = e_text_event_processor_handle_event (
 				edit->tep, &e_tep_event);
 			*actions = edit->actions;
-			if (event->button.button == 1) {
-				if (event->type == GDK_BUTTON_PRESS)
+			if (button_num == GDK_BUTTON_PRIMARY) {
+				if (event_type == GDK_BUTTON_PRESS)
 					edit->button_down = TRUE;
 				else
 					edit->button_down = FALSE;
@@ -1163,6 +1149,7 @@ ect_event (ECellView *ecell_view,
 			edit->last_state = button.state;
 		}
 		break;
+	}
 	case GDK_MOTION_NOTIFY:
 		event->motion.x -= 4;
 		event->motion.y -= 1;
@@ -1837,114 +1824,74 @@ e_cell_text_class_init (ECellTextClass *class)
 		G_TYPE_INT,
 		G_TYPE_INT);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_STRIKEOUT_COLUMN,
+	properties[PROP_STRIKEOUT_COLUMN] =
 		g_param_spec_int (
-			"strikeout_column",
-			"Strikeout Column",
-			NULL,
+			"strikeout-column", NULL, NULL,
 			-1, G_MAXINT, -1,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_UNDERLINE_COLUMN,
+	properties[PROP_UNDERLINE_COLUMN] =
 		g_param_spec_int (
-			"underline_column",
-			"Underline Column",
-			NULL,
+			"underline-column", NULL, NULL,
 			-1, G_MAXINT, -1,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_BOLD_COLUMN,
+	properties[PROP_BOLD_COLUMN] =
 		g_param_spec_int (
-			"bold_column",
-			"Bold Column",
-			NULL,
+			"bold-column", NULL, NULL,
 			-1, G_MAXINT, -1,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ITALIC_COLUMN,
+	properties[PROP_ITALIC_COLUMN] =
 		g_param_spec_int (
-			"italic-column",
-			"Italic Column",
-			NULL,
+			"italic-column", NULL, NULL,
 			-1, G_MAXINT, -1,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_STRIKEOUT_COLOR_COLUMN,
+	properties[PROP_STRIKEOUT_COLOR_COLUMN] =
 		g_param_spec_int (
-			"strikeout-color-column",
-			"Strikeout Color Column",
-			NULL,
+			"strikeout-color-column", NULL, NULL,
 			-1, G_MAXINT, -1,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_COLOR_COLUMN,
+	properties[PROP_COLOR_COLUMN] =
 		g_param_spec_int (
-			"color_column",
-			"Color Column",
-			NULL,
+			"color-column", NULL, NULL,
 			-1, G_MAXINT, -1,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_EDITABLE,
+	properties[PROP_EDITABLE] =
 		g_param_spec_boolean (
-			"editable",
-			"Editable",
-			NULL,
+			"editable", NULL, NULL,
 			FALSE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_BG_COLOR_COLUMN,
+	properties[PROP_BG_COLOR_COLUMN] =
 		g_param_spec_int (
-			"bg_color_column",
-			"BG Color Column",
-			NULL,
+			"bg-color-column", NULL, NULL,
 			-1, G_MAXINT, -1,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_USE_TABULAR_NUMBERS,
+	properties[PROP_USE_TABULAR_NUMBERS] =
 		g_param_spec_boolean (
-			"use-tabular-numbers",
-			"Use tabular numbers",
-			NULL,
+			"use-tabular-numbers", NULL, NULL,
 			FALSE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_IS_MARKUP,
+	properties[PROP_IS_MARKUP] =
 		g_param_spec_boolean (
-			"is-markup",
-			"The text is markup",
-			NULL,
+			"is-markup", NULL, NULL,
 			FALSE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ELLIPSIZE_MODE,
+	properties[PROP_ELLIPSIZE_MODE] =
 		g_param_spec_enum (
 			"ellipsize-mode", NULL, NULL,
 			PANGO_TYPE_ELLIPSIZE_MODE,
 			PANGO_ELLIPSIZE_END,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	if (!clipboard_atom)
 		clipboard_atom = gdk_atom_intern ("CLIPBOARD", FALSE);
@@ -2140,13 +2087,13 @@ e_cell_text_init (ECellText *ect)
  * a finer control of the way the string is displayed.  The arguments supported
  * allow the control of strikeout, underline, bold, and color.
  *
- * The arguments "strikeout_column", "underline_column", "bold_column"
- * and "color_column" set and return an integer that points to a
+ * The arguments "strikeout-column", "underline-column", "bold-column"
+ * and "color-column" set and return an integer that points to a
  * column in the model that controls these settings.  So controlling
  * the way things are rendered is achieved by having special columns
  * in the model that will be used to flag whether the text should be
  * rendered with strikeout, or bolded.  In the case of the
- * "color_column" argument, the column in the model is expected to
+ * "color-column" argument, the column in the model is expected to
  * have a string that can be parsed by gdk_rgba_parse().
  *
  * Returns: an ECell object that can be used to render strings.

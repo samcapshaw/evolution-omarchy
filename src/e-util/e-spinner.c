@@ -1,19 +1,7 @@
 /*
- * Copyright (C) 2014 Red Hat, Inc. (www.redhat.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Authors: Milan Crha <mcrha@redhat.com>
+ * SPDX-FileCopyrightText: (C) 2014 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Milan Crha <mcrha@redhat.com>
  */
 
 #include "evolution-config.h"
@@ -39,8 +27,11 @@ struct _ESpinnerPrivate
 
 enum {
 	PROP_0,
-	PROP_ACTIVE
+	PROP_ACTIVE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (ESpinner, e_spinner, GTK_TYPE_IMAGE)
 
@@ -249,17 +240,20 @@ e_spinner_class_init (ESpinnerClass *klass)
 	 *
 	 * Whether the animation is active.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_ACTIVE,
+	/**
+	 * ESpinner:active
+	 *
+	 * Whether the animation is active
+	 **/
+	properties[PROP_ACTIVE] =
 		g_param_spec_boolean (
-			"active",
-			"Active",
-			"Whether the animation is active",
+			"active", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -300,7 +294,7 @@ e_spinner_set_active (ESpinner *spinner,
 			e_spinner_disable_spin (spinner);
 	}
 
-	g_object_notify (G_OBJECT (spinner), "active");
+	g_object_notify_by_pspec (G_OBJECT (spinner), properties[PROP_ACTIVE]);
 }
 
 void

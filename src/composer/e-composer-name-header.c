@@ -1,20 +1,6 @@
 /*
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -34,8 +20,11 @@
 
 enum {
 	PROP_0,
-	PROP_NAME_SELECTOR
+	PROP_NAME_SELECTOR,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 struct _EComposerNameHeaderPrivate {
 	ENameSelector *name_selector;
@@ -254,16 +243,14 @@ e_composer_name_header_class_init (EComposerNameHeaderClass *class)
 	header_class = E_COMPOSER_HEADER_CLASS (class);
 	header_class->clicked = composer_name_header_clicked;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_NAME_SELECTOR,
+	properties[PROP_NAME_SELECTOR] =
 		g_param_spec_object (
-			"name-selector",
-			NULL,
-			NULL,
+			"name-selector", NULL, NULL,
 			E_TYPE_NAME_SELECTOR,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

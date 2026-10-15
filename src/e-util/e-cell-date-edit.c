@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Damon Chaplin <damon@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Damon Chaplin <damon@ximian.com>
  */
 
 /*
@@ -101,8 +86,11 @@ enum {
 	PROP_ALLOW_NO_DATE_SET,
 	PROP_USE_24_HOUR_FORMAT,
 	PROP_LOWER_HOUR,
-	PROP_UPPER_HOUR
+	PROP_UPPER_HOUR,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	BEFORE_POPUP,
@@ -127,79 +115,53 @@ e_cell_date_edit_class_init (ECellDateEditClass *class)
 	ecpc = E_CELL_POPUP_CLASS (class);
 	ecpc->popup = e_cell_date_edit_do_popup;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_TIME,
+	properties[PROP_SHOW_TIME] =
 		g_param_spec_boolean (
-			"show_time",
-			NULL,
-			NULL,
+			"show-time", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_NOW_BUTTON,
+	properties[PROP_SHOW_NOW_BUTTON] =
 		g_param_spec_boolean (
-			"show_now_button",
-			NULL,
-			NULL,
+			"show-now-button", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_TODAY_BUTTON,
+	properties[PROP_SHOW_TODAY_BUTTON] =
 		g_param_spec_boolean (
-			"show_today_button",
-			NULL,
-			NULL,
+			"show-today-button", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ALLOW_NO_DATE_SET,
+	properties[PROP_ALLOW_NO_DATE_SET] =
 		g_param_spec_boolean (
-			"allow_no_date_set",
-			NULL,
-			NULL,
+			"allow-no-date-set", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_USE_24_HOUR_FORMAT,
+	properties[PROP_USE_24_HOUR_FORMAT] =
 		g_param_spec_boolean (
-			"use_24_hour_format",
-			NULL,
-			NULL,
+			"use-24-hour-format", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_LOWER_HOUR,
+	properties[PROP_LOWER_HOUR] =
 		g_param_spec_int (
-			"lower_hour",
-			NULL,
-			NULL,
+			"lower-hour", NULL, NULL,
 			G_MININT,
 			G_MAXINT,
 			0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_UPPER_HOUR,
+	properties[PROP_UPPER_HOUR] =
 		g_param_spec_int (
-			"upper_hour",
-			NULL,
-			NULL,
+			"upper-hour", NULL, NULL,
 			G_MININT,
 			G_MAXINT,
 			24,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[BEFORE_POPUP] = g_signal_new (
 		"before-popup",
@@ -257,7 +219,7 @@ e_cell_date_edit_init (ECellDateEdit *ecde)
 	ecde->calendar = e_calendar_new ();
 	gnome_canvas_item_set (
 		GNOME_CANVAS_ITEM (e_calendar_get_item (E_CALENDAR (ecde->calendar))),
-		"move_selection_when_moving", FALSE,
+		"move-selection-when-moving", FALSE,
 		NULL);
 	gtk_box_pack_start (GTK_BOX (hbox), ecde->calendar, TRUE, TRUE, 0);
 	gtk_widget_show (ecde->calendar);

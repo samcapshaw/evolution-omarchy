@@ -1,22 +1,7 @@
 /*
- * Copyright (C) 2015 SUSE (www.suse.com)
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) version 3.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with the program; if not, see <http://www.gnu.org/licenses/>
- *
- * Authors:
- *           David Liang <dliang@suse.com>
- *
+ * SPDX-FileCopyrightText: (C) 2015 SUSE (www.suse.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: David Liang <dliang@suse.com>
  */
 
 #include "evolution-config.h"
@@ -201,7 +186,7 @@ import_folder_getwidget (EImport *ei,
 		select_uri = g_strdup (uri);
 	}
 
-	hbox = gtk_hbox_new (FALSE, 0);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 
 	w = gtk_label_new_with_mnemonic (_("_Destination folder:"));
 	gtk_box_pack_start ((GtkBox *) hbox, w, FALSE, TRUE, 6);
@@ -221,7 +206,7 @@ import_folder_getwidget (EImport *ei,
 		G_CALLBACK (folder_selected), target);
 	gtk_box_pack_start ((GtkBox *) hbox, w, FALSE, TRUE, 6);
 
-	w = gtk_vbox_new (FALSE, 0);
+	w = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	gtk_box_pack_start ((GtkBox *) w, hbox, FALSE, FALSE, 0);
 	gtk_widget_show_all (w);
 

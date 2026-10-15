@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Srinivasa Ragavan <sragavan@gnome.org>
- *
- * Copyright (C) 2010 Intel corporation. (www.intel.com)
- *
+ * SPDX-FileCopyrightText: (C) 2010 Intel corporation. (www.intel.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Srinivasa Ragavan <sragavan@gnome.org>
  */
 
 #include "evolution-config.h"
@@ -63,13 +48,16 @@ struct _EMailPanedViewPrivate {
 
 enum {
 	PROP_0,
+	PROP_PREVIEW_TOOLBAR_VISIBLE,
+	N_PROPS,
 	PROP_FORWARD_STYLE,
 	PROP_GROUP_BY_THREADS,
 	PROP_REPLY_STYLE,
 	PROP_MARK_SEEN_ALWAYS,
 	PROP_DELETE_SELECTS_PREVIOUS,
-	PROP_PREVIEW_TOOLBAR_VISIBLE
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 #define STATE_KEY_GROUP_BY_THREADS	"GroupByThreads"
 #define STATE_KEY_SELECTED_MESSAGE	"SelectedMessage"
@@ -970,8 +958,7 @@ empv_folder_or_parent_is_outgoing (MailFolderCache *folder_cache,
 	    (info_flags & CAMEL_FOLDER_TYPE_MASK) == CAMEL_FOLDER_TYPE_SENT)
 		return TRUE;
 
-	dash = strrchr (fullname, '/');
-	if (!dash)
+	if (!strchr (fullname, '/'))
 		return FALSE;
 
 	path = g_strdup (fullname);
@@ -1246,17 +1233,15 @@ e_mail_paned_view_class_init (EMailPanedViewClass *class)
 		PROP_DELETE_SELECTS_PREVIOUS,
 		"delete-selects-previous");
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PREVIEW_TOOLBAR_VISIBLE,
+	properties[PROP_PREVIEW_TOOLBAR_VISIBLE] =
 		g_param_spec_boolean (
-			"preview-toolbar-visible",
-			NULL,
-			NULL,
+			"preview-toolbar-visible", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
 			G_PARAM_EXPLICIT_NOTIFY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -1336,7 +1321,7 @@ e_mail_paned_view_set_preview_toolbar_visible (EMailPanedView *view,
 
 	gtk_widget_set_visible (view->priv->preview_toolbar_box, value);
 
-	g_object_notify (G_OBJECT (view), "preview-toolbar-visible");
+	g_object_notify_by_pspec (G_OBJECT (view), properties[PROP_PREVIEW_TOOLBAR_VISIBLE]);
 }
 
 void

@@ -1,22 +1,7 @@
 /*
- * ECalListView - display calendar events in an ETable.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *		Hans Petter Jansson  <hpj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Hans Petter Jansson  <hpj@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -220,8 +205,8 @@ setup_e_table (ECalListView *cal_list_view)
 	cell = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set (
 		cell,
-		"bg_color_column", E_CAL_MODEL_FIELD_COLOR,
-		"strikeout_column", E_CAL_MODEL_FIELD_CANCELLED,
+		"bg-color-column", E_CAL_MODEL_FIELD_COLOR,
+		"strikeout-column", E_CAL_MODEL_FIELD_CANCELLED,
 		NULL);
 
 	e_table_extras_add_cell (extras, "calstring", cell);
@@ -232,8 +217,8 @@ setup_e_table (ECalListView *cal_list_view)
 	cell = e_cell_date_edit_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set (
 		cell,
-		"bg_color_column", E_CAL_MODEL_FIELD_COLOR,
-		"strikeout_column", E_CAL_MODEL_FIELD_CANCELLED,
+		"bg-color-column", E_CAL_MODEL_FIELD_COLOR,
+		"strikeout-column", E_CAL_MODEL_FIELD_CANCELLED,
 		NULL);
 
 	e_binding_bind_property (
@@ -273,8 +258,8 @@ setup_e_table (ECalListView *cal_list_view)
 	cell = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set (
 		cell,
-		"bg_color_column", E_CAL_MODEL_FIELD_COLOR,
-		"strikeout_column", E_CAL_MODEL_FIELD_CANCELLED,
+		"bg-color-column", E_CAL_MODEL_FIELD_COLOR,
+		"strikeout-column", E_CAL_MODEL_FIELD_CANCELLED,
 		"editable", FALSE,
 		NULL);
 
@@ -298,8 +283,8 @@ setup_e_table (ECalListView *cal_list_view)
 	cell = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set (
 		cell,
-		"bg_color_column", E_CAL_MODEL_FIELD_COLOR,
-		"strikeout_column", E_CAL_MODEL_FIELD_CANCELLED,
+		"bg-color-column", E_CAL_MODEL_FIELD_COLOR,
+		"strikeout-column", E_CAL_MODEL_FIELD_CANCELLED,
 		NULL);
 
 	popup_cell = e_cell_combo_new ();
@@ -493,12 +478,19 @@ e_cal_list_view_on_table_key_press (ETable *table,
 				    GdkEvent *event,
 				    gpointer data)
 {
-	if (event && event->type == GDK_KEY_PRESS &&
-	    (event->key.keyval == GDK_KEY_Return || event->key.keyval == GDK_KEY_KP_Enter) &&
-	    (event->key.state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK)) == 0 &&
-	    !e_table_is_editing (table)) {
-		e_cal_list_view_open_at_row (data, row);
-		return TRUE;
+	if (event && gdk_event_get_event_type (event) == GDK_KEY_PRESS) {
+		guint keyval = 0;
+		GdkModifierType state = 0;
+
+		gdk_event_get_keyval (event, &keyval);
+		gdk_event_get_state (event, &state);
+
+		if ((keyval == GDK_KEY_Return || keyval == GDK_KEY_KP_Enter) &&
+		    (state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK)) == 0 &&
+		    !e_table_is_editing (table)) {
+			e_cal_list_view_open_at_row (data, row);
+			return TRUE;
+		}
 	}
 
 	return FALSE;
@@ -515,9 +507,9 @@ e_cal_list_view_on_table_white_space_event (ETable *table,
 	g_return_val_if_fail (E_IS_CAL_LIST_VIEW (cal_list_view), FALSE);
 	g_return_val_if_fail (event != NULL, FALSE);
 
-	if (event->type == GDK_BUTTON_PRESS &&
+	if (gdk_event_get_event_type (event) == GDK_BUTTON_PRESS &&
 	    gdk_event_get_button (event, &event_button) &&
-	    event_button == 3) {
+	    event_button == GDK_BUTTON_SECONDARY) {
 		GtkWidget *table_canvas;
 
 		table_canvas = GTK_WIDGET (table->table_canvas);

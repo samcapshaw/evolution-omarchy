@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Damon Chaplin <damon@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Damon Chaplin <damon@ximian.com>
  */
 
 /*
@@ -51,8 +36,11 @@ struct _ETimezoneEntryPrivate {
 
 enum {
 	PROP_0,
-	PROP_TIMEZONE
+	PROP_TIMEZONE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	CHANGED,
@@ -446,15 +434,13 @@ e_timezone_entry_class_init (ETimezoneEntryClass *class)
 	widget_class->mnemonic_activate = timezone_entry_mnemonic_activate;
 	widget_class->focus = timezone_entry_focus;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TIMEZONE,
+	properties[PROP_TIMEZONE] =
 		g_param_spec_object (
-			"timezone",
-			"Timezone",
-			NULL,
+			"timezone", NULL, NULL,
 			I_CAL_TYPE_TIMEZONE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[CHANGED] = g_signal_new (
 		"changed",
@@ -537,7 +523,7 @@ e_timezone_entry_set_timezone (ETimezoneEntry *timezone_entry,
 	timezone_entry_update_entry (timezone_entry);
 	timezone_entry_add_relation (timezone_entry);
 
-	g_object_notify (G_OBJECT (timezone_entry), "timezone");
+	g_object_notify_by_pspec (G_OBJECT (timezone_entry), properties[PROP_TIMEZONE]);
 }
 
 gboolean

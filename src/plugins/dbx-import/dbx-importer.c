@@ -1,30 +1,12 @@
-/* dbx-importer.c
- *
- * Author: David Woodhouse <dwmw2@infradead.org>
- *
- * Copyright © 2010 Intel Corporation
- *
- * Evolution parts largely lifted from pst-import.c:
- *   Author: Chris Halls <chris.halls@credativ.co.uk>
- *	    Bharath Acharya <abharath@novell.com>
- *   Copyright © 2006 Chris Halls
- *
- * Some DBX bits from libdbx:
- *   Author: David Smith <Dave.S@Earthcorp.Com>
- *    Copyright © 2001 David Smith
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+/*
+ * SPDX-FileCopyrightText: (C) © 2010 Intel Corporation
+ * SPDX-FileCopyrightText: (C) © 2006 Chris Halls
+ * SPDX-FileCopyrightText: (C) © 2001 David Smith
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: David Woodhouse <dwmw2@infradead.org>
+ * SPDX-FileContributor: Chris Halls <chris.halls@credativ.co.uk>
+ * SPDX-FileContributor: Bharath Acharya <abharath@novell.com>
+ * SPDX-FileContributor: David Smith <Dave.S@Earthcorp.Com>
  */
 
 #include "evolution-config.h"
@@ -319,11 +301,21 @@ static gint dbx_pread (gint fd, gpointer buf, guint32 count, guint32 offset)
 	return read (fd, buf, count);
 }
 
-static gboolean dbx_load_index_table (DbxImporter *m, guint32 pos, guint32 *index_ofs)
+#define DBX_MAX_INDEX_DEPTH 1000
+
+static gboolean dbx_load_index_table_rec (DbxImporter *m, guint32 pos, guint32 *index_ofs, gint depth)
 {
 	struct _dbx_tableindexstruct tindex;
 	struct _dbx_indexstruct index;
 	gint i;
+
+	if (depth > DBX_MAX_INDEX_DEPTH) {
+		g_set_error (
+			&m->base.error, CAMEL_ERROR, CAMEL_ERROR_GENERIC,
+			"Corrupt DBX file: Index table nesting exceeds "
+			"maximum depth (%d)", DBX_MAX_INDEX_DEPTH);
+		return FALSE;
+	}
 
 	d (printf ("Loading index table at 0x%x\n", pos));
 
@@ -350,7 +342,7 @@ static gboolean dbx_load_index_table (DbxImporter *m, guint32 pos, guint32 *inde
 		pos, tindex.indexCount, tindex.anotherTablePtr));
 
 	if (tindex.indexCount > 0) {
-		if (!dbx_load_index_table (m, tindex.anotherTablePtr, index_ofs))
+		if (!dbx_load_index_table_rec (m, tindex.anotherTablePtr, index_ofs, depth + 1))
 			return FALSE;
 	}
 
@@ -381,12 +373,17 @@ static gboolean dbx_load_index_table (DbxImporter *m, guint32 pos, guint32 *inde
 		}
 		m->indices[(*index_ofs)++] = index.indexptr;
 		if (index.indexCount > 0) {
-			if (!dbx_load_index_table (m, index.anotherTablePtr, index_ofs))
+			if (!dbx_load_index_table_rec (m, index.anotherTablePtr, index_ofs, depth + 1))
 				return FALSE;
 		}
 		pos += sizeof (index);
 	}
 	return TRUE;
+}
+
+static gboolean dbx_load_index_table (DbxImporter *m, guint32 pos, guint32 *index_ofs)
+{
+	return dbx_load_index_table_rec (m, pos, index_ofs, 0);
 }
 static gboolean dbx_load_indices (DbxImporter *m)
 {
@@ -409,7 +406,16 @@ static gboolean dbx_load_indices (DbxImporter *m)
 
 	indexptr = GUINT32_FROM_LE (indexptr);
 	m->index_count = itemcount = GUINT32_FROM_LE (itemcount);
-	m->indices = g_malloc (itemcount * 4);
+
+	if (itemcount > 100 * 1024 * 1024) {
+		g_set_error (
+			&m->base.error, CAMEL_ERROR, CAMEL_ERROR_GENERIC,
+			"DBX file claims %u entries, which exceeds the limit",
+			itemcount);
+		return FALSE;
+	}
+
+	m->indices = g_malloc_n (itemcount, sizeof (guint32));
 
 	d (printf ("indexptr %x, itemcount %d\n", indexptr, itemcount));
 
@@ -541,6 +547,15 @@ dbx_read_email (DbxImporter *m,
 		return FALSE;
 	}
 
+	if ((guint32) hdr.count * 4 > hdr.size) {
+		g_set_error (
+			&m->base.error, CAMEL_ERROR, CAMEL_ERROR_GENERIC,
+			"Corrupt DBX file: header count %d exceeds block size %d",
+			hdr.count, hdr.size);
+		g_free (buffer);
+		return FALSE;
+	}
+
 	for (i = 0; i < hdr.count; i++) {
 		guchar type = buffer[i *4];
 		gint val;
@@ -551,6 +566,14 @@ dbx_read_email (DbxImporter *m,
 
 		switch (type) {
 		case 0x01:
+			if (hdr.count * 4 + val >= hdr.size) {
+				g_set_error (
+					&m->base.error, CAMEL_ERROR, CAMEL_ERROR_GENERIC,
+					"Corrupt DBX file: type 0x01 offset %d out of bounds (size %d)",
+					hdr.count * 4 + val, hdr.size);
+				g_free (buffer);
+				return FALSE;
+			}
 			*flags = buffer[hdr.count*4 + val];
 			d (printf ("Got type 0x01 flags %02x\n", *flags));
 			break;
@@ -559,7 +582,16 @@ dbx_read_email (DbxImporter *m,
 			d (printf ("Got type 0x81 flags %02x\n", *flags));
 			break;
 		case 0x04:
-			dataptr = GUINT32_FROM_LE (*(guint32 *)(buffer + hdr.count *4 + val));
+			if (hdr.count * 4 + val + 4 > hdr.size) {
+				g_set_error (
+					&m->base.error, CAMEL_ERROR, CAMEL_ERROR_GENERIC,
+					"Corrupt DBX file: type 0x04 offset %d out of bounds (size %d)",
+					hdr.count * 4 + val + 4, hdr.size);
+				g_free (buffer);
+				return FALSE;
+			}
+			memcpy (&dataptr, buffer + hdr.count * 4 + val, 4);
+			dataptr = GUINT32_FROM_LE (dataptr);
 			d (printf ("Got type 0x04 data pointer %x\n", dataptr));
 			break;
 		case 0x84:

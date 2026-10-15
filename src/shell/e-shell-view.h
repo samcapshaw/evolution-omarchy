@@ -1,21 +1,6 @@
 /*
- * e-shell-view.h
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifndef E_SHELL_VIEW_H
@@ -139,7 +124,7 @@ struct _EShellView {
  *			The subclasses can override it to add actions into
  *			the view's UI manager.
  * @add_ui_customizers:	Class method to add any additional EUICustomizer-s into
- *                      the #EUICustomizeDialog within e_shell_view_run_ui_customize_dialog(). It can be NULL.
+ *                      the #GPtrArray; reference each added customizer. It can be NULL.
  *
  * #EShellViewClass contains a number of important settings for subclasses.
  **/
@@ -188,8 +173,8 @@ struct _EShellViewClass {
 	void		(*execute_search)	(EShellView *shell_view);
 	void		(*update_actions)	(EShellView *shell_view);
 	void		(*init_ui_data)		(EShellView *shell_view);
-	void		(*add_ui_customizers)	(EShellView *shell_view,
-						 EUICustomizeDialog *dialog);
+	void		(*get_ui_customizers)	(EShellView *shell_view,
+						 GPtrArray *inout_customizers); /* reffed EUICustomizer * */
 };
 
 GType		e_shell_view_get_type		(void);
@@ -286,6 +271,8 @@ EActivity *	e_shell_view_submit_thread_job	(EShellView *shell_view,
 void		e_shell_view_run_ui_customize_dialog
 						(EShellView *self,
 						 const gchar *id);
+GPtrArray * /* (transfer container) (element-type EUICustomizer) */
+		e_shell_view_dup_ui_customizers	(EShellView *self);
 
 gboolean	e_shell_view_util_layout_to_state_cb
 						(GValue *value,

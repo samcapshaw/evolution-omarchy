@@ -114,6 +114,7 @@ struct _EUIAction {
 	gchar *name;
 	gchar *icon_name;
 	gchar *label;
+	gchar *secondary_label;
 	gchar *accel;
 	gchar *tooltip;
 	GVariantType *parameter_type;
@@ -139,6 +140,7 @@ enum {
 	PROP_NAME,
 	PROP_ICON_NAME,
 	PROP_LABEL,
+	PROP_SECONDARY_LABEL,
 	PROP_ACCEL,
 	PROP_TOOLTIP,
 	PROP_PARAMETER_TYPE,
@@ -305,6 +307,9 @@ e_ui_action_set_property (GObject *object,
 	case PROP_LABEL:
 		e_ui_action_set_label (self, g_value_get_string (value));
 		break;
+	case PROP_SECONDARY_LABEL:
+		e_ui_action_set_secondary_label (self, g_value_get_string (value));
+		break;
 	case PROP_ACCEL:
 		e_ui_action_set_accel (self, g_value_get_string (value));
 		break;
@@ -360,6 +365,9 @@ e_ui_action_get_property (GObject *object,
 	case PROP_LABEL:
 		g_value_set_string (value, e_ui_action_get_label (E_UI_ACTION (action)));
 		break;
+	case PROP_SECONDARY_LABEL:
+		g_value_set_string (value, e_ui_action_get_secondary_label (E_UI_ACTION (action)));
+		break;
 	case PROP_ACCEL:
 		g_value_set_string (value, e_ui_action_get_accel (E_UI_ACTION (action)));
 		break;
@@ -411,6 +419,7 @@ e_ui_action_finalize (GObject *object)
 	g_clear_pointer (&self->name, g_free);
 	g_clear_pointer (&self->icon_name, g_free);
 	g_clear_pointer (&self->label, g_free);
+	g_clear_pointer (&self->secondary_label, g_free);
 	g_clear_pointer (&self->accel, g_free);
 	g_clear_pointer (&self->tooltip, g_free);
 	g_clear_pointer (&self->secondary_accels, g_ptr_array_unref);
@@ -453,11 +462,12 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_MAP_NAME] = g_param_spec_string ("map-name", NULL, NULL, NULL,
-		G_PARAM_READWRITE |
-		G_PARAM_CONSTRUCT_ONLY |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_MAP_NAME] = g_param_spec_string ("map-name", NULL,
+							 NULL, NULL,
+							 G_PARAM_READWRITE |
+							 G_PARAM_CONSTRUCT_ONLY |
+							 G_PARAM_STATIC_STRINGS |
+							 G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:name:
@@ -467,10 +477,10 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 * Since: 3.56
 	 **/
 	properties[PROP_NAME] = g_param_spec_string ("name", NULL, NULL, NULL,
-		G_PARAM_READWRITE |
-		G_PARAM_CONSTRUCT_ONLY |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+						     G_PARAM_READWRITE |
+						     G_PARAM_CONSTRUCT_ONLY |
+						     G_PARAM_STATIC_STRINGS |
+						     G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:icon-name:
@@ -481,10 +491,11 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_ICON_NAME] = g_param_spec_string ("icon-name", NULL, NULL, NULL,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_ICON_NAME] = g_param_spec_string ("icon-name", NULL,
+							  NULL, NULL,
+							  G_PARAM_READWRITE |
+							  G_PARAM_STATIC_STRINGS |
+							  G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:label:
@@ -493,10 +504,26 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_LABEL] = g_param_spec_string ("label", NULL, NULL, NULL,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_LABEL] = g_param_spec_string ("label", NULL, NULL,
+						      NULL,
+						      G_PARAM_READWRITE |
+						      G_PARAM_STATIC_STRINGS |
+						      G_PARAM_EXPLICIT_NOTIFY);
+
+	/**
+	 * EUIAction:secondary-label:
+	 *
+	 * An optional secondary label for the action, used when the action
+	 * appears in a context where a longer or more descriptive label
+	 * is needed.
+	 *
+	 * Since: 3.62
+	 **/
+	properties[PROP_SECONDARY_LABEL] = g_param_spec_string ("secondary-label", NULL, NULL,
+							      NULL,
+							      G_PARAM_READWRITE |
+							      G_PARAM_STATIC_STRINGS |
+							      G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:accel:
@@ -505,10 +532,11 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_ACCEL] = g_param_spec_string ("accel", NULL, NULL, NULL,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_ACCEL] = g_param_spec_string ("accel", NULL, NULL,
+						      NULL,
+						      G_PARAM_READWRITE |
+						      G_PARAM_STATIC_STRINGS |
+						      G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:tooltip:
@@ -517,10 +545,11 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_TOOLTIP] = g_param_spec_string ("tooltip", NULL, NULL, NULL,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_TOOLTIP] = g_param_spec_string ("tooltip", NULL, NULL,
+							NULL,
+							G_PARAM_READWRITE |
+							G_PARAM_STATIC_STRINGS |
+							G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:parameter-type:
@@ -529,11 +558,13 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_PARAMETER_TYPE] = g_param_spec_boxed ("parameter-type", NULL, NULL, G_TYPE_VARIANT_TYPE,
-		G_PARAM_READWRITE |
-		G_PARAM_CONSTRUCT_ONLY |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_PARAMETER_TYPE] = g_param_spec_boxed ("parameter-type",
+							      NULL, NULL,
+							      G_TYPE_VARIANT_TYPE,
+							      G_PARAM_READWRITE |
+							      G_PARAM_CONSTRUCT_ONLY |
+							      G_PARAM_STATIC_STRINGS |
+							      G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:enabled:
@@ -544,10 +575,11 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_ENABLED] = g_param_spec_boolean ("enabled", NULL, NULL, TRUE,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_ENABLED] = g_param_spec_boolean ("enabled", NULL,
+							 NULL, TRUE,
+							 G_PARAM_READWRITE |
+							 G_PARAM_STATIC_STRINGS |
+							 G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:state-type:
@@ -556,10 +588,12 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_STATE_TYPE] = g_param_spec_boxed ("state-type", NULL, NULL, G_TYPE_VARIANT_TYPE,
-		G_PARAM_READABLE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_STATE_TYPE] = g_param_spec_boxed ("state-type", NULL,
+							  NULL,
+							  G_TYPE_VARIANT_TYPE,
+							  G_PARAM_READABLE |
+							  G_PARAM_STATIC_STRINGS |
+							  G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:state:
@@ -568,10 +602,12 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_STATE] = g_param_spec_variant ("state", NULL, NULL, G_VARIANT_TYPE_ANY, NULL,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_STATE] = g_param_spec_variant ("state", NULL, NULL,
+						       G_VARIANT_TYPE_ANY,
+						       NULL,
+						       G_PARAM_READWRITE |
+						       G_PARAM_STATIC_STRINGS |
+						       G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:state-hint:
@@ -580,10 +616,12 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_STATE_HINT] = g_param_spec_boxed ("state-hint", NULL, NULL, G_TYPE_VARIANT_TYPE,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_STATE_HINT] = g_param_spec_boxed ("state-hint", NULL,
+							  NULL,
+							  G_TYPE_VARIANT_TYPE,
+							  G_PARAM_READWRITE |
+							  G_PARAM_STATIC_STRINGS |
+							  G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:visible:
@@ -593,10 +631,11 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_VISIBLE] = g_param_spec_boolean ("visible", NULL, NULL, TRUE,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_VISIBLE] = g_param_spec_boolean ("visible", NULL,
+							 NULL, TRUE,
+							 G_PARAM_READWRITE |
+							 G_PARAM_STATIC_STRINGS |
+							 G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:is-visible:
@@ -606,10 +645,11 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_IS_VISIBLE] = g_param_spec_boolean ("is-visible", NULL, NULL, TRUE,
-		G_PARAM_READABLE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_IS_VISIBLE] = g_param_spec_boolean ("is-visible",
+							    NULL, NULL, TRUE,
+							    G_PARAM_READABLE |
+							    G_PARAM_STATIC_STRINGS |
+							    G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:sensitive:
@@ -619,10 +659,11 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_SENSITIVE] = g_param_spec_boolean ("sensitive", NULL, NULL, TRUE,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_SENSITIVE] = g_param_spec_boolean ("sensitive", NULL,
+							   NULL, TRUE,
+							   G_PARAM_READWRITE |
+							   G_PARAM_STATIC_STRINGS |
+							   G_PARAM_EXPLICIT_NOTIFY);
 
 	/**
 	 * EUIAction:active:
@@ -633,12 +674,13 @@ e_ui_action_class_init (EUIActionClass *klass)
 	 *
 	 * Since: 3.56
 	 **/
-	properties[PROP_ACTIVE] = g_param_spec_boolean ("active", NULL, NULL, TRUE,
-		G_PARAM_READWRITE |
-		G_PARAM_STATIC_STRINGS |
-		G_PARAM_EXPLICIT_NOTIFY);
+	properties[PROP_ACTIVE] = g_param_spec_boolean ("active", NULL, NULL,
+							TRUE,
+							G_PARAM_READWRITE |
+							G_PARAM_STATIC_STRINGS |
+							G_PARAM_EXPLICIT_NOTIFY);
 
-	g_object_class_install_properties (object_class, G_N_ELEMENTS (properties), properties);
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	/**
 	 * EUIAction::activate:
@@ -1252,6 +1294,50 @@ e_ui_action_get_label (EUIAction *self)
 	g_return_val_if_fail (E_IS_UI_ACTION (self), NULL);
 
 	return self->label;
+}
+
+/**
+ * e_ui_action_set_secondary_label:
+ * @self: an #EUIAction
+ * @label: (nullable): a secondary label to set, or %NULL
+ *
+ * Sets a secondary label for the action. The label should be already
+ * localized. The secondary label is used when the action appears in
+ * a context where a longer or more descriptive label is needed.
+ *
+ * Since: 3.62
+ **/
+void
+e_ui_action_set_secondary_label (EUIAction *self,
+				 const gchar *label)
+{
+	g_return_if_fail (E_IS_UI_ACTION (self));
+
+	if (e_util_strcmp0 (self->secondary_label, label) == 0)
+		return;
+
+	g_free (self->secondary_label);
+	self->secondary_label = g_strdup (label);
+
+	g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_SECONDARY_LABEL]);
+}
+
+/**
+ * e_ui_action_get_secondary_label:
+ * @self: an #EUIAction
+ *
+ * Gets a secondary label of the @self.
+ *
+ * Returns: (nullable): a secondary label of the @self, or %NULL, when none is set
+ *
+ * Since: 3.62
+ **/
+const gchar *
+e_ui_action_get_secondary_label (EUIAction *self)
+{
+	g_return_val_if_fail (E_IS_UI_ACTION (self), NULL);
+
+	return self->secondary_label;
 }
 
 /**

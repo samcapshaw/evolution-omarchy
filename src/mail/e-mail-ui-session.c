@@ -1,25 +1,8 @@
 /*
- * e-mail-ui-session.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *   Jonathon Jongsma <jonathon.jongsma@collabora.co.uk>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- * Copyright (C) 2009 Intel Corporation
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 2009 Intel Corporation
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jonathon Jongsma <jonathon.jongsma@collabora.co.uk>
  */
 
 /* mail-session.c: handles the session information and resource manipulation */
@@ -81,11 +64,13 @@ struct _EMailUISessionPrivate {
 
 enum {
 	PROP_0,
-	PROP_ACCOUNT_STORE,
 	PROP_CHECK_JUNK,
 	PROP_LABEL_STORE,
-	PROP_PHOTO_CACHE
+	PROP_PHOTO_CACHE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	ACTIVITY_ADDED,
@@ -394,13 +379,6 @@ mail_ui_session_get_property (GObject *object,
                               GParamSpec *pspec)
 {
 	switch (property_id) {
-		case PROP_ACCOUNT_STORE:
-			g_value_set_object (
-				value,
-				e_mail_ui_session_get_account_store (
-				E_MAIL_UI_SESSION (object)));
-			return;
-
 		case PROP_CHECK_JUNK:
 			g_value_set_boolean (
 				value,
@@ -1098,39 +1076,44 @@ e_mail_ui_session_class_init (EMailUISessionClass *class)
 	mail_session_class->create_vfolder_context = mail_ui_session_create_vfolder_context;
 	mail_session_class->refresh_service = mail_ui_session_refresh_service;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CHECK_JUNK,
+	/**
+	 * EMailUISession:check-junk
+	 *
+	 * Check if incoming messages are junk
+	 **/
+	properties[PROP_CHECK_JUNK] =
 		g_param_spec_boolean (
-			"check-junk",
-			"Check Junk",
-			"Check if incoming messages are junk",
+			"check-junk", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_LABEL_STORE,
+	/**
+	 * EMailUISession:label-store
+	 *
+	 * Mail label store
+	 **/
+	properties[PROP_LABEL_STORE] =
 		g_param_spec_object (
-			"label-store",
-			"Label Store",
-			"Mail label store",
+			"label-store", NULL, NULL,
 			E_TYPE_MAIL_LABEL_LIST_STORE,
 			G_PARAM_READABLE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PHOTO_CACHE,
+	/**
+	 * EMailUISession:photo-cache
+	 *
+	 * Contact photo cache
+	 **/
+	properties[PROP_PHOTO_CACHE] =
 		g_param_spec_object (
-			"photo-cache",
-			"Photo Cache",
-			"Contact photo cache",
+			"photo-cache", NULL, NULL,
 			E_TYPE_PHOTO_CACHE,
 			G_PARAM_READABLE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[ACTIVITY_ADDED] = g_signal_new (
 		"activity-added",
@@ -1212,7 +1195,7 @@ e_mail_ui_session_set_check_junk (EMailUISession *session,
 
 	session->priv->check_junk = check_junk;
 
-	g_object_notify (G_OBJECT (session), "check-junk");
+	g_object_notify_by_pspec (G_OBJECT (session), properties[PROP_CHECK_JUNK]);
 }
 
 EMailLabelListStore *

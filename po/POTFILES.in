@@ -22,7 +22,6 @@ data/org.gnome.evolution.spamassassin.gschema.xml.in
 data/org.gnome.evolution.text-highlight.gschema.xml.in
 data/org.gnome.Evolution.desktop.in.in
 data/org.gnome.Evolution.metainfo.xml.in.in
-[type: gettext/glade]data/ui/evolution-shortcuts.ui
 data/views/addressbook/galview.xml
 data/views/calendar/galview.xml
 data/views/mail/galview.xml
@@ -243,6 +242,7 @@ src/e-util/e-mail-signature-script-dialog.c
 src/e-util/e-map.c
 src/e-util/e-markdown-editor.c
 src/e-util/e-markdown-utils.c
+src/e-util/e-menu-bar.c
 src/e-util/e-misc-utils.c
 src/e-util/e-name-selector-dialog.c
 src/e-util/e-name-selector-entry.c
@@ -290,6 +290,7 @@ src/e-util/e-timezone-dialog.c
 [type: gettext/glade]src/e-util/e-timezone-dialog.ui
 src/e-util/e-tree.c
 src/e-util/e-tree-selection-model.c
+src/e-util/e-tree-view-frame.c
 src/e-util/e-ui-customize-dialog.c
 src/e-util/e-ui-customizer.c
 src/e-util/e-url-entry.c
@@ -465,6 +466,7 @@ src/modules/itip-formatter/e-mail-formatter-itip.c
 src/modules/itip-formatter/itip-view.c
 src/modules/itip-formatter/org-gnome-itip-formatter.error.xml
 src/modules/mail-config/e-mail-config-google-summary.c
+src/modules/mail-config/e-mail-config-imapx-options.c
 src/modules/mail-config/e-mail-config-local-accounts.c
 src/modules/mail-config/e-mail-config-remote-accounts.c
 src/modules/mail-config/e-mail-config-sendmail-backend.c

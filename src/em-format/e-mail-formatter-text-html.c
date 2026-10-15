@@ -1,18 +1,5 @@
 /*
- * e-mail-formatter-text-html.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -369,7 +356,7 @@ emfe_text_html_format (EMailFormatterExtension *extension,
 			e_mail_part_get_id (part),
 			e_mail_part_get_id (part),
 			e_mail_part_get_frame_security_style (part),
-			g_settings_get_boolean (settings, "preview-unset-html-colors") ? "x-e-unset-colors=\"1\"" : "style=\"background-color: #fff; color-scheme: light\"");
+			g_settings_get_boolean (settings, "preview-unset-html-colors") ? "x-e-unset-colors=\"1\"" : "style=\"background-color: #f7f7f7; color-scheme: light\"");
 
 		g_output_stream_write_all (
 			stream, str, strlen (str),

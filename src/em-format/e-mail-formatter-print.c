@@ -1,18 +1,5 @@
 /*
- * e-mail-formatter-print.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "e-mail-formatter-print.h"
@@ -121,7 +108,7 @@ mail_formatter_print_run (EMailFormatter *formatter,
 		"<title>Evolution Mail Display</title>\n"
 		"<link type=\"text/css\" rel=\"stylesheet\" media=\"print\" href=\"" STYLESHEET_URI "\"/>\n"
 		"</head>\n"
-		"<body style=\"background: #FFF; color: #000;\">";
+		"<body style=\"background: #F7F7F7; color: #000000;\">";
 
 	g_output_stream_write_all (
 		stream, string, strlen (string), NULL, cancellable, NULL);

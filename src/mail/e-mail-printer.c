@@ -1,18 +1,6 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Copyright (C) 2011 Dan Vratil <dvratil@redhat.com>
- *
+ * SPDX-FileCopyrightText: (C) 2011 Dan Vratil <dvratil@redhat.com>
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -56,8 +44,11 @@ struct _AsyncContext {
 enum {
 	PROP_0,
 	PROP_PART_LIST,
-	PROP_REMOTE_CONTENT
+	PROP_REMOTE_CONTENT,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	COLUMN_ACTIVE,
@@ -464,27 +455,21 @@ e_mail_printer_class_init (EMailPrinterClass *class)
 	object_class->get_property = mail_printer_get_property;
 	object_class->dispose = mail_printer_dispose;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PART_LIST,
+	properties[PROP_PART_LIST] =
 		g_param_spec_object (
-			"part-list",
-			"Part List",
-			NULL,
+			"part-list", NULL, NULL,
 			E_TYPE_MAIL_PART_LIST,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_REMOTE_CONTENT,
+	properties[PROP_REMOTE_CONTENT] =
 		g_param_spec_object (
-			"remote-content",
-			"Remote Content",
-			NULL,
+			"remote-content", NULL, NULL,
 			E_TYPE_MAIL_REMOTE_CONTENT,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

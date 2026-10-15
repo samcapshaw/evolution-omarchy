@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Damon Chaplin <damon@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Damon Chaplin <damon@ximian.com>
  */
 
 /*
@@ -41,8 +26,11 @@ struct _EDayViewTopItemPrivate {
 enum {
 	PROP_0,
 	PROP_DAY_VIEW,
-	PROP_SHOW_DATES
+	PROP_SHOW_DATES,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EDayViewTopItem, e_day_view_top_item, GNOME_TYPE_CANVAS_ITEM)
 
@@ -291,7 +279,7 @@ day_view_top_item_draw_long_event (EDayViewTopItem *top_item,
 		return;
 	}
 
-	g_object_get (G_OBJECT (event->canvas_item), "x_offset", &x_offset, NULL);
+	g_object_get (G_OBJECT (event->canvas_item), "x-offset", &x_offset, NULL);
 
 	/* Determine the position of the label, so we know where to place the
 	 * icons. Note that since the top canvas never scrolls we don't need
@@ -781,25 +769,19 @@ e_day_view_top_item_class_init (EDayViewTopItemClass *class)
 	item_class->draw = day_view_top_item_draw;
 	item_class->point = day_view_top_item_point;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DAY_VIEW,
+	properties[PROP_DAY_VIEW] =
 		g_param_spec_object (
-			"day_view",
-			"Day View",
-			NULL,
+			"day-view", NULL, NULL,
 			E_TYPE_DAY_VIEW,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_DATES,
+	properties[PROP_SHOW_DATES] =
 		g_param_spec_boolean (
-			"show_dates",
-			"Show Dates",
-			NULL,
+			"show-dates", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -871,7 +853,7 @@ e_day_view_top_item_set_day_view (EDayViewTopItem *top_item,
 
 	top_item->priv->day_view = g_object_ref (day_view);
 
-	g_object_notify (G_OBJECT (top_item), "day-view");
+	g_object_notify_by_pspec (G_OBJECT (top_item), properties[PROP_DAY_VIEW]);
 }
 
 gboolean
@@ -893,5 +875,5 @@ e_day_view_top_item_set_show_dates (EDayViewTopItem *top_item,
 
 	top_item->priv->show_dates = show_dates;
 
-	g_object_notify (G_OBJECT (top_item), "show-dates");
+	g_object_notify_by_pspec (G_OBJECT (top_item), properties[PROP_SHOW_DATES]);
 }

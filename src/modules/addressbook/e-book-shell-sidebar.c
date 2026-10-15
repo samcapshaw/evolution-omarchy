@@ -1,21 +1,6 @@
 /*
- * e-book-shell-sidebar.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -37,8 +22,11 @@ struct _EBookShellSidebarPrivate {
 
 enum {
 	PROP_0,
-	PROP_SELECTOR
+	PROP_SELECTOR,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (EBookShellSidebar, e_book_shell_sidebar, E_TYPE_SHELL_SIDEBAR, 0,
 	G_ADD_PRIVATE_DYNAMIC (EBookShellSidebar))
@@ -256,15 +244,18 @@ e_book_shell_sidebar_class_init (EBookShellSidebarClass *class)
 	shell_sidebar_class = E_SHELL_SIDEBAR_CLASS (class);
 	shell_sidebar_class->check_state = book_shell_sidebar_check_state;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SELECTOR,
+	/**
+	 * EBookShellSidebar:selector
+	 *
+	 * This widget displays groups of address books
+	 **/
+	properties[PROP_SELECTOR] =
 		g_param_spec_object (
-			"selector",
-			"Source Selector Widget",
-			"This widget displays groups of address books",
+			"selector", NULL, NULL,
 			E_TYPE_SOURCE_SELECTOR,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

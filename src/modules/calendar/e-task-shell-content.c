@@ -1,18 +1,7 @@
 /*
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- * Copyright (C) 2014 Red Hat, Inc. (www.redhat.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 2014 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -41,9 +30,12 @@ struct _ETaskShellContentPrivate {
 
 enum {
 	PROP_0,
+	PROP_PREVIEW_VISIBLE,
+	N_PROPS,
 	PROP_ORIENTATION,
-	PROP_PREVIEW_VISIBLE
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (ETaskShellContent, e_task_shell_content, E_TYPE_CAL_BASE_SHELL_CONTENT, 0,
 	G_ADD_PRIVATE_DYNAMIC (ETaskShellContent)
@@ -616,16 +608,19 @@ e_task_shell_content_class_init (ETaskShellContentClass *class)
 	cal_base_shell_content_class->new_cal_model = e_cal_model_tasks_new;
 	cal_base_shell_content_class->view_created = task_shell_content_view_created;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PREVIEW_VISIBLE,
+	/**
+	 * ETaskShellContent:preview-visible
+	 *
+	 * Whether the preview pane is visible
+	 **/
+	properties[PROP_PREVIEW_VISIBLE] =
 		g_param_spec_boolean (
-			"preview-visible",
-			"Preview is Visible",
-			"Whether the preview pane is visible",
+			"preview-visible", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	g_object_class_override_property (
 		object_class, PROP_ORIENTATION, "orientation");
@@ -706,7 +701,7 @@ e_task_shell_content_set_preview_visible (ETaskShellContent *task_shell_content,
 		e_web_view_update_actions (e_preview_pane_get_web_view (E_PREVIEW_PANE (task_shell_content->priv->preview_pane)));
 	}
 
-	g_object_notify (G_OBJECT (task_shell_content), "preview-visible");
+	g_object_notify_by_pspec (G_OBJECT (task_shell_content), properties[PROP_PREVIEW_VISIBLE]);
 }
 
 EShellSearchbar *

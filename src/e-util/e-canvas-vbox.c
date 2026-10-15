@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -50,8 +35,11 @@ enum {
 	PROP_WIDTH,
 	PROP_MINIMUM_WIDTH,
 	PROP_HEIGHT,
-	PROP_SPACING
+	PROP_SPACING,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE (
 	ECanvasVbox,
@@ -78,42 +66,48 @@ e_canvas_vbox_class_init (ECanvasVboxClass *class)
 	item_class->event = e_canvas_vbox_event;
 	item_class->realize = e_canvas_vbox_realize;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_WIDTH,
+	/**
+	 * ECanvasVbox:width
+	 *
+	 * Width
+	 **/
+	properties[PROP_WIDTH] =
 		g_param_spec_double (
-			"width",
-			"Width",
-			"Width",
+			"width", NULL, NULL,
 			0.0, G_MAXDOUBLE, 0.0,
-			G_PARAM_READWRITE));
-	g_object_class_install_property (
-		object_class,
-		PROP_MINIMUM_WIDTH,
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+	/**
+	 * ECanvasVbox:minimum-width
+	 *
+	 * Minimum Width
+	 **/
+	properties[PROP_MINIMUM_WIDTH] =
 		g_param_spec_double (
-			"minimum_width",
-			"Minimum width",
-			"Minimum Width",
+			"minimum-width", NULL, NULL,
 			0.0, G_MAXDOUBLE, 0.0,
-			G_PARAM_READWRITE));
-	g_object_class_install_property (
-		object_class,
-		PROP_HEIGHT,
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+	/**
+	 * ECanvasVbox:height
+	 *
+	 * Height
+	 **/
+	properties[PROP_HEIGHT] =
 		g_param_spec_double (
-			"height",
-			"Height",
-			"Height",
+			"height", NULL, NULL,
 			0.0, G_MAXDOUBLE, 0.0,
-			G_PARAM_READABLE));
-	g_object_class_install_property (
-		object_class,
-		PROP_SPACING,
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+	/**
+	 * ECanvasVbox:spacing
+	 *
+	 * Spacing
+	 **/
+	properties[PROP_SPACING] =
 		g_param_spec_double (
-			"spacing",
-			"Spacing",
-			"Spacing",
+			"spacing", NULL, NULL,
 			0.0, G_MAXDOUBLE, 0.0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -222,9 +216,11 @@ e_canvas_vbox_event (GnomeCanvasItem *item,
 {
 	gint return_val = TRUE;
 
-	switch (event->type) {
-	case GDK_KEY_PRESS:
-		switch (event->key.keyval) {
+	switch (gdk_event_get_event_type (event)) {
+	case GDK_KEY_PRESS: {
+		guint keyval = 0;
+		gdk_event_get_keyval (event, &keyval);
+		switch (keyval) {
 		case GDK_KEY_Left:
 		case GDK_KEY_KP_Left:
 		case GDK_KEY_Right:
@@ -242,6 +238,7 @@ e_canvas_vbox_event (GnomeCanvasItem *item,
 			break;
 		}
 		break;
+	}
 	default:
 		return_val = FALSE;
 		break;

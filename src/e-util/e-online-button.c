@@ -1,17 +1,6 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -38,8 +27,11 @@ struct _EOnlineButtonPrivate {
 
 enum {
 	PROP_0,
-	PROP_ONLINE
+	PROP_ONLINE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EOnlineButton, e_online_button, GTK_TYPE_BUTTON)
 
@@ -134,16 +126,19 @@ e_online_button_class_init (EOnlineButtonClass *class)
 	object_class->get_property = online_button_get_property;
 	object_class->dispose = online_button_dispose;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ONLINE,
+	/**
+	 * EOnlineButton:online
+	 *
+	 * The button state is online
+	 **/
+	properties[PROP_ONLINE] =
 		g_param_spec_boolean (
-			"online",
-			"Online",
-			"The button state is online",
+			"online", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -212,5 +207,5 @@ e_online_button_set_online (EOnlineButton *button,
 	online_button_update_icon (image, filename);
 	g_object_unref (icon_info);
 
-	g_object_notify (G_OBJECT (button), "online");
+	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_ONLINE]);
 }

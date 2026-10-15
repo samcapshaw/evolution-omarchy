@@ -1,18 +1,6 @@
 /*
- * Copyright (C) 2015 Red Hat, Inc. (www.redhat.com)
- *
- * This program is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: (C) 2015 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include "evolution-config.h"
@@ -50,8 +38,11 @@ struct _ECompEditorPageAttachmentsPrivate {
 
 enum {
 	PROP_0,
-	PROP_ACTIVE_VIEW
+	PROP_ACTIVE_VIEW,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (ECompEditorPageAttachments, e_comp_editor_page_attachments, E_TYPE_COMP_EDITOR_PAGE)
 
@@ -506,6 +497,49 @@ ecep_attachments_fill_widgets (ECompEditorPage *page,
 	g_ptr_array_unref (attach_props);
 }
 
+static GFile *
+ecep_attachments_store_mime_part_as_file (ECompEditorPageAttachments *page_attachments,
+					  ICalComponent *component,
+					  EAttachment *attachment)
+{
+	GFile *destination_dir, *destination_file = NULL;
+	gchar *dir, *rid, *id_str;
+
+	rid = e_cal_util_component_get_recurid_as_string (component);
+	if (rid && !*rid) {
+		g_free (rid);
+		rid = NULL;
+	}
+
+	id_str = g_strconcat (i_cal_component_get_uid (component), rid ? "-" : NULL, rid, NULL);
+	g_free (rid);
+
+	dir = g_build_filename (e_get_user_cache_dir (), "tmp", "calendar", id_str, NULL);
+	g_free (id_str);
+
+	if (g_mkdir_with_parents (dir, 0700) < 0) {
+		g_free (dir);
+		return NULL;
+	}
+
+	destination_dir = g_file_new_for_path (dir);
+	g_free (dir);
+
+	if (e_attachment_save (attachment, destination_dir, &destination_file, NULL) && destination_file) {
+		gchar *temporary_filename;
+
+		temporary_filename = g_file_get_path (destination_file);
+		if (temporary_filename) {
+			page_attachments->priv->temporary_files = g_slist_prepend (
+				page_attachments->priv->temporary_files, temporary_filename);
+		}
+	}
+
+	g_object_unref (destination_dir);
+
+	return destination_file;
+}
+
 static gboolean
 ecep_attachments_fill_component (ECompEditorPage *page,
 				 ICalComponent *component)
@@ -546,6 +580,16 @@ ecep_attachments_fill_component (ECompEditorPage *page,
 		description = e_attachment_dup_description (attachment);
 
 		file = e_attachment_ref_file (attachment);
+		if (!file) {
+			CamelMimePart *mime_part;
+
+			mime_part = e_attachment_ref_mime_part (attachment);
+			if (mime_part)
+				file = ecep_attachments_store_mime_part_as_file (page_attachments, component, attachment);
+
+			g_clear_object (&mime_part);
+		}
+
 		if (!file) {
 			gchar *error_message;
 
@@ -1058,19 +1102,17 @@ e_comp_editor_page_attachments_class_init (ECompEditorPageAttachmentsClass *klas
 	object_class->dispose = ecep_attachments_dispose;
 	object_class->constructed = ecep_attachments_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ACTIVE_VIEW,
+	properties[PROP_ACTIVE_VIEW] =
 		g_param_spec_int (
-			"active-view",
-			"Active View",
-			NULL,
+			"active-view", NULL, NULL,
 			0,
 			NUM_VIEWS,
 			0,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 ECompEditorPage *
@@ -1120,7 +1162,7 @@ e_comp_editor_page_attachments_set_active_view (ECompEditorPageAttachments *page
 
 	e_attachment_view_sync_selection (source, target);
 
-	g_object_notify (G_OBJECT (page_attachments), "active-view");
+	g_object_notify_by_pspec (G_OBJECT (page_attachments), properties[PROP_ACTIVE_VIEW]);
 }
 
 EAttachmentStore *

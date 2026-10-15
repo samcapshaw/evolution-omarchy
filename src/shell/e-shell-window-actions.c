@@ -1,21 +1,6 @@
 /*
- * e-shell-window-actions.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -113,24 +98,238 @@ action_contents_cb (EUIAction *action,
 	e_shell_utils_run_help_contents (e_shell_window_get_shell (shell_window));
 }
 
+static GtkWidget *
+shell_window_create_shortcuts_dialog (EShellWindow *self)
+{
+	static const struct _shortcuts {
+		const gchar *group_label; /* NULL means to use the current group, non-NULL creates a new group */
+		const gchar *action; /* if NULL, label and shortcut are required */
+		const gchar *label; /* optional override for action label */
+		const gchar *shortcut; /* only for system/gtk+ shortcuts */
+	} shortcuts[] = {
+		#define group(_lbl) { _lbl, NULL, NULL, NULL }
+		#define item(_act, _lbl) { NULL, _act, _lbl, NULL }
+		#define custom(_lbl, _sct) { NULL, NULL, _lbl, _sct }
+
+		group (NC_("shortcut window", "General")),
+		custom (NC_("shortcut window", "Select Mail component"), "<Control>1"),
+		custom (NC_("shortcut window", "Select Contacts component"), "<Control>2"),
+                custom (NC_("shortcut window", "Select Calendar component"), "<Control>3"),
+                custom (NC_("shortcut window", "Select Tasks component"), "<Control>4"),
+                custom (NC_("shortcut window", "Select Memos component"), "<Control>5"),
+		item ("EShellWindow::new-shortcut", NC_("shortcut window", "Create a new item in current component")),
+		custom (NC_("shortcut window", "Cycle focus between panes"), "F6"),
+                item ("contents", NC_("shortcut window", "Open the Evolution user guide")),
+                item ("shortcuts", NC_("shortcut window", "Keyboard shortcuts")),
+                item ("search-options", NC_("shortcut window", "Focus search bar")),
+                item ("search-clear", NC_("shortcut window", "Clear search bar")),
+                item ("preferences", NC_("shortcut window", "Preferences")),
+                item ("new-window", NC_("shortcut window", "Open new window")),
+                item ("close-window", NC_("shortcut window", "Close window")),
+                item ("quit", NC_("shortcut window", "Quit Evolution")),
+
+		group (NC_("shortcut window", "Mail")),
+                item ("new-menu-mail-message-new", NC_("shortcut window", "Create a new message")),
+                item ("mail-send-receive", NC_("shortcut window", "Send and receive messages")),
+                item ("mail-filters-apply", NC_("shortcut window", "Apply filters to selection")),
+                item ("mail-message-open", NC_("shortcut window", "Open selection in new window")),
+                item ("mail-goto-folder", NC_("shortcut window", "Go to folder")),
+                item ("mail-move", NC_("shortcut window", "Move mails to folder")),
+                item ("mail-copy", NC_("shortcut window", "Copy mails to folder")),
+                item ("mail-next-unread", NC_("shortcut window", "Jump to the next unread message")),
+                item ("mail-previous-unread", NC_("shortcut window", "Jump to the previous unread message")),
+                item ("mail-smart-backward", NC_("shortcut window", "Scroll up")),
+                item ("mail-smart-forward", NC_("shortcut window", "Scroll down")),
+
+                group (NC_("shortcut window", "Mail Message")),
+                item ("mail-mark-read", NC_("shortcut window", "Mark selected messages as read")),
+                item ("mail-mark-unread", NC_("shortcut window", "Mark selected messages as unread")),
+                item ("mail-mark-junk", NC_("shortcut window", "Mark selected messages as junk")),
+                item ("mail-mark-notjunk", NC_("shortcut window", "Mark selected messages as not junk")),
+                item ("mail-flag-for-followup", NC_("shortcut window", "Flag selected messages for follow-up")),
+                item ("mail-forward", NC_("shortcut window", "Forward selected messages")),
+                item ("mail-reply-sender", NC_("shortcut window", "Reply to sender")),
+                item ("mail-reply-list", NC_("shortcut window", "Reply to list")),
+                item ("mail-reply-all", NC_("shortcut window", "Reply to all recipients")),
+                item ("mail-reply-alternative", NC_("shortcut window", "Alternative reply")),
+                item ("mail-archive", NC_("shortcut window", "Archive selected messages")),
+                item ("mail-delete", NC_("shortcut window", "Delete message")),
+                item ("mail-undelete", NC_("shortcut window", "Undelete message")),
+
+		group (NC_("shortcut window", "Calendar")),
+                item ("new-menu-event-new", NC_("shortcut window", "Create a new appointment")),
+                item ("new-menu-event-meeting-new", NC_("shortcut window", "Create a new meeting")),
+                item ("new-menu-task-new", NC_("shortcut window", "Create a new task")),
+                item ("new-menu-memo-new", NC_("shortcut window", "Create a new memo")),
+                item ("calendar-go-today", NC_("shortcut window", "Go to today")),
+                item ("calendar-jump-to", NC_("shortcut window", "Go to date")),
+                item ("calendar-view-day", NC_("shortcut window", "Day View")),
+                item ("calendar-view-workweek", NC_("shortcut window", "Work Week View")),
+                item ("calendar-view-week", NC_("shortcut window", "Week View")),
+                item ("calendar-view-month", NC_("shortcut window", "Month View")),
+                item ("calendar-view-year", NC_("shortcut window", "Year View")),
+                item ("calendar-view-list", NC_("shortcut window", "List View")),
+                item ("event-delete", NC_("shortcut window", "Delete event")),
+
+		group (NC_("shortcut window", "Contacts")),
+                item ("new-menu-contact-new", NC_("shortcut window", "Create a new contact")),
+                item ("new-menu-contact-new-list", NC_("shortcut window", "Create a new contact list")),
+                item ("contact-move", NC_("shortcut window", "Move contacts to address book")),
+                item ("contact-copy", NC_("shortcut window", "Copy contacts to address book")),
+                item ("contact-delete", NC_("shortcut window", "Delete contact"))
+
+		#undef group
+		#undef item
+		#undef custom
+	};
+	const gchar *required_views[] = { "mail", "calendar", "addressbook" };
+	GPtrArray *customizers;
+	GtkWidget *dialog, *section, *group = NULL, *shortcut;
+	guint ii;
+
+	customizers = g_ptr_array_new_full (4, g_object_unref);
+
+	for (ii = 0; ii < G_N_ELEMENTS (required_views); ii++) {
+		EShellView *view;
+
+		view = e_shell_window_get_shell_view (self, required_views[ii]);
+		if (view) {
+			GPtrArray *view_customizers;
+
+			view_customizers = e_shell_view_dup_ui_customizers (view);
+			if (view_customizers) {
+				guint jj;
+
+				for (jj = 0; jj < view_customizers->len; jj++) {
+					EUICustomizer *customizer = g_ptr_array_index (view_customizers, jj);
+					g_ptr_array_add (customizers, g_object_ref (customizer));
+				}
+
+				g_ptr_array_unref (view_customizers);
+			}
+		}
+	}
+
+	dialog = g_object_new (GTK_TYPE_SHORTCUTS_WINDOW,
+		"modal", TRUE,
+		NULL);
+
+	section = g_object_new (GTK_TYPE_SHORTCUTS_SECTION,
+		"section-name", "general",
+		"title", _("Keyboard Shortcuts"),
+		"visible", TRUE,
+		NULL);
+
+	gtk_container_add (GTK_CONTAINER (dialog), section);
+
+	for (ii = 0; ii < G_N_ELEMENTS (shortcuts); ii++) {
+		if (shortcuts[ii].group_label) {
+			group = g_object_new (GTK_TYPE_SHORTCUTS_GROUP,
+				"title", g_dpgettext2 (GETTEXT_PACKAGE, "shortcut window", shortcuts[ii].group_label),
+				"visible", TRUE,
+				NULL);
+			gtk_container_add (GTK_CONTAINER (section), group);
+			continue;
+		}
+
+		shortcut = NULL;
+
+		if (shortcuts[ii].action) {
+			EUIAction *action = NULL;
+			GPtrArray *customized_accels = NULL;
+			guint jj;
+
+			for (jj = 0; jj < customizers->len; jj++) {
+				EUICustomizer *customizer = g_ptr_array_index (customizers, jj);
+				EUIManager *ui_manager = e_ui_customizer_get_manager (customizer);
+
+				action = e_ui_manager_get_action (ui_manager, shortcuts[ii].action);
+				if (action) {
+					customized_accels = e_ui_customizer_get_accels (customizer, shortcuts[ii].action);
+					break;
+				}
+			}
+
+			if (action) {
+				GString *accels;
+
+				if (customized_accels) {
+					accels = g_string_new ("");
+
+					for (jj = 0; jj < customized_accels->len; jj++) {
+						const gchar *accel = g_ptr_array_index (customized_accels, jj);
+
+						if (accel && *accel) {
+							if (accels->len)
+								g_string_append_c (accels, ' ');
+							g_string_append (accels, accel);
+						}
+					}
+				} else {
+					GPtrArray *secondary = e_ui_action_get_secondary_accels (action);
+
+					accels = g_string_new (e_ui_action_get_accel (action));
+
+					for (jj = 0; secondary && jj < secondary->len; jj++) {
+						const gchar *accel = g_ptr_array_index (secondary, jj);
+
+						if (accel && *accel) {
+							if (accels->len)
+								g_string_append_c (accels, ' ');
+							g_string_append (accels, accel);
+						}
+					}
+				}
+
+				if (accels->len) {
+					shortcut = g_object_new (GTK_TYPE_SHORTCUTS_SHORTCUT,
+						"title", shortcuts[ii].label ?
+						g_dpgettext2 (GETTEXT_PACKAGE, "shortcut window", shortcuts[ii].label) :
+						(e_ui_action_get_secondary_label (action) ?
+							e_ui_action_get_secondary_label (action) :
+							e_ui_action_get_label (action)),
+						"accelerator", accels->str,
+						"visible", TRUE,
+						NULL);
+				}
+
+				g_string_free (accels, TRUE);
+			} else {
+				g_warning ("%s: Cannot find action '%s'", G_STRFUNC, shortcuts[ii].action);
+			}
+		} else {
+			shortcut = g_object_new (GTK_TYPE_SHORTCUTS_SHORTCUT,
+				"title", g_dpgettext2 (GETTEXT_PACKAGE, "shortcut window", shortcuts[ii].label),
+				"accelerator", shortcuts[ii].shortcut,
+				"visible", TRUE,
+				NULL);
+		}
+
+		if (shortcut)
+			gtk_container_add (GTK_CONTAINER (group), shortcut);
+	}
+
+	g_ptr_array_unref (customizers);
+
+	g_object_set (G_OBJECT (dialog),
+		"section-name", "general",
+		NULL);
+
+	return dialog;
+}
+
 static void
 action_shortcuts_cb (EUIAction *action,
 		     GVariant *parameter,
 		     gpointer user_data)
 {
 	EShellWindow *shell_window = user_data;
-	GtkBuilder *builder;
 	GtkWidget *widget;
 
-	builder = gtk_builder_new ();
-	e_load_ui_builder_definition (builder, "evolution-shortcuts.ui");
-
-	widget = e_builder_get_widget (builder, "evolution-shortcuts");
+	widget = shell_window_create_shortcuts_dialog (shell_window);
 	gtk_window_set_transient_for (GTK_WINDOW (widget), GTK_WINDOW (shell_window));
 
 	gtk_widget_show (widget);
-
-	g_object_unref (builder);
 }
 
 /**
@@ -584,7 +783,7 @@ e_shell_window_actions_constructed (EShellWindow *shell_window)
 
 		{ "new-collection-account",
 		  "evolution",
-		  N_("Collect_ion Account"),
+		  NC_("New", "Collect_ion Account"),
 		  NULL,
 		  N_("Create a new collection account"),
 		  action_new_collection_account_cb, NULL, NULL, NULL }
@@ -906,7 +1105,6 @@ e_shell_window_fill_switcher_actions (EShellWindow *shell_window,
 	EShell *shell;
 	GPtrArray *group;
 	GList *list, *iter;
-	guint ii = 1;
 
 	g_return_if_fail (E_IS_SHELL_WINDOW (shell_window));
 
@@ -921,7 +1119,7 @@ e_shell_window_fill_switcher_actions (EShellWindow *shell_window,
 
 	action_group = e_shell_window_get_ui_action_group (shell_window, "shell");
 
-	for (iter = list; iter != NULL; iter = iter->next, ii++) {
+	for (iter = list; iter != NULL; iter = iter->next) {
 		EShellBackend *shell_backend = iter->data;
 		EShellBackendClass *backend_class;
 		EShellViewClass *class;

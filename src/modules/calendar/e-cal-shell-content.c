@@ -1,18 +1,7 @@
 /*
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- * Copyright (C) 2014 Red Hat, Inc. (www.redhat.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 2014 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -82,8 +71,11 @@ enum {
 	PROP_TASK_TABLE,
 	PROP_CURRENT_VIEW_ID,
 	PROP_CURRENT_VIEW,
-	PROP_SHOW_TAG_VPANE
+	PROP_SHOW_TAG_VPANE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Used to indicate who has the focus within the calendar view. */
 typedef enum {
@@ -630,7 +622,7 @@ cal_shell_content_datepicker_button_press_cb (ECalendar *calendar,
 	if (!event)
 		return FALSE;
 
-	if (event->type == GDK_2BUTTON_PRESS) {
+	if (gdk_event_get_event_type (event) == GDK_2BUTTON_PRESS) {
 		ECalendarItem *calitem = e_calendar_get_item (calendar);
 		gdouble xwin = 0.0, ywin = 0.0;
 		GDate sel_start, sel_end;
@@ -2101,67 +2093,45 @@ e_cal_shell_content_class_init (ECalShellContentClass *class)
 	cal_base_shell_content_class->new_cal_model = e_cal_model_calendar_new;
 	cal_base_shell_content_class->view_created = cal_shell_content_view_created;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CALENDAR_NOTEBOOK,
+	properties[PROP_CALENDAR_NOTEBOOK] =
 		g_param_spec_object (
-			"calendar-notebook",
-			NULL,
-			NULL,
+			"calendar-notebook", NULL, NULL,
 			GTK_TYPE_NOTEBOOK,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MEMO_TABLE,
+	properties[PROP_MEMO_TABLE] =
 		g_param_spec_object (
-			"memo-table",
-			NULL,
-			NULL,
+			"memo-table", NULL, NULL,
 			E_TYPE_MEMO_TABLE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TASK_TABLE,
+	properties[PROP_TASK_TABLE] =
 		g_param_spec_object (
-			"task-table",
-			NULL,
-			NULL,
+			"task-table", NULL, NULL,
 			E_TYPE_TASK_TABLE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CURRENT_VIEW_ID,
+	properties[PROP_CURRENT_VIEW_ID] =
 		g_param_spec_int (
-			"current-view-id",
-			"Current Calendar View ID",
-			NULL,
+			"current-view-id", NULL, NULL,
 			E_CAL_VIEW_KIND_DAY,
 			E_CAL_VIEW_KIND_LAST - 1,
 			E_CAL_VIEW_KIND_DAY,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CURRENT_VIEW,
+	properties[PROP_CURRENT_VIEW] =
 		g_param_spec_object (
-			"current-view",
-			"Current Calendar View",
-			NULL,
+			"current-view", NULL, NULL,
 			E_TYPE_CALENDAR_VIEW,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_TAG_VPANE,
+	properties[PROP_SHOW_TAG_VPANE] =
 		g_param_spec_boolean (
-			"show-tag-vpane",
-			NULL,
-			NULL,
+			"show-tag-vpane", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -2415,7 +2385,7 @@ e_cal_shell_content_set_current_view_id (ECalShellContent *cal_shell_content,
 
 	cal_shell_content->priv->current_view = view_kind;
 
-	g_object_notify (G_OBJECT (cal_shell_content), "current-view-id");
+	g_object_notify_by_pspec (G_OBJECT (cal_shell_content), properties[PROP_CURRENT_VIEW_ID]);
 
 	gtk_widget_queue_draw (GTK_WIDGET (cal_shell_content->priv->views[cal_shell_content->priv->current_view]));
 
@@ -2819,7 +2789,7 @@ e_cal_shell_content_set_show_tag_vpane (ECalShellContent *cal_shell_content,
 			e_cal_data_model_freeze_views_update (cal_shell_content->priv->memo_data_model);
 	}
 
-	g_object_notify (G_OBJECT (cal_shell_content), "show-tag-vpane");
+	g_object_notify_by_pspec (G_OBJECT (cal_shell_content), properties[PROP_SHOW_TAG_VPANE]);
 }
 
 gboolean

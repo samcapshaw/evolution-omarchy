@@ -1,24 +1,8 @@
 /*
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Michael Zucchi <notzed@ximian.com>
- *		Federico Mena-Quintero <federico@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Michael Zucchi <notzed@ximian.com>
+ * SPDX-FileContributor: Federico Mena-Quintero <federico@ximian.com>
  */
 
 #ifndef PRINT_H
@@ -33,7 +17,8 @@ typedef enum {
 	E_PRINT_VIEW_WORKWEEK,
 	E_PRINT_VIEW_WEEK,
 	E_PRINT_VIEW_MONTH,
-	E_PRINT_VIEW_LIST
+	E_PRINT_VIEW_LIST,
+	E_PRINT_VIEW_DETAILED
 } EPrintView;
 
 void		print_calendar			(ECalendarView *cal_view,
@@ -50,5 +35,9 @@ void		print_table			(ETable *table,
 						 const gchar *dialog_title,
 						 const gchar *print_header,
 						 GtkPrintOperationAction action);
+void		print_calendar_detailed		(ECalendarView *cal_view,
+						 GtkPrintOperationAction action,
+						 time_t start,
+						 time_t end);
 
 #endif

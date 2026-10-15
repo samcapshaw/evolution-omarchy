@@ -1,18 +1,5 @@
 /*
- * e-mail-formatter.h
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifndef E_MAIL_FORMATTER_H_
@@ -187,6 +174,12 @@ gchar *		e_mail_formatter_dup_default_charset
 void		e_mail_formatter_set_default_charset
 						(EMailFormatter *formatter,
 						 const gchar *charset);
+
+const gchar *	e_mail_formatter_ensure_page_token
+						(EMailFormatter *formatter);
+const gchar *	e_mail_formatter_dup_page_token	(EMailFormatter *formatter);
+void		e_mail_formatter_reset_page_token
+						(EMailFormatter *formatter);
 
 G_END_DECLS
 

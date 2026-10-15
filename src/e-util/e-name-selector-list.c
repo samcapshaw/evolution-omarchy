@@ -1,25 +1,8 @@
 /*
- * Single-line text entry widget for EDestinations.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Srinivasa Ragavan <sragavan@novell.com>
- *		Devashish Sharma  <sdevashish@novell.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Srinivasa Ragavan <sragavan@novell.com>
+ * SPDX-FileContributor: Devashish Sharma  <sdevashish@novell.com>
  */
 
 #include "evolution-config.h"
@@ -228,7 +211,7 @@ enl_popup_enter_notify (GtkWidget *widget,
                         GdkEventCrossing *event,
                         ENameSelectorList *list)
 {
-	if (event->type == GDK_ENTER_NOTIFY && !gtk_widget_has_grab (GTK_WIDGET (list->priv->popup)))
+	if (gdk_event_get_event_type ((GdkEvent *) event) == GDK_ENTER_NOTIFY && !gtk_widget_has_grab (GTK_WIDGET (list->priv->popup)))
 		enl_popup_grab (list, (GdkEvent *) event);
 
 	return TRUE;
@@ -441,16 +424,22 @@ enl_tree_button_press_event (GtkWidget *widget,
 	GtkTreePath  *path;
 	PopupDeleteRowInfo *row_info;
 	GtkTreeIter   iter;
+	guint         button = 0;
+	gdouble       x = 0, y = 0;
 
 	entry = E_NAME_SELECTOR_ENTRY (list);
 	tree_view = GTK_TREE_VIEW (list->priv->tree_view);
 	store = e_name_selector_entry_peek_destination_store (entry);
 
+
+	gdk_event_get_button ((GdkEvent *) event, &button);
+	gdk_event_get_coords ((GdkEvent *) event, &x, &y);
+
 	if (!gtk_widget_has_grab (GTK_WIDGET (list->priv->popup)))
 		enl_popup_grab (list, (GdkEvent *) event);
 
 	if (!gtk_tree_view_get_dest_row_at_pos (
-		tree_view, event->x, event->y, &path, NULL))
+		tree_view, x, y, &path, NULL))
 		return FALSE;
 	selection = gtk_tree_view_get_selection (tree_view);
 	if (!gtk_tree_model_get_iter (GTK_TREE_MODEL (store), &iter, path))
@@ -459,7 +448,7 @@ enl_tree_button_press_event (GtkWidget *widget,
 	gtk_tree_selection_unselect_all (selection);
 	gtk_tree_selection_select_iter (selection, &iter);
 
-	if (event->button != 3) {
+	if (button != GDK_BUTTON_SECONDARY) {
 		return FALSE;
 	}
 
@@ -589,11 +578,15 @@ enl_tree_key_press_event (GtkWidget *w,
                           GdkEventKey *event,
                           ENameSelectorList *list)
 {
-	if (event->keyval == GDK_KEY_Escape) {
+	guint keyval = 0;
+
+	gdk_event_get_keyval ((GdkEvent *) event, &keyval);
+
+	if (keyval == GDK_KEY_Escape) {
 		enl_popup_ungrab (list);
 		gtk_widget_hide ( GTK_WIDGET (list->priv->popup));
 		return TRUE;
-	} else if (event->keyval == GDK_KEY_Delete) {
+	} else if (keyval == GDK_KEY_Delete) {
 		GtkTreeSelection *selection;
 		GtkTreeView *tree_view;
 		GList *paths;
@@ -604,9 +597,9 @@ enl_tree_key_press_event (GtkWidget *w,
 		paths = g_list_reverse (paths);
 		g_list_foreach (paths, (GFunc) delete_row, list);
 		g_list_free (paths);
-	} else if (event->keyval != GDK_KEY_Up && event->keyval != GDK_KEY_Down
-		   && event->keyval != GDK_KEY_Shift_R && event->keyval != GDK_KEY_Shift_L
-		   && event->keyval != GDK_KEY_Control_R && event->keyval != GDK_KEY_Control_L) {
+	} else if (keyval != GDK_KEY_Up && keyval != GDK_KEY_Down
+		   && keyval != GDK_KEY_Shift_R && keyval != GDK_KEY_Shift_L
+		   && keyval != GDK_KEY_Control_R && keyval != GDK_KEY_Control_L) {
 		enl_popup_ungrab (list);
 		gtk_widget_hide ( GTK_WIDGET (list->priv->popup));
 		gtk_widget_event (GTK_WIDGET (list), (GdkEvent *) event);

@@ -115,7 +115,7 @@ enum {
 	PROP_WEEK_START_DAY,
 	PROP_SHOW_WEEK_NUMBERS,
 	PROP_SHOW_DAY_NAMES,
-	LAST_PROP
+	N_PROPS
 };
 
 enum {
@@ -124,7 +124,7 @@ enum {
 	LAST_SIGNAL
 };
 
-static GParamSpec *obj_props[LAST_PROP] = { NULL, };
+static GParamSpec *properties[N_PROPS] = { NULL, };
 static guint signals[LAST_SIGNAL];
 
 static const gchar *
@@ -397,9 +397,12 @@ e_month_widget_button_press_event_cb (GtkWidget *widget,
 				      gpointer user_data)
 {
 	EMonthWidget *self = E_MONTH_WIDGET (widget);
+	gdouble x = 0, y = 0;
 
-	self->priv->button_press_day = event->type == GDK_BUTTON_PRESS ?
-		e_month_widget_get_day_at_position (self, event->x, event->y) : 0;
+	gdk_event_get_coords ((GdkEvent *) event, &x, &y);
+
+	self->priv->button_press_day = gdk_event_get_event_type ((GdkEvent *) event) == GDK_BUTTON_PRESS ?
+		e_month_widget_get_day_at_position (self, x, y) : 0;
 
 	return FALSE;
 }
@@ -410,13 +413,19 @@ e_month_widget_button_release_event_cb (GtkWidget *widget,
 					gpointer user_data)
 {
 	EMonthWidget *self = E_MONTH_WIDGET (widget);
+	gdouble x = 0, y = 0;
 	guint day;
 
-	day = event->type == GDK_BUTTON_RELEASE ?
-		e_month_widget_get_day_at_position (self, event->x, event->y) : 0;
+	gdk_event_get_coords ((GdkEvent *) event, &x, &y);
+
+	day = gdk_event_get_event_type ((GdkEvent *) event) == GDK_BUTTON_RELEASE ?
+		e_month_widget_get_day_at_position (self, x, y) : 0;
 
 	if (day && self->priv->button_press_day == day) {
-		g_signal_emit (self, signals[DAY_CLICKED], 0, event, self->priv->year, self->priv->month, day, NULL);
+		guint button = 0;
+
+		gdk_event_get_button ((GdkEvent *) event, &button);
+		g_signal_emit (self, signals[DAY_CLICKED], 0, button, self->priv->year, self->priv->month, day, NULL);
 	}
 
 	self->priv->button_press_day = 0;
@@ -664,7 +673,7 @@ e_month_widget_class_init (EMonthWidgetClass *klass)
 	 *
 	 * Since: 3.46
 	 **/
-	obj_props[PROP_WEEK_START_DAY] =
+	properties[PROP_WEEK_START_DAY] =
 		g_param_spec_int ("week-start-day", NULL, NULL,
 			0, 7, G_DATE_SUNDAY,
 			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
@@ -676,7 +685,7 @@ e_month_widget_class_init (EMonthWidgetClass *klass)
 	 *
 	 * Since: 3.46
 	 **/
-	obj_props[PROP_SHOW_WEEK_NUMBERS] =
+	properties[PROP_SHOW_WEEK_NUMBERS] =
 		g_param_spec_boolean ("show-week-numbers", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
@@ -688,12 +697,12 @@ e_month_widget_class_init (EMonthWidgetClass *klass)
 	 *
 	 * Since: 3.46
 	 **/
-	obj_props[PROP_SHOW_DAY_NAMES] =
+	properties[PROP_SHOW_DAY_NAMES] =
 		g_param_spec_boolean ("show-day-names", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
-	g_object_class_install_properties (object_class, G_N_ELEMENTS (obj_props), obj_props);
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	/**
 	 * EMonthWidget::changed:
@@ -715,7 +724,7 @@ e_month_widget_class_init (EMonthWidgetClass *klass)
 	/**
 	 * EMonthWidget::day-clicked:
 	 * @self: an #EMonthWidget, which sent the signal
-	 * @event: a #GdkButtonEvent causing this signal; it's always a button release event
+	 * @button: the button number that triggered this event
 	 * @year: the year of the clicked day
 	 * @month: the month of the clicked day
 	 * @day: the day of the clicked day
@@ -732,7 +741,7 @@ e_month_widget_class_init (EMonthWidgetClass *klass)
 		G_STRUCT_OFFSET (EMonthWidgetClass, day_clicked),
 		NULL, NULL, NULL,
 		G_TYPE_NONE, 4,
-		GDK_TYPE_EVENT | G_SIGNAL_TYPE_STATIC_SCOPE,
+		G_TYPE_UINT,
 		G_TYPE_UINT,
 		G_TYPE_INT,
 		G_TYPE_UINT);
@@ -839,7 +848,7 @@ e_month_widget_set_week_start_day (EMonthWidget *self,
 
 	e_month_widget_update (self);
 
-	g_object_notify_by_pspec (G_OBJECT (self), obj_props[PROP_WEEK_START_DAY]);
+	g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_WEEK_START_DAY]);
 }
 
 /**
@@ -905,7 +914,7 @@ e_month_widget_set_show_week_numbers (EMonthWidget *self,
 		gtk_widget_set_visible (week_number, should_show);
 	}
 
-	g_object_notify_by_pspec (G_OBJECT (self), obj_props[PROP_SHOW_WEEK_NUMBERS]);
+	g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_SHOW_WEEK_NUMBERS]);
 }
 
 /**
@@ -954,7 +963,7 @@ e_month_widget_set_show_day_names (EMonthWidget *self,
 		gtk_widget_set_visible (day_name, self->priv->show_day_names);
 	}
 
-	g_object_notify_by_pspec (G_OBJECT (self), obj_props[PROP_SHOW_DAY_NAMES]);
+	g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_SHOW_DAY_NAMES]);
 }
 
 /**

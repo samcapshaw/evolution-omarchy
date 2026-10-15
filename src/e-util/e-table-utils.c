@@ -1,23 +1,7 @@
 /*
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -46,7 +30,7 @@ e_table_state_to_header (GtkWidget *widget,
 	nh = e_table_header_new ();
 	g_value_init (val, G_TYPE_DOUBLE);
 	g_value_set_double (val, e_table_header_width_extras (widget));
-	g_object_set_property (G_OBJECT (nh), "width_extras", val);
+	g_object_set_property (G_OBJECT (nh), "width-extras", val);
 	g_free (val);
 
 	for (ii = 0; ii < state->col_count; ii++) {

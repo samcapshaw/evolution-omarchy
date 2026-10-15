@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Damon Chaplin <damon@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Damon Chaplin <damon@ximian.com>
  */
 
 /*
@@ -39,8 +24,11 @@ struct _EDayViewMainItemPrivate {
 
 enum {
 	PROP_0,
-	PROP_DAY_VIEW
+	PROP_DAY_VIEW,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EDayViewMainItem, e_day_view_main_item, GNOME_TYPE_CANVAS_ITEM)
 
@@ -93,6 +81,7 @@ day_view_main_item_draw_long_events_in_vbars (EDayViewMainItem *main_item,
 	EDayView *day_view;
 	EDayViewEvent *event;
 	ECalendarView *cal_view;
+	GdkRGBA bar_rgba;
 	gint time_divisions;
 	gint event_num, start_day, end_day, day, bar_y1, bar_y2, grid_x;
 
@@ -102,7 +91,6 @@ day_view_main_item_draw_long_events_in_vbars (EDayViewMainItem *main_item,
 	time_divisions = e_calendar_view_get_time_divisions (cal_view);
 
 	for (event_num = 0; event_num < day_view->long_events->len; event_num++) {
-		gboolean first = TRUE;
 		event = &g_array_index (day_view->long_events, EDayViewEvent, event_num);
 
 		if (!is_comp_data_valid (event))
@@ -119,6 +107,10 @@ day_view_main_item_draw_long_events_in_vbars (EDayViewMainItem *main_item,
 			day_view->day_starts,
 			&start_day, &end_day)) {
 			continue;
+		}
+
+		if (!e_cal_model_get_rgba_for_component (e_calendar_view_get_model (E_CALENDAR_VIEW (day_view)), event->comp_data, &bar_rgba)) {
+			bar_rgba = day_view->colors[E_DAY_VIEW_COLOR_EVENT_BACKGROUND];
 		}
 
 		for (day = start_day; day <= end_day; day++) {
@@ -143,18 +135,7 @@ day_view_main_item_draw_long_events_in_vbars (EDayViewMainItem *main_item,
 
 			if (bar_y1 < height && bar_y2 > 0 && bar_y2 > bar_y1 && can_draw_in_region (draw_region, grid_x, bar_y1, E_DAY_VIEW_BAR_WIDTH - 2, bar_y2 - bar_y1)) {
 				cairo_save (cr);
-				gdk_cairo_set_source_rgba (cr, &day_view->colors[E_DAY_VIEW_COLOR_EVENT_BACKGROUND]);
-
-				if (first) {
-					GdkRGBA rgba;
-
-					first = FALSE;
-
-					if (e_cal_model_get_rgba_for_component (e_calendar_view_get_model (E_CALENDAR_VIEW (day_view)), event->comp_data, &rgba)) {
-						gdk_cairo_set_source_rgba (cr, &rgba);
-					}
-				}
-
+				gdk_cairo_set_source_rgba (cr, &bar_rgba);
 				cairo_rectangle (cr, grid_x, bar_y1, E_DAY_VIEW_BAR_WIDTH - 2, bar_y2 - bar_y1);
 				cairo_fill (cr);
 				cairo_restore (cr);
@@ -262,7 +243,7 @@ day_view_main_item_draw_day_event (EDayViewMainItem *main_item,
 	is_editing = day_view->editing_event_day == day && day_view->editing_event_num == event_num;
 
 	if (event->canvas_item)
-		g_object_get (event->canvas_item, "x_offset", &text_x_offset, NULL);
+		g_object_get (event->canvas_item, "x-offset", &text_x_offset, NULL);
 
 	/* Draw shadow around the event when selected */
 	if (!draw_flat_events && is_editing && (gtk_widget_has_focus (day_view->main_canvas))) {
@@ -1069,11 +1050,17 @@ day_view_main_item_draw (GnomeCanvasItem *canvas_item,
 
 	zone = e_calendar_view_get_timezone (E_CALENDAR_VIEW (day_view));
 	today_tt = i_cal_time_new_current_with_zone (zone);
+	#if !ICAL_CHECK_VERSION(3, 99, 0)
+	i_cal_time_set_timezone (today_tt, zone);
+	#endif
 
 	for (day = 0; day < days_shown; day++) {
 		GDateWeekday weekday;
 
 		day_start_tt = i_cal_time_new_from_timet_with_zone (day_view->day_starts[day], FALSE, zone);
+		#if !ICAL_CHECK_VERSION(3, 99, 0)
+		i_cal_time_set_timezone (day_start_tt, zone);
+		#endif
 
 		switch (i_cal_time_day_of_week (day_start_tt)) {
 			case 1:
@@ -1292,9 +1279,15 @@ day_view_main_item_draw (GnomeCanvasItem *canvas_item,
 			gdk_cairo_set_source_rgba (cr, &mb_color);
 
 		time_now = i_cal_time_new_current_with_zone (zone);
+		#if !ICAL_CHECK_VERSION(3, 99, 0)
+		i_cal_time_set_timezone (time_now, zone);
+		#endif
 
 		for (day = 0; day < days_shown; day++) {
 			day_start = i_cal_time_new_from_timet_with_zone (day_view->day_starts[day], FALSE, zone);
+			#if !ICAL_CHECK_VERSION(3, 99, 0)
+			i_cal_time_set_timezone (day_start, zone);
+			#endif
 
 			if (i_cal_time_compare_date_only_tz (day_start, time_now, zone) == 0) {
 				grid_x1 = day_view->day_offsets[day] - x + E_DAY_VIEW_BAR_WIDTH;
@@ -1341,15 +1334,13 @@ e_day_view_main_item_class_init (EDayViewMainItemClass *class)
 	item_class->draw = day_view_main_item_draw;
 	item_class->point = day_view_main_item_point;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DAY_VIEW,
+	properties[PROP_DAY_VIEW] =
 		g_param_spec_object (
-			"day-view",
-			"Day View",
-			NULL,
+			"day-view", NULL, NULL,
 			E_TYPE_DAY_VIEW,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	/* init the accessibility support for e_day_view */
 	e_day_view_main_item_a11y_init ();
@@ -1384,5 +1375,5 @@ e_day_view_main_item_set_day_view (EDayViewMainItem *main_item,
 
 	main_item->priv->day_view = g_object_ref (day_view);
 
-	g_object_notify (G_OBJECT (main_item), "day-view");
+	g_object_notify_by_pspec (G_OBJECT (main_item), properties[PROP_DAY_VIEW]);
 }

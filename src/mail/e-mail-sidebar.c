@@ -1,21 +1,6 @@
 /*
- * e-mail-sidebar.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -36,8 +21,11 @@ struct _EMailSidebarPrivate {
 
 enum {
 	PROP_0,
-	PROP_KEY_FILE
+	PROP_KEY_FILE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	KEY_FILE_CHANGED,
@@ -489,6 +477,10 @@ mail_sidebar_check_state (EMailSidebar *sidebar)
 		can_delete &= !(folder_flags & CAMEL_FOLDER_SYSTEM);
 	}
 
+	/* Check if the store supports creating/editing folders */
+	if ((camel_store_get_flags (store) & CAMEL_STORE_CAN_EDIT_FOLDERS) == 0)
+		allows_children = FALSE;
+
 	/* GOA and UOA-based accounts cannot be disabled from Evolution. */
 	if (is_store && !store_is_local && !store_is_vfolder && !store_is_builtin) {
 		EMFolderTree *folder_tree;
@@ -567,14 +559,14 @@ e_mail_sidebar_class_init (EMailSidebarClass *class)
 
 	class->check_state = mail_sidebar_check_state;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_KEY_FILE,
+	properties[PROP_KEY_FILE] =
 		g_param_spec_pointer (
 			"key-file",
 			"Key File",
 			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[KEY_FILE_CHANGED] = g_signal_new (
 		"key-file-changed",
@@ -638,7 +630,7 @@ e_mail_sidebar_set_key_file (EMailSidebar *sidebar,
 
 	mail_sidebar_restore_state (sidebar);
 
-	g_object_notify (G_OBJECT (sidebar), "key-file");
+	g_object_notify_by_pspec (G_OBJECT (sidebar), properties[PROP_KEY_FILE]);
 }
 
 guint32

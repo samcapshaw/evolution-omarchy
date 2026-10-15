@@ -1,18 +1,6 @@
 /*
- * Copyright (C) 2015 Red Hat, Inc. (www.redhat.com)
- *
- * This program is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: (C) 2015 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include "evolution-config.h"
@@ -2520,6 +2508,7 @@ ecepp_color_rgba_to_string (const GdkRGBA *rgba)
 		{ "plum",		  221, 160, 221 },
 		{ "powderblue",		  176, 224, 230 },
 		{ "purple",		  128,   0, 128 },
+		{ "rebeccapurple",        102,  51, 153 },  /* added in CSS Color 4 */
 		{ "red",		  255,   0,   0 },
 		{ "rosybrown",		  188, 143, 143 },
 		{ "royalblue",		   65, 105, 225 },

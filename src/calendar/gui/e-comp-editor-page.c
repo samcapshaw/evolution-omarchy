@@ -1,18 +1,6 @@
 /*
- * Copyright (C) 2015 Red Hat, Inc. (www.redhat.com)
- *
- * This program is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: (C) 2015 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include "evolution-config.h"
@@ -31,8 +19,11 @@ struct _ECompEditorPagePrivate {
 
 enum {
 	PROP_0,
-	PROP_EDITOR
+	PROP_EDITOR,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	CHANGED,
@@ -216,17 +207,20 @@ e_comp_editor_page_class_init (ECompEditorPageClass *klass)
 	object_class->constructed = e_comp_editor_page_constructed;
 	object_class->finalize = e_comp_editor_page_finalize;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_EDITOR,
+	/**
+	 * ECompEditorPage:editor
+	 *
+	 * ECompEditor the page belongs to
+	 **/
+	properties[PROP_EDITOR] =
 		g_param_spec_object (
-			"editor",
-			"Editor",
-			"ECompEditor the page belongs to",
+			"editor", NULL, NULL,
 			E_TYPE_COMP_EDITOR,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[CHANGED] = g_signal_new (
 		"changed",

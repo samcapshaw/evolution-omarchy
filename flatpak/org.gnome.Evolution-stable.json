@@ -6,8 +6,8 @@
 	"command": "evolution",
 	"rename-icon": "evolution",
 	"copy-icon": true,
-	"branch": "gnome-50",
-	"desktop-file-name-suffix": " (3.60)",
+	"branch": "gnome-51",
+	"desktop-file-name-suffix": " (3.62)",
 	"build-options" : {
 		"cflags": "-O2 -g -Wno-deprecated-declarations",
 		"cxxflags": "-O2 -g -Wno-deprecated-declarations",
@@ -392,7 +392,7 @@
 			"name": "bogofilter",
 			"buildsystem": "simple",
 			"build-commands": [
-				"cd ./bogofilter/ && echo \"# Skip for Flatpak build\" > doc/Makefile.am && autoreconf -fi && ./configure --prefix=/app --disable-rpath --with-database=sqlite3 && make && make install"
+				"cd ./bogofilter/ && touch config.rpath && echo \"# Skip for Flatpak build\" > doc/Makefile.am && autoreconf -fi && ./configure --prefix=/app --disable-rpath --with-database=sqlite3 && make && make install"
 			],
 			"cleanup": [ "/etc" ],
 			"sources": [
@@ -411,7 +411,8 @@
 				{
 					"type": "archive",
 					"url": "https://www.cabextract.org.uk/libmspack/libmspack-0.10.1alpha.tar.gz",
-					"sha256": "bac862dee6e0fc10d92c70212441d9f8ad9b0222edc9a708c3ead4adb1b24a8e"
+					"sha256": "bac862dee6e0fc10d92c70212441d9f8ad9b0222edc9a708c3ead4adb1b24a8e",
+					"disable-http-decompression": true
 				}
 			]
 		},
@@ -463,7 +464,7 @@
 				{
 					"type": "git",
 					"url": "https://gitlab.gnome.org/GNOME/evolution-data-server.git",
-					"branch": "gnome-50"
+					"branch": "gnome-51"
 				}
 			],
 			"post-install": [
@@ -501,7 +502,7 @@
 				{
 					"type": "git",
 					"url": "https://gitlab.gnome.org/GNOME/evolution.git",
-					"branch": "gnome-50"
+					"branch": "gnome-51"
 				},
 				{
 					"type": "shell",
@@ -591,7 +592,7 @@
 				{
 					"type": "git",
 					"url": "https://gitlab.gnome.org/GNOME/evolution-ews.git",
-					"branch": "gnome-50"
+					"branch": "gnome-51"
 				}
 			],
 			"post-install": [

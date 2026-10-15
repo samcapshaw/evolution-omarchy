@@ -1,18 +1,6 @@
 /*
- * Copyright (C) 2017 Red Hat, Inc. (www.redhat.com)
- *
- * This program is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: (C) 2017 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include "evolution-config.h"
@@ -73,8 +61,11 @@ enum {
 	PROP_SHOW_NO_DUEDATE_TASKS,
 	PROP_USE_24HOUR_FORMAT,
 	PROP_SHOW_N_DAYS,
-	PROP_TIME_IN_SMALLER_FONT
+	PROP_TIME_IN_SMALLER_FONT,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static void e_to_do_pane_cal_data_model_subscriber_init (ECalDataModelSubscriberInterface *iface);
 
@@ -2430,16 +2421,19 @@ etdp_button_press_event_cb (GtkWidget *widget,
 
 	g_return_val_if_fail (E_IS_TO_DO_PANE (to_do_pane), FALSE);
 
-	if (event->type == GDK_BUTTON_PRESS &&
+	if (gdk_event_get_event_type (event) == GDK_BUTTON_PRESS &&
 	    gdk_event_triggers_context_menu (event)) {
 		GtkTreeSelection *selection;
 		GtkTreePath *path;
+		gdouble x = 0, y = 0;
+
+		gdk_event_get_coords (event, &x, &y);
 
 		selection = gtk_tree_view_get_selection (to_do_pane->priv->tree_view);
 		if (gtk_tree_selection_get_mode (selection) == GTK_SELECTION_SINGLE)
 			gtk_tree_selection_unselect_all (selection);
 
-		if (gtk_tree_view_get_path_at_pos (to_do_pane->priv->tree_view, event->button.x, event->button.y, &path, NULL, NULL, NULL)) {
+		if (gtk_tree_view_get_path_at_pos (to_do_pane->priv->tree_view, (gint) x, (gint) y, &path, NULL, NULL, NULL)) {
 			gtk_tree_selection_select_path (selection, path);
 			gtk_tree_view_set_cursor (to_do_pane->priv->tree_view, path, NULL, FALSE);
 
@@ -2978,100 +2972,70 @@ e_to_do_pane_class_init (EToDoPaneClass *klass)
 	object_class->dispose = e_to_do_pane_dispose;
 	object_class->finalize = e_to_do_pane_finalize;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HIGHLIGHT_OVERDUE,
+	properties[PROP_HIGHLIGHT_OVERDUE] =
 		g_param_spec_boolean (
-			"highlight-overdue",
-			"Highlight Overdue Tasks",
-			NULL,
+			"highlight-overdue", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_OVERDUE_COLOR,
+	properties[PROP_OVERDUE_COLOR] =
 		g_param_spec_boxed (
-			"overdue-color",
-			"Overdue Color",
-			NULL,
+			"overdue-color", NULL, NULL,
 			GDK_TYPE_RGBA,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHELL_VIEW,
+	properties[PROP_SHELL_VIEW] =
 		g_param_spec_object (
-			"shell-view",
-			"EShellView",
-			NULL,
+			"shell-view", NULL, NULL,
 			E_TYPE_SHELL_VIEW,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_COMPLETED_TASKS,
+	properties[PROP_SHOW_COMPLETED_TASKS] =
 		g_param_spec_boolean (
-			"show-completed-tasks",
-			"Show Completed Tasks",
-			NULL,
+			"show-completed-tasks", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_NO_DUEDATE_TASKS,
+	properties[PROP_SHOW_NO_DUEDATE_TASKS] =
 		g_param_spec_boolean (
-			"show-no-duedate-tasks",
-			"Show tasks without Due date",
-			NULL,
+			"show-no-duedate-tasks", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_USE_24HOUR_FORMAT,
+	properties[PROP_USE_24HOUR_FORMAT] =
 		g_param_spec_boolean (
-			"use-24hour-format",
-			"Use 24hour Format",
-			NULL,
+			"use-24hour-format", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_N_DAYS,
+	properties[PROP_SHOW_N_DAYS] =
 		g_param_spec_uint (
-			"show-n-days",
-			"show-n-days",
-			NULL,
+			"show-n-days", NULL, NULL,
 			0, G_MAXUINT, 8,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TIME_IN_SMALLER_FONT,
+	properties[PROP_TIME_IN_SMALLER_FONT] =
 		g_param_spec_boolean (
-			"time-in-smaller-font",
-			"Time In Smaller Font",
-			NULL,
+			"time-in-smaller-font", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -3160,7 +3124,7 @@ e_to_do_pane_set_highlight_overdue (EToDoPane *to_do_pane,
 	if (to_do_pane->priv->overdue_color)
 		etdp_update_colors (to_do_pane, TRUE);
 
-	g_object_notify (G_OBJECT (to_do_pane), "highlight-overdue");
+	g_object_notify_by_pspec (G_OBJECT (to_do_pane), properties[PROP_HIGHLIGHT_OVERDUE]);
 }
 
 /**
@@ -3208,7 +3172,7 @@ e_to_do_pane_set_overdue_color (EToDoPane *to_do_pane,
 	if (to_do_pane->priv->highlight_overdue)
 		etdp_update_colors (to_do_pane, TRUE);
 
-	g_object_notify (G_OBJECT (to_do_pane), "overdue-color");
+	g_object_notify_by_pspec (G_OBJECT (to_do_pane), properties[PROP_OVERDUE_COLOR]);
 }
 
 /**
@@ -3249,7 +3213,7 @@ e_to_do_pane_set_show_completed_tasks (EToDoPane *to_do_pane,
 
 	etdp_update_queries (to_do_pane);
 
-	g_object_notify (G_OBJECT (to_do_pane), "show-completed-tasks");
+	g_object_notify_by_pspec (G_OBJECT (to_do_pane), properties[PROP_SHOW_COMPLETED_TASKS]);
 }
 
 /**
@@ -3290,7 +3254,7 @@ e_to_do_pane_set_show_no_duedate_tasks (EToDoPane *to_do_pane,
 
 	etdp_update_queries (to_do_pane);
 
-	g_object_notify (G_OBJECT (to_do_pane), "show-no-duedate-tasks");
+	g_object_notify_by_pspec (G_OBJECT (to_do_pane), properties[PROP_SHOW_NO_DUEDATE_TASKS]);
 }
 
 /**
@@ -3331,7 +3295,7 @@ e_to_do_pane_set_use_24hour_format (EToDoPane *to_do_pane,
 
 	etdp_update_comps (to_do_pane);
 
-	g_object_notify (G_OBJECT (to_do_pane), "use-24hour-format");
+	g_object_notify_by_pspec (G_OBJECT (to_do_pane), properties[PROP_USE_24HOUR_FORMAT]);
 }
 
 /**
@@ -3470,7 +3434,7 @@ e_to_do_pane_set_show_n_days (EToDoPane *to_do_pane,
 		etdp_update_queries (to_do_pane);
 	}
 
-	g_object_notify (G_OBJECT (to_do_pane), "show-n-days");
+	g_object_notify_by_pspec (G_OBJECT (to_do_pane), properties[PROP_SHOW_N_DAYS]);
 }
 
 /**
@@ -3511,5 +3475,5 @@ e_to_do_pane_set_time_in_smaller_font (EToDoPane *to_do_pane,
 
 	etdp_update_comps (to_do_pane);
 
-	g_object_notify (G_OBJECT (to_do_pane), "time-in-smaller-font");
+	g_object_notify_by_pspec (G_OBJECT (to_do_pane), properties[PROP_TIME_IN_SMALLER_FONT]);
 }

@@ -1,21 +1,6 @@
 /*
- * e-mail-reader-utils.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /* Miscellaneous utility functions used by EMailReader actions. */
@@ -2836,19 +2821,22 @@ reply_to_message_got_message_cb (GObject *source_object,
 		uri = e_web_view_get_selected_uri (E_WEB_VIEW (display));
 
 		if (uri) {
-			CamelURL *curl;
+			gchar *path = NULL;
 
-			curl = camel_url_new (uri, NULL);
-
-			if (curl && curl->path && *curl->path) {
-				ccd->address = camel_internet_address_new ();
-				if (camel_address_decode (CAMEL_ADDRESS (ccd->address), curl->path) < 0) {
-					g_clear_object (&ccd->address);
+			if (g_uri_split (uri, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL,
+					 NULL, NULL, NULL, &path, NULL, NULL, NULL) &&
+			    path && *path) {
+				gchar *decoded_path = g_uri_unescape_string (path, NULL);
+				if (decoded_path) {
+					ccd->address = camel_internet_address_new ();
+					if (camel_address_decode (CAMEL_ADDRESS (ccd->address), decoded_path) < 0) {
+						g_clear_object (&ccd->address);
+					}
+					g_free (decoded_path);
 				}
 			}
 
-			if (curl)
-				camel_url_free (curl);
+			g_clear_pointer (&path, g_free);
 		}
 	}
 

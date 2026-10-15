@@ -1,18 +1,5 @@
 /*
- * e-mail-config-google-summary.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -40,8 +27,11 @@ struct _EMailConfigGoogleSummaryPrivate {
 
 enum {
 	PROP_0,
-	PROP_APPLICABLE
+	PROP_APPLICABLE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (EMailConfigGoogleSummary, e_mail_config_google_summary, E_TYPE_EXTENSION, 0,
 	G_ADD_PRIVATE_DYNAMIC (EMailConfigGoogleSummary))
@@ -117,7 +107,7 @@ mail_config_google_summary_refresh_cb (EMailConfigSummaryPage *page,
 	extension->priv->applicable =
 		mail_config_google_summary_is_applicable (page);
 
-	g_object_notify (G_OBJECT (extension), "applicable");
+	g_object_notify_by_pspec (G_OBJECT (extension), properties[PROP_APPLICABLE]);
 }
 
 static void
@@ -373,16 +363,18 @@ e_mail_config_google_summary_class_init (EMailConfigGoogleSummaryClass *class)
 	extension_class = E_EXTENSION_CLASS (class);
 	extension_class->extensible_type = E_TYPE_MAIL_CONFIG_SUMMARY_PAGE;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_APPLICABLE,
+	/**
+	 * EMailConfigGoogleSummary:applicable
+	 *
+	 * Whether this extension is applicable " "to the current mail account settings
+	 **/
+	properties[PROP_APPLICABLE] =
 		g_param_spec_boolean (
-			"applicable",
-			"Applicable",
-			"Whether this extension is applicable "
-			"to the current mail account settings",
+			"applicable", NULL, NULL,
 			FALSE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

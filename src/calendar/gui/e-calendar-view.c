@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Rodrigo Moya <rodrigo@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Rodrigo Moya <rodrigo@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -67,14 +52,18 @@ struct _ECalendarViewPrivate {
 
 enum {
 	PROP_0,
-	PROP_COPY_TARGET_LIST,
 	PROP_MODEL,
-	PROP_PASTE_TARGET_LIST,
 	PROP_TIME_DIVISIONS,
 	PROP_IS_EDITING,
 	PROP_ALLOW_DIRECT_SUMMARY_EDIT,
-	PROP_ALLOW_EVENT_DND
+	PROP_ALLOW_EVENT_DND,
+	N_PROPS,
+
+	PROP_COPY_TARGET_LIST,
+	PROP_PASTE_TARGET_LIST
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* FIXME Why are we emitting these event signals here? Can't the model just be listened to? */
 /* Signal IDs */
@@ -1174,16 +1163,12 @@ e_calendar_view_class_init (ECalendarViewClass *class)
 		PROP_COPY_TARGET_LIST,
 		"copy-target-list");
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MODEL,
+	properties[PROP_MODEL] =
 		g_param_spec_object (
-			"model",
-			"Model",
-			NULL,
+			"model", NULL, NULL,
 			E_TYPE_CAL_MODEL,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
 	/* Inherited from ESelectableInterface */
 	g_object_class_override_property (
@@ -1191,47 +1176,38 @@ e_calendar_view_class_init (ECalendarViewClass *class)
 		PROP_PASTE_TARGET_LIST,
 		"paste-target-list");
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TIME_DIVISIONS,
+	properties[PROP_TIME_DIVISIONS] =
 		g_param_spec_int (
-			"time-divisions",
-			"Time Divisions",
-			NULL,
+			"time-divisions", NULL, NULL,
 			G_MININT,
 			G_MAXINT,
 			30,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_IS_EDITING,
+	/**
+	 * ECalendarView:is-editing
+	 *
+	 * Whether is in an editing mode
+	 **/
+	properties[PROP_IS_EDITING] =
 		g_param_spec_boolean (
-			"is-editing",
-			"Whether is in an editing mode",
-			"Whether is in an editing mode",
+			"is-editing", NULL, NULL,
 			FALSE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ALLOW_DIRECT_SUMMARY_EDIT,
+	properties[PROP_ALLOW_DIRECT_SUMMARY_EDIT] =
 		g_param_spec_boolean (
-			"allow-direct-summary-edit",
-			"Whether can edit event Summary directly",
-			NULL,
+			"allow-direct-summary-edit", NULL, NULL,
 			FALSE,
-			G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+			G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ALLOW_EVENT_DND,
+	properties[PROP_ALLOW_EVENT_DND] =
 		g_param_spec_boolean (
-			"allow-event-dnd",
-			"Whether can drag-and-drop events",
-			NULL,
+			"allow-event-dnd", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+			G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[POPUP_EVENT] = g_signal_new (
 		"popup-event",
@@ -1441,7 +1417,7 @@ e_calendar_view_set_time_divisions (ECalendarView *cal_view,
 
 	cal_view->priv->time_divisions = time_divisions;
 
-	g_object_notify (G_OBJECT (cal_view), "time-divisions");
+	g_object_notify_by_pspec (G_OBJECT (cal_view), properties[PROP_TIME_DIVISIONS]);
 }
 
 /* (transfer full) (element-type ECalendarViewSelectionData):
@@ -2024,7 +2000,7 @@ e_calendar_view_set_allow_direct_summary_edit (ECalendarView *cal_view,
 
 	cal_view->priv->allow_direct_summary_edit = allow;
 
-	g_object_notify (G_OBJECT (cal_view), "allow-direct-summary-edit");
+	g_object_notify_by_pspec (G_OBJECT (cal_view), properties[PROP_ALLOW_DIRECT_SUMMARY_EDIT]);
 }
 
 gboolean
@@ -2046,5 +2022,5 @@ e_calendar_view_set_allow_event_dnd (ECalendarView *cal_view,
 
 	cal_view->priv->allow_event_dnd = allow;
 
-	g_object_notify (G_OBJECT (cal_view), "allow-event-dnd");
+	g_object_notify_by_pspec (G_OBJECT (cal_view), properties[PROP_ALLOW_EVENT_DND]);
 }

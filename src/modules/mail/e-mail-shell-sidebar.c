@@ -1,21 +1,6 @@
 /*
- * e-mail-shell-sidebar.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -34,8 +19,11 @@ struct _EMailShellSidebarPrivate {
 
 enum {
 	PROP_0,
-	PROP_FOLDER_TREE
+	PROP_FOLDER_TREE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (EMailShellSidebar, e_mail_shell_sidebar, E_TYPE_SHELL_SIDEBAR, 0,
 	G_ADD_PRIVATE_DYNAMIC (EMailShellSidebar))
@@ -383,15 +371,13 @@ e_mail_shell_sidebar_class_init (EMailShellSidebarClass *class)
 	shell_sidebar_class = E_SHELL_SIDEBAR_CLASS (class);
 	shell_sidebar_class->check_state = mail_shell_sidebar_check_state;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FOLDER_TREE,
+	properties[PROP_FOLDER_TREE] =
 		g_param_spec_object (
-			"folder-tree",
-			NULL,
-			NULL,
+			"folder-tree", NULL, NULL,
 			EM_TYPE_FOLDER_TREE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

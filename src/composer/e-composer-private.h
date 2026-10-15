@@ -1,17 +1,6 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifndef E_COMPOSER_PRIVATE_H
@@ -123,6 +112,12 @@ struct _EMsgComposerPrivate {
 	EContentEditorContentHash *content_hash;
 
 	GCancellable *load_signature_cancellable;
+	GCancellable *autocrypt_cancellable;
+	gboolean autocrypt_loading;
+	gboolean autocrypt_check_complete;
+	gpointer autocrypt_deferred_send; /* AsyncContext *, if send waits for autocrypt */
+	gboolean autocrypt_deferred_is_outbox;
+	gulong autocrypt_deferred_cancelled_handler;
 	EAttachment *alternative_body_attachment; /* not referenced, only used for pointer comparison  */
 };
 

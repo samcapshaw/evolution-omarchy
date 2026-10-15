@@ -1,24 +1,7 @@
 /*
- * e-canvas-background.c - background color for canvas.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -58,7 +41,10 @@ static guint ecb_signals[LAST_SIGNAL] = { 0, };
 enum {
 	PROP_0,
 	PROP_FILL_COLOR,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static void
 ecb_bounds (GnomeCanvasItem *item,
@@ -176,15 +162,18 @@ ecb_class_init (ECanvasBackgroundClass *ecb_class)
 
 	ecb_class->style_updated = ecb_style_updated;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FILL_COLOR,
+	/**
+	 * ECanvasBackground:fill-color
+	 *
+	 * Fill color
+	 **/
+	properties[PROP_FILL_COLOR] =
 		g_param_spec_boxed (
-			"fill-color",
-			"Fill color",
-			"Fill color",
+			"fill-color", NULL, NULL,
 			GDK_TYPE_RGBA,
-			G_PARAM_WRITABLE));
+			G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	ecb_signals[STYLE_UPDATED] = g_signal_new (
 		"style_updated",

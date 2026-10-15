@@ -1,23 +1,7 @@
 /*
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -36,8 +20,11 @@ G_DEFINE_TYPE (
 enum {
 	PROP_0,
 	PROP_CURSOR_ROW,
-	PROP_CURSOR_COL
+	PROP_CURSOR_COL,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 void
 e_selection_model_array_confirm_row_count (ESelectionModelArray *esma)
@@ -552,24 +539,18 @@ e_selection_model_array_class_init (ESelectionModelArrayClass *class)
 
 	class->get_row_count = NULL;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CURSOR_ROW,
+	properties[PROP_CURSOR_ROW] =
 		g_param_spec_int (
-			"cursor_row",
-			"Cursor Row",
-			NULL,
+			"cursor-row", NULL, NULL,
 			0, G_MAXINT, 0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CURSOR_COL,
+	properties[PROP_CURSOR_COL] =
 		g_param_spec_int (
-			"cursor_col",
-			"Cursor Column",
-			NULL,
+			"cursor-col", NULL, NULL,
 			0, G_MAXINT, 0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 

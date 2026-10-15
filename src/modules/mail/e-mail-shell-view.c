@@ -1,21 +1,6 @@
 /*
- * e-mail-shell-view.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -26,8 +11,11 @@
 
 enum {
 	PROP_0,
-	PROP_VFOLDER_ALLOW_EXPUNGE
+	PROP_VFOLDER_ALLOW_EXPUNGE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (EMailShellView, e_mail_shell_view, E_TYPE_SHELL_VIEW, 0,
 	G_ADD_PRIVATE_DYNAMIC (EMailShellView))
@@ -461,7 +449,7 @@ mail_shell_view_set_vfolder_allow_expunge (EMailShellView *mail_shell_view,
 
 	mail_shell_view->priv->vfolder_allow_expunge = value;
 
-	g_object_notify (G_OBJECT (mail_shell_view), "vfolder-allow-expunge");
+	g_object_notify_by_pspec (G_OBJECT (mail_shell_view), properties[PROP_VFOLDER_ALLOW_EXPUNGE]);
 }
 
 static gboolean
@@ -1280,8 +1268,6 @@ filter:
 			break;
 	}
 
-	gtk_widget_set_sensitive (GTK_WIDGET (folder_tree), TRUE);
-
 	/* Apply selected scope. */
 
 	combo_box = e_shell_searchbar_get_scope_combo_box (searchbar);
@@ -1366,8 +1352,6 @@ filter:
 	camel_vee_folder_set_expression_sync (search_folder, query, CAMEL_VEE_FOLDER_OP_FLAG_SKIP_REBUILD, NULL, NULL);
 
  current_folder_and_subfolders_setup:
-
-	gtk_widget_set_sensitive (GTK_WIDGET (folder_tree), FALSE);
 
 	if (folder != NULL && folder != CAMEL_FOLDER (search_folder)) {
 		/* Just use the folder */
@@ -1454,8 +1438,6 @@ all_accounts:
 
 all_accounts_setup:
 
-	gtk_widget_set_sensitive (GTK_WIDGET (folder_tree), FALSE);
-
 	list = em_folder_tree_model_list_stores (EM_FOLDER_TREE_MODEL (
 		gtk_tree_view_get_model (GTK_TREE_VIEW (folder_tree))));
 	g_list_foreach (list, (GFunc) g_object_ref, NULL);
@@ -1495,7 +1477,7 @@ current_account:
 
 		vf_query = camel_vee_folder_get_expression (search_folder);
 		if (g_strcmp0 (query, vf_query) == 0)
-			goto current_accout_setup;
+			goto current_account_setup;
 	}
 
 	/* If we already have a search folder, reuse it. */
@@ -1507,7 +1489,7 @@ current_account:
 
 		camel_vee_folder_set_expression_sync (search_folder, query, CAMEL_VEE_FOLDER_OP_FLAG_SKIP_REBUILD, NULL, NULL);
 
-		goto current_accout_setup;
+		goto current_account_setup;
 	}
 
 	/* Create a new search folder. */
@@ -1527,9 +1509,7 @@ current_account:
 
 	camel_vee_folder_set_expression_sync (search_folder, query, CAMEL_VEE_FOLDER_OP_FLAG_SKIP_REBUILD, NULL, NULL);
 
-current_accout_setup:
-
-	gtk_widget_set_sensitive (GTK_WIDGET (folder_tree), FALSE);
+current_account_setup:
 
 	if (folder != NULL && folder != CAMEL_FOLDER (search_folder)) {
 		store = camel_folder_get_parent_store (folder);
@@ -1793,7 +1773,6 @@ mail_shell_view_update_actions (EShellView *shell_view)
 	action = ACTION (MAIL_FOLDER_NEW);
 	sensitive = folder_allows_children;
 	e_ui_action_set_sensitive (action, sensitive);
-	e_ui_action_set_sensitive (ACTION (MAIL_FOLDER_NEW_FULL), sensitive);
 
 	action = ACTION (MAIL_FOLDER_PROPERTIES);
 	sensitive = folder_is_selected;
@@ -1928,8 +1907,8 @@ mail_shell_view_init_ui_data (EShellView *shell_view)
 }
 
 static void
-mail_shell_view_add_ui_customizers (EShellView *shell_view,
-				    EUICustomizeDialog *dialog)
+mail_shell_view_get_ui_customizers (EShellView *shell_view,
+				    GPtrArray *inout_customizers)
 {
 	EMailShellView *self;
 	EMailReader *reader;
@@ -1943,7 +1922,7 @@ mail_shell_view_add_ui_customizers (EShellView *shell_view,
 	mail_display = e_mail_reader_get_mail_display (reader);
 	ui_manager = e_web_view_get_ui_manager (E_WEB_VIEW (mail_display));
 
-	e_ui_customize_dialog_add_customizer (dialog, e_ui_manager_get_customizer (ui_manager));
+	g_ptr_array_add (inout_customizers, g_object_ref (e_ui_manager_get_customizer (ui_manager)));
 }
 
 static void
@@ -1972,21 +1951,24 @@ e_mail_shell_view_class_init (EMailShellViewClass *class)
 	shell_view_class->execute_search = mail_shell_view_execute_search;
 	shell_view_class->update_actions = mail_shell_view_update_actions;
 	shell_view_class->init_ui_data = mail_shell_view_init_ui_data;
-	shell_view_class->add_ui_customizers = mail_shell_view_add_ui_customizers;
+	shell_view_class->get_ui_customizers = mail_shell_view_get_ui_customizers;
 
 	/* Ensure the GalView types we need are registered. */
 	g_type_ensure (GAL_TYPE_VIEW_ETABLE);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_VFOLDER_ALLOW_EXPUNGE,
+	/**
+	 * EMailShellView:vfolder-allow-expunge
+	 *
+	 * Allow expunge in virtual folders
+	 **/
+	properties[PROP_VFOLDER_ALLOW_EXPUNGE] =
 		g_param_spec_boolean (
-			"vfolder-allow-expunge",
-			"vFolder Allow Expunge",
-			"Allow expunge in virtual folders",
+			"vfolder-allow-expunge", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

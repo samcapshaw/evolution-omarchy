@@ -1,21 +1,7 @@
-/* e-source-selector.c
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * published by the Free Software Foundation; either the version 2 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser  General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Author: Ettore Perazzoli <ettore@ximian.com>
+/*
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Ettore Perazzoli <ettore@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -133,12 +119,14 @@ safe_toggle_activate (GtkCellRenderer *cell,
 {
 	gboolean point_in_cell_area = TRUE;
 
-	if (event && event->type == GDK_BUTTON_PRESS && cell_area != NULL) {
+	if (event && gdk_event_get_event_type (event) == GDK_BUTTON_PRESS && cell_area != NULL) {
+		gdouble bx = 0, by = 0;
 		cairo_region_t *region;
 
+		gdk_event_get_coords (event, &bx, &by);
 		region = cairo_region_create_rectangle (cell_area);
 		point_in_cell_area = cairo_region_contains_point (
-			region, event->button.x, event->button.y);
+			region, (gint) bx, (gint) by);
 		cairo_region_destroy (region);
 	}
 
@@ -1486,6 +1474,8 @@ source_selector_button_press_event (GtkWidget *widget,
 	gboolean triple_click = FALSE;
 	gboolean row_exists;
 	gboolean res = FALSE;
+	guint btn = 0;
+	gdouble ex = 0, ey = 0;
 
 	selector = E_SOURCE_SELECTOR (widget);
 
@@ -1493,15 +1483,18 @@ source_selector_button_press_event (GtkWidget *widget,
 
 	/* Triple-clicking a source selects it exclusively. */
 
-	if (event->button == 3 && event->type == GDK_BUTTON_PRESS)
+	gdk_event_get_button ((GdkEvent *) event, &btn);
+
+	if (btn == GDK_BUTTON_SECONDARY && gdk_event_get_event_type ((GdkEvent *) event) == GDK_BUTTON_PRESS)
 		right_click = TRUE;
-	else if (event->button == 1 && event->type == GDK_3BUTTON_PRESS)
+	else if (btn == GDK_BUTTON_PRIMARY && gdk_event_get_event_type ((GdkEvent *) event) == GDK_3BUTTON_PRESS)
 		triple_click = TRUE;
 	else
 		goto chainup;
 
+	gdk_event_get_coords ((GdkEvent *) event, &ex, &ey);
 	row_exists = gtk_tree_view_get_path_at_pos (
-		GTK_TREE_VIEW (widget), event->x, event->y,
+		GTK_TREE_VIEW (widget), (gint) ex, (gint) ey,
 		&path, NULL, NULL, NULL);
 
 	/* Get the source/group */

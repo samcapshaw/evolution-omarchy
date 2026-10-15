@@ -1,21 +1,6 @@
 /*
- * e-book-shell-view.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -26,8 +11,11 @@
 
 enum {
 	PROP_0,
-	PROP_CLICKED_SOURCE
+	PROP_CLICKED_SOURCE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_DYNAMIC_TYPE_EXTENDED (EBookShellView, e_book_shell_view, E_TYPE_SHELL_VIEW, 0,
 	G_ADD_PRIVATE_DYNAMIC (EBookShellView))
@@ -467,15 +455,18 @@ e_book_shell_view_class_init (EBookShellViewClass *class)
 	shell_view_class->update_actions = book_shell_view_update_actions;
 	shell_view_class->init_ui_data = book_shell_view_init_ui_data;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CLICKED_SOURCE,
+	/**
+	 * EBookShellView:clicked-source
+	 *
+	 * An ESource which had been clicked in the source selector before showing context menu
+	 **/
+	properties[PROP_CLICKED_SOURCE] =
 		g_param_spec_object (
-			"clicked-source",
-			"Clicked Source",
-			"An ESource which had been clicked in the source selector before showing context menu",
+			"clicked-source", NULL, NULL,
 			E_TYPE_SOURCE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	/* Ensure the GalView types we need are registered. */
 	g_type_ensure (GAL_TYPE_VIEW_ETABLE);

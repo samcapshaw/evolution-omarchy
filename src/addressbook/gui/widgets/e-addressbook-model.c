@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Christopher James Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Christopher James Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -59,8 +44,11 @@ enum {
 	PROP_CLIENT,
 	PROP_CLIENT_CACHE,
 	PROP_EDITABLE,
-	PROP_QUERY
+	PROP_QUERY,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	WRITABLE_STATUS,
@@ -620,51 +608,42 @@ e_addressbook_model_class_init (EAddressbookModelClass *class)
 	object_class->finalize = addressbook_model_finalize;
 	object_class->constructed = addressbook_model_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CLIENT,
+	properties[PROP_CLIENT] =
 		g_param_spec_object (
-			"client",
-			"EBookClient",
-			NULL,
+			"client", NULL, NULL,
 			E_TYPE_BOOK_CLIENT,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CLIENT_CACHE,
+	/**
+	 * EAddressbookModel:client-cache
+	 *
+	 * Shared EClient instances
+	 **/
+	properties[PROP_CLIENT_CACHE] =
 		g_param_spec_object (
-			"client-cache",
-			"Client Cache",
-			"Shared EClient instances",
+			"client-cache", NULL, NULL,
 			E_TYPE_CLIENT_CACHE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_EDITABLE,
+	properties[PROP_EDITABLE] =
 		g_param_spec_boolean (
-			"editable",
-			"Editable",
-			NULL,
+			"editable", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_QUERY,
+	properties[PROP_QUERY] =
 		g_param_spec_string (
-			"query",
-			"Query",
-			NULL,
+			"query", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[WRITABLE_STATUS] = g_signal_new (
 		"writable_status",
@@ -919,7 +898,7 @@ e_addressbook_model_set_client (EAddressbookModel *model,
 			(GSourceFunc) addressbook_model_idle_cb,
 			g_object_ref (model));
 
-	g_object_notify (G_OBJECT (model), "client");
+	g_object_notify_by_pspec (G_OBJECT (model), properties[PROP_CLIENT]);
 }
 
 gboolean
@@ -943,7 +922,7 @@ e_addressbook_model_set_editable (EAddressbookModel *model,
 			model, signals[WRITABLE_STATUS], 0,
 			model->priv->editable);
 
-		g_object_notify (G_OBJECT (model), "editable");
+		g_object_notify_by_pspec (G_OBJECT (model), properties[PROP_EDITABLE]);
 	}
 }
 
@@ -995,5 +974,5 @@ e_addressbook_model_set_query (EAddressbookModel *model,
 			(GSourceFunc) addressbook_model_idle_cb,
 			g_object_ref (model));
 
-	g_object_notify (G_OBJECT (model), "query");
+	g_object_notify_by_pspec (G_OBJECT (model), properties[PROP_QUERY]);
 }

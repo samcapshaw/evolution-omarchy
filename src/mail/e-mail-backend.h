@@ -1,21 +1,6 @@
 /*
- * e-mail-backend.h
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /* This is an abstract EShellBackend subclass that integrates
@@ -27,6 +12,7 @@
 
 #include <shell/e-shell-backend.h>
 #include <libemail-engine/libemail-engine.h>
+#include <mail/e-mail-composer-mode-override.h>
 #include <mail/e-mail-remote-content.h>
 #include <mail/e-mail-send-account-override.h>
 #include <mail/e-mail-properties.h>
@@ -77,6 +63,9 @@ EAlertSink *	e_mail_backend_get_alert_sink	(EMailBackend *backend);
 gboolean	e_mail_backend_delete_junk_policy_decision
 						(EMailBackend *backend);
 gboolean	e_mail_backend_empty_trash_policy_decision
+						(EMailBackend *backend);
+EMailComposerModeOverride *
+		e_mail_backend_get_composer_mode_override
 						(EMailBackend *backend);
 EMailSendAccountOverride *
 		e_mail_backend_get_send_account_override

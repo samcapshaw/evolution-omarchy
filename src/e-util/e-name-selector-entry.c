@@ -1,20 +1,7 @@
-/* e-name-selector-entry.c - Single-line text entry widget for EDestinations.
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Authors: Hans Petter Jansson <hpj@novell.com>
+/*
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Hans Petter Jansson <hpj@novell.com>
  */
 
 #include "evolution-config.h"
@@ -67,8 +54,11 @@ enum {
 	PROP_0,
 	PROP_CLIENT_CACHE,
 	PROP_MINIMUM_QUERY_LENGTH,
-	PROP_SHOW_ADDRESS
+	PROP_SHOW_ADDRESS,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	UPDATED,
@@ -308,40 +298,35 @@ e_name_selector_entry_class_init (ENameSelectorEntryClass *class)
 	 *
 	 * Cache of shared #EClient instances.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_CLIENT_CACHE,
+	/**
+	 * ENameSelectorEntry:client-cache
+	 *
+	 * Cache of shared EClient instances
+	 **/
+	properties[PROP_CLIENT_CACHE] =
 		g_param_spec_object (
-			"client-cache",
-			"Client Cache",
-			"Cache of shared EClient instances",
+			"client-cache", NULL, NULL,
 			E_TYPE_CLIENT_CACHE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MINIMUM_QUERY_LENGTH,
+	properties[PROP_MINIMUM_QUERY_LENGTH] =
 		g_param_spec_int (
-			"minimum-query-length",
-			"Minimum Query Length",
-			NULL,
+			"minimum-query-length", NULL, NULL,
 			1, G_MAXINT,
 			3,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_ADDRESS,
+	properties[PROP_SHOW_ADDRESS] =
 		g_param_spec_boolean (
-			"show-address",
-			"Show Address",
-			NULL,
+			"show-address", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[UPDATED] = g_signal_new (
 		"updated",
@@ -1613,7 +1598,7 @@ user_insert_text (ENameSelectorEntry *name_selector_entry,
 						g_string_append (prefer_text, addr);
 					}
 				} else {
-					gchar *addr_start = strchr (addr, '<'), *name_end = addr_start;
+					const gchar *addr_start = strchr (addr, '<'), *name_end = addr_start;
 
 					while (name_end > addr && g_ascii_isspace (name_end[-1]))
 						name_end--;
@@ -2120,7 +2105,6 @@ static gboolean
 user_focus_in (ENameSelectorEntry *name_selector_entry,
                GdkEventFocus *event_focus)
 {
-	gint n;
 	GList *l, *known;
 	GString *str = g_string_new ("");
 	gint sel_start_pos = -1, sel_end_pos = -1;
@@ -2131,7 +2115,7 @@ user_focus_in (ENameSelectorEntry *name_selector_entry,
 	g_signal_handlers_block_matched (name_selector_entry->priv->destination_store, G_SIGNAL_MATCH_DATA, 0, 0, NULL, NULL, name_selector_entry);
 
 	known = e_destination_store_list_destinations (name_selector_entry->priv->destination_store);
-	for (l = known, n = 0; l != NULL; l = l->next, n++) {
+	for (l = known; l != NULL; l = l->next) {
 		EDestination *dest = l->data;
 
 		if (dest) {
@@ -3625,7 +3609,7 @@ e_name_selector_entry_set_client_cache (ENameSelectorEntry *name_selector_entry,
 
 	name_selector_entry->priv->client_cache = client_cache;
 
-	g_object_notify (G_OBJECT (name_selector_entry), "client-cache");
+	g_object_notify_by_pspec (G_OBJECT (name_selector_entry), properties[PROP_CLIENT_CACHE]);
 }
 
 /**
@@ -3665,7 +3649,7 @@ e_name_selector_entry_set_minimum_query_length (ENameSelectorEntry *name_selecto
 
 	name_selector_entry->priv->minimum_query_length = length;
 
-	g_object_notify (G_OBJECT (name_selector_entry), "minimum-query-length");
+	g_object_notify_by_pspec (G_OBJECT (name_selector_entry), properties[PROP_MINIMUM_QUERY_LENGTH]);
 }
 
 /**
@@ -3706,7 +3690,7 @@ e_name_selector_entry_set_show_address (ENameSelectorEntry *name_selector_entry,
 
 	sanitize_entry (name_selector_entry);
 
-	g_object_notify (G_OBJECT (name_selector_entry), "show-address");
+	g_object_notify_by_pspec (G_OBJECT (name_selector_entry), properties[PROP_SHOW_ADDRESS]);
 }
 
 /**

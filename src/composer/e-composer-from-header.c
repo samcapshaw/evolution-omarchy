@@ -1,20 +1,6 @@
 /*
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -25,8 +11,11 @@
 
 enum {
 	PROP_0,
-	PROP_OVERRIDE_VISIBLE
+	PROP_OVERRIDE_VISIBLE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE (
 	EComposerFromHeader,
@@ -158,16 +147,14 @@ e_composer_from_header_class_init (EComposerFromHeaderClass *class)
 	object_class->constructed = composer_from_header_constructed;
 	object_class->dispose = composer_from_header_dispose;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_OVERRIDE_VISIBLE,
+	properties[PROP_OVERRIDE_VISIBLE] =
 		g_param_spec_boolean (
-			"override-visible",
-			NULL,
-			NULL,
+			"override-visible", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -370,5 +357,5 @@ e_composer_from_header_set_override_visible (EComposerFromHeader *header,
 			gtk_widget_hide (header->override_widget);
 	}
 
-	g_object_notify (G_OBJECT (header), "override-visible");
+	g_object_notify_by_pspec (G_OBJECT (header), properties[PROP_OVERRIDE_VISIBLE]);
 }

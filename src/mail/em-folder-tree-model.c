@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Jeffrey Stedfast <fejj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jeffrey Stedfast <fejj@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -107,8 +92,11 @@ struct _StoreInfo {
 enum {
 	PROP_0,
 	PROP_SELECTION,
-	PROP_SESSION
+	PROP_SESSION,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	LOADING_ROW,
@@ -880,7 +868,7 @@ folder_tree_model_selection_finalized_cb (EMFolderTreeModel *model)
 {
 	model->priv->selection = NULL;
 
-	g_object_notify (G_OBJECT (model), "selection");
+	g_object_notify_by_pspec (G_OBJECT (model), properties[PROP_SELECTION]);
 }
 
 static void
@@ -1004,7 +992,8 @@ folder_tree_model_constructed (GObject *object)
 		G_TYPE_ICON,      /* COL_GICON_CUSTOM_ICON */
 		GDK_TYPE_RGBA,    /* COL_RGBA_FOREGROUND_RGBA */
 		G_TYPE_UINT,      /* COL_UINT_SORT_ORDER */
-		G_TYPE_UINT       /* COL_UINT_STATUS_CODE */
+		G_TYPE_UINT,      /* COL_UINT_STATUS_CODE */
+		G_TYPE_BOOLEAN    /* COL_BOOL_SUBDIRS_UNREAD */
 	};
 
 	g_warn_if_fail (G_N_ELEMENTS (col_types) == NUM_COLUMNS);
@@ -1037,25 +1026,19 @@ em_folder_tree_model_class_init (EMFolderTreeModelClass *class)
 	object_class->finalize = folder_tree_model_finalize;
 	object_class->constructed = folder_tree_model_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SESSION,
+	properties[PROP_SESSION] =
 		g_param_spec_object (
-			"session",
-			NULL,
-			NULL,
+			"session", NULL, NULL,
 			E_TYPE_MAIL_SESSION,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SELECTION,
+	properties[PROP_SELECTION] =
 		g_param_spec_object (
-			"selection",
-			"Selection",
-			NULL,
+			"selection", NULL, NULL,
 			GTK_TYPE_TREE_SELECTION,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[LOADING_ROW] = g_signal_new (
 		"loading-row",
@@ -1101,6 +1084,37 @@ em_folder_tree_model_class_init (EMFolderTreeModelClass *class)
 		G_TYPE_STRING,
 		G_TYPE_POINTER,
 		G_TYPE_POINTER);
+}
+
+static void
+folder_tree_model_recompute_subdirs_unread (EMFolderTreeModel *model,
+					    GtkTreeIter *parent_iter)
+{
+	GtkTreeModel *tree_model;
+	GtkTreeIter child;
+	gboolean any_unread = FALSE;
+
+	tree_model = GTK_TREE_MODEL (model);
+
+	if (gtk_tree_model_iter_children (tree_model, &child, parent_iter)) {
+		do {
+			guint unread = 0;
+			gboolean child_subdirs = FALSE;
+
+			gtk_tree_model_get (tree_model, &child,
+				COL_UINT_UNREAD, &unread,
+				COL_BOOL_SUBDIRS_UNREAD, &child_subdirs,
+				-1);
+
+			if (unread > 0 || child_subdirs) {
+				any_unread = TRUE;
+				break;
+			}
+		} while (gtk_tree_model_iter_next (tree_model, &child));
+	}
+
+	gtk_tree_store_set (GTK_TREE_STORE (model), parent_iter,
+		COL_BOOL_SUBDIRS_UNREAD, any_unread, -1);
 }
 
 static void
@@ -1199,6 +1213,7 @@ folder_tree_model_set_unread_count (EMFolderTreeModel *model,
 	 * they contain unread messages.  We signal that parent rows
 	 * have changed here to update them. */
 	while (gtk_tree_model_iter_parent (tree_model, &parent, &iter)) {
+		folder_tree_model_recompute_subdirs_unread (model, &parent);
 		path = gtk_tree_model_get_path (tree_model, &parent);
 		gtk_tree_model_row_changed (tree_model, path, &parent);
 		gtk_tree_path_free (path);
@@ -1323,7 +1338,7 @@ em_folder_tree_model_set_selection (EMFolderTreeModel *model,
 			G_OBJECT (model->priv->selection), (GWeakNotify)
 			folder_tree_model_selection_finalized_cb, model);
 
-	g_object_notify (G_OBJECT (model), "selection");
+	g_object_notify_by_pspec (G_OBJECT (model), properties[PROP_SELECTION]);
 }
 
 EMailSession *
@@ -1409,7 +1424,7 @@ em_folder_tree_model_set_session (EMFolderTreeModel *model,
 			model);
 	}
 
-	g_object_notify (G_OBJECT (model), "session");
+	g_object_notify_by_pspec (G_OBJECT (model), properties[PROP_SESSION]);
 }
 
 gboolean
@@ -1613,10 +1628,21 @@ em_folder_tree_model_set_folder_info (EMFolderTreeModel *model,
 	g_signal_emit (model, signals[FOLDER_CUSTOM_ICON], 0,
 		iter, store, fi->full_name);
 
-	if (unread != ~0)
+	if (unread != ~0) {
 		gtk_tree_store_set (
 			tree_store, iter, COL_UINT_UNREAD, unread,
 			COL_UINT_UNREAD_LAST_SEL, unread, -1);
+
+		if (unread > 0) {
+			GtkTreeIter ancestor, current;
+
+			current = *iter;
+			while (gtk_tree_model_iter_parent (GTK_TREE_MODEL (model), &ancestor, &current)) {
+				folder_tree_model_recompute_subdirs_unread (model, &ancestor);
+				current = ancestor;
+			}
+		}
+	}
 
 	if (load) {
 		/* create a placeholder node for our subfolders... */

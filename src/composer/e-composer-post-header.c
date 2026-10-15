@@ -1,20 +1,6 @@
 /*
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -27,8 +13,11 @@
 
 enum {
 	PROP_0,
-	PROP_MAIL_ACCOUNT
+	PROP_MAIL_ACCOUNT,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 struct _EComposerPostHeaderPrivate {
 	ESource *mail_account;
@@ -199,15 +188,13 @@ e_composer_post_header_class_init (EComposerPostHeaderClass *class)
 	header_class->changed = composer_post_header_changed;
 	header_class->clicked = composer_post_header_clicked;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MAIL_ACCOUNT,
+	properties[PROP_MAIL_ACCOUNT] =
 		g_param_spec_object (
-			"mail-account",
-			NULL,
-			NULL,
+			"mail-account", NULL, NULL,
 			E_TYPE_SOURCE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -246,7 +233,6 @@ e_composer_post_header_get_folders (EComposerPostHeader *header)
 
 	for (iter = folders; iter != NULL; iter = iter->next) {
 		/* Convert relative folder names to absolute. */
-		/* XXX Should use CamelURL for this. */
 		if (strstr (iter->data, ":/") == NULL) {
 			gchar *abs_url;
 
@@ -350,5 +336,5 @@ e_composer_post_header_set_mail_account (EComposerPostHeader *header,
 		g_list_free (folders);
 	}
 
-	g_object_notify (G_OBJECT (header), "mail-account");
+	g_object_notify_by_pspec (G_OBJECT (header), properties[PROP_MAIL_ACCOUNT]);
 }

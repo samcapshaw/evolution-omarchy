@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Jeffrey Stedfast <fejj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jeffrey Stedfast <fejj@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -248,7 +233,6 @@ composer_presend_check_recipients (EMsgComposer *composer,
 	GSettings *settings;
 	gchar *to_cc_domain = NULL;
 	gboolean check_passed = FALSE;
-	gint hidden = 0;
 	gint shown = 0;
 	gint num = 0;
 	gint num_to_cc = 0;
@@ -365,7 +349,7 @@ composer_presend_check_recipients (EMsgComposer *composer,
 			num++;
 			if (e_destination_is_evolution_list (recipients[ii])
 			    && !e_destination_list_show_addresses (recipients[ii])) {
-				hidden++;
+				/* nothing to do, it's hidden */
 			} else {
 				shown++;
 			}
@@ -1019,6 +1003,7 @@ em_utils_composer_real_send (EMsgComposer *composer,
 	CamelService *transport;
 	GCancellable *cancellable;
 	GSettings *settings;
+	GError *error = NULL;
 
 	settings = e_util_ref_settings ("org.gnome.evolution.mail");
 	if (g_settings_get_boolean (settings, "composer-use-outbox")) {
@@ -1048,12 +1033,23 @@ em_utils_composer_real_send (EMsgComposer *composer,
 		return;
 	}
 
+	transport = e_mail_session_ref_transport_for_message (session, message, &error);
+
+	if (!transport) {
+		if (error != NULL) {
+			e_alert_run_dialog_for_args (
+				GTK_WINDOW (composer),
+				"mail-composer:send-error",
+				error->message, NULL);
+			g_clear_error (&error);
+		}
+		return;
+	}
+
 	async_context = g_slice_new0 (AsyncContext);
 	async_context->message = g_object_ref (message);
 	async_context->composer = g_object_ref (composer);
 	async_context->activity = g_object_ref (activity);
-
-	transport = e_mail_session_ref_transport_for_message (session, message);
 
 	if (transport) {
 		EShell *shell;
@@ -1920,6 +1916,7 @@ set_up_new_composer (EMsgComposer *composer,
 	e_composer_header_table_set_identity_uid (table, identity, identity_name, identity_address);
 
 	em_utils_apply_send_account_override_to_composer (composer, folder);
+	em_utils_apply_composer_mode_override_to_composer (composer, folder);
 
 	g_free (identity);
 	g_free (identity_name);
@@ -2899,6 +2896,11 @@ forward_non_attached (EMsgComposer *composer,
 
 	session = e_msg_composer_ref_session (composer);
 
+	/* Setup composer's From account and mode override before calling
+	   quoting_text() and forward subject, because both rely on that
+	   account, and the mode check below needs the effective format. */
+	set_up_new_composer (composer, NULL, folder, message, uid, FALSE);
+
 	flags = E_MAIL_FORMATTER_QUOTE_FLAG_HEADERS |
 		E_MAIL_FORMATTER_QUOTE_FLAG_KEEP_SIG |
 		(skip_insecure_parts ? E_MAIL_FORMATTER_QUOTE_FLAG_SKIP_INSECURE_PARTS : 0);
@@ -2906,10 +2908,6 @@ forward_non_attached (EMsgComposer *composer,
 		flags |= E_MAIL_FORMATTER_QUOTE_FLAG_CITE;
 	if (e_html_editor_get_mode (e_msg_composer_get_editor (composer)) != E_CONTENT_EDITOR_MODE_HTML)
 		flags |= E_MAIL_FORMATTER_QUOTE_FLAG_NO_FORMATTING;
-
-	/* Setup composer's From account before calling quoting_text() and
-	   forward subject, because both rely on that account. */
-	set_up_new_composer (composer, NULL, folder, message, uid, FALSE);
 
 	forward = quoting_text (QUOTING_FORWARD, composer, &restore_lc_messages, &restore_lc_time);
 	text = em_utils_message_to_html_ex (session, message, forward, flags, NULL, NULL, NULL, &validity_found, &part_list);
@@ -3286,7 +3284,7 @@ reply_setup_composer_recipients (EMsgComposer *composer,
 	/* Add post-to, if necessary */
 	if (postto && camel_address_length ((CamelAddress *) postto)) {
 		CamelFolder *use_folder = folder, *temp_folder = NULL;
-		gchar *folder_uri = NULL;
+		gchar *base_uri = NULL;
 		gchar *post;
 
 		if (use_folder && CAMEL_IS_VEE_FOLDER (use_folder) && message_uid) {
@@ -3296,14 +3294,20 @@ reply_setup_composer_recipients (EMsgComposer *composer,
 				use_folder = temp_folder;
 		}
 
-		if (use_folder)
-			folder_uri = e_mail_folder_uri_from_folder (use_folder);
+		if (use_folder) {
+			CamelStore *parent_store;
+			const gchar *store_uid;
+
+			parent_store = camel_folder_get_parent_store (use_folder);
+			store_uid = camel_service_get_uid (CAMEL_SERVICE (parent_store));
+			base_uri = g_strdup_printf ("folder://%s", store_uid);
+		}
 
 		post = camel_address_encode ((CamelAddress *) postto);
 		e_composer_header_table_set_post_to_base (
-			table, folder_uri ? folder_uri : "", post);
+			table, base_uri ? base_uri : "", post);
 		g_free (post);
-		g_free (folder_uri);
+		g_free (base_uri);
 		g_clear_object (&temp_folder);
 	}
 }
@@ -4437,24 +4441,6 @@ emcu_create_templates_combo (EShell *shell,
 	return combo;
 }
 
-static void
-emcu_add_editor_mode_unknown (EActionComboBox *mode_combo)
-{
-	EUIAction *existing_action, *new_action;
-	GPtrArray *existing_radio_group;
-
-	existing_action = e_action_combo_box_get_action (mode_combo);
-	existing_radio_group = e_ui_action_get_radio_group (existing_action);
-
-	new_action = e_ui_action_new_stateful (e_ui_action_get_map_name (existing_action),
-		"unknown", G_VARIANT_TYPE_INT32, g_variant_new_int32 (E_CONTENT_EDITOR_MODE_UNKNOWN));
-	e_ui_action_set_label (new_action, _("Use global setting"));
-	e_ui_action_set_radio_group (new_action, existing_radio_group);
-	e_ui_action_set_action_group (new_action, e_ui_action_get_action_group (existing_action));
-
-	g_object_unref (new_action);
-}
-
 /**
  * em_utils_reply_alternative:
  * @parent: (nullable): a parent #GtkWindow for the question dialog
@@ -4636,7 +4622,7 @@ em_utils_reply_alternative (GtkWindow *parent,
 	widget = gtk_label_new_with_mnemonic (_("_Format message in"));
 	gtk_box_pack_start (hbox, widget, FALSE, FALSE, 0);
 
-	mode_combo = e_html_editor_util_new_mode_combobox ();
+	mode_combo = E_ACTION_COMBO_BOX (e_html_editor_util_new_mode_combobox (_("Use global setting")));
 	gtk_label_set_mnemonic_widget (GTK_LABEL (widget), GTK_WIDGET (mode_combo));
 	gtk_box_pack_start (hbox, GTK_WIDGET (mode_combo), FALSE, FALSE, 0);
 
@@ -4644,9 +4630,6 @@ em_utils_reply_alternative (GtkWindow *parent,
 		mode_combo, "sensitive",
 		widget, "sensitive",
 		G_BINDING_SYNC_CREATE);
-
-	emcu_add_editor_mode_unknown (mode_combo);
-	e_action_combo_box_update_model (mode_combo);
 
 	/* One line gap between sections */
 	widget = gtk_label_new (" ");
@@ -5199,6 +5182,14 @@ em_utils_reply_to_message (EMsgComposer *composer,
 			break;
 	}
 
+	if ((reply_flags & (E_MAIL_REPLY_FLAG_FORMAT_PLAIN |
+			    E_MAIL_REPLY_FLAG_FORMAT_HTML |
+			    E_MAIL_REPLY_FLAG_FORMAT_MARKDOWN |
+			    E_MAIL_REPLY_FLAG_FORMAT_MARKDOWN_PLAIN |
+			    E_MAIL_REPLY_FLAG_FORMAT_MARKDOWN_HTML)) == 0) {
+		em_utils_apply_composer_mode_override_to_composer (composer, folder);
+	}
+
 	composer_set_body (composer, message, style, (reply_flags & E_MAIL_REPLY_FLAG_SKIP_INSECURE_PARTS) != 0, parts_list, &used_part_list);
 
 	e_msg_composer_add_attachments_from_part_list (composer, used_part_list, TRUE);
@@ -5458,6 +5449,97 @@ em_utils_apply_send_account_override_to_composer (EMsgComposer *composer,
 	g_object_unref (source);
 	g_free (alias_name);
 	g_free (alias_address);
+}
+
+EContentEditorMode
+em_utils_check_composer_mode_override (EShell *shell,
+				       CamelMimeMessage *message,
+				       CamelFolder *folder)
+{
+	EMailBackend *mail_backend;
+	EMailComposerModeOverride *mode_override;
+	CamelInternetAddress *to = NULL, *cc = NULL, *bcc = NULL;
+	gchar *folder_uri = NULL;
+	EContentEditorMode mode;
+
+	g_return_val_if_fail (E_IS_SHELL (shell), E_CONTENT_EDITOR_MODE_UNKNOWN);
+
+	if (!message && !folder)
+		return E_CONTENT_EDITOR_MODE_UNKNOWN;
+
+	if (message) {
+		to = camel_mime_message_get_recipients (message, CAMEL_RECIPIENT_TYPE_TO);
+		cc = camel_mime_message_get_recipients (message, CAMEL_RECIPIENT_TYPE_CC);
+		bcc = camel_mime_message_get_recipients (message, CAMEL_RECIPIENT_TYPE_BCC);
+	}
+
+	mail_backend = E_MAIL_BACKEND (e_shell_get_backend_by_name (shell, "mail"));
+	g_return_val_if_fail (mail_backend != NULL, E_CONTENT_EDITOR_MODE_UNKNOWN);
+
+	if (folder)
+		folder_uri = e_mail_folder_uri_from_folder (folder);
+
+	mode_override = e_mail_backend_get_composer_mode_override (mail_backend);
+	mode = e_mail_composer_mode_override_get_mode (mode_override, folder_uri, to, cc, bcc);
+
+	g_free (folder_uri);
+
+	return mode;
+}
+
+void
+em_utils_apply_composer_mode_override_to_composer (EMsgComposer *composer,
+						   CamelFolder *folder)
+{
+	EComposerHeaderTable *header_table;
+	ESourceRegistry *registry;
+	ESource *source;
+	CamelMimeMessage *message;
+	EShell *shell;
+	EContentEditorMode mode;
+	gchar *identity_uid;
+
+	g_return_if_fail (E_IS_MSG_COMPOSER (composer));
+
+	shell = e_msg_composer_get_shell (composer);
+	message = em_utils_get_composer_recipients_as_message (composer);
+	mode = em_utils_check_composer_mode_override (shell, message, folder);
+	g_clear_object (&message);
+
+	if (mode != E_CONTENT_EDITOR_MODE_UNKNOWN) {
+		e_html_editor_set_mode (e_msg_composer_get_editor (composer), mode);
+		return;
+	}
+
+	/* Fall back to per-account composer mode */
+	header_table = e_msg_composer_get_header_table (composer);
+	identity_uid = e_composer_header_table_dup_identity_uid (header_table, NULL, NULL);
+	if (!identity_uid)
+		return;
+
+	registry = e_shell_get_registry (shell);
+	source = e_source_registry_ref_source (registry, identity_uid);
+	g_free (identity_uid);
+
+	if (source && e_source_has_extension (source, E_SOURCE_EXTENSION_MAIL_COMPOSITION)) {
+		ESourceMailComposition *extension;
+		gchar *composer_mode_nick;
+
+		extension = e_source_get_extension (source, E_SOURCE_EXTENSION_MAIL_COMPOSITION);
+		composer_mode_nick = e_source_mail_composition_dup_composer_mode (extension);
+
+		if (composer_mode_nick && *composer_mode_nick) {
+			gint mode_value = E_CONTENT_EDITOR_MODE_UNKNOWN;
+
+			if (e_enum_from_string (E_TYPE_CONTENT_EDITOR_MODE, composer_mode_nick, &mode_value) &&
+			    mode_value != E_CONTENT_EDITOR_MODE_UNKNOWN)
+				e_html_editor_set_mode (e_msg_composer_get_editor (composer), mode_value);
+		}
+
+		g_free (composer_mode_nick);
+	}
+
+	g_clear_object (&source);
 }
 
 void

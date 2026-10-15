@@ -1,23 +1,8 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *		Miguel de Icaza <miguel@gnu.org>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
+ * SPDX-FileContributor: Miguel de Icaza <miguel@gnu.org>
  */
 
 #include "evolution-config.h"
@@ -81,8 +66,11 @@ enum {
 	PROP_TABLE_FONT_DESC,
 	PROP_SORT_INFO,
 	PROP_TABLE,
-	PROP_TREE
+	PROP_TREE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	ET_SCROLL_UP = 1 << 0,
@@ -1205,9 +1193,10 @@ ethi_end_resize (ETableHeaderItem *ethi)
 
 static gboolean
 ethi_maybe_start_drag (ETableHeaderItem *ethi,
-                       GdkEventMotion *event)
+                       GdkEvent *event)
 {
 	GnomeCanvasItem *item;
+	gdouble x = 0, y = 0;
 
 	if (!ethi->maybe_drag)
 		return FALSE;
@@ -1219,7 +1208,8 @@ ethi_maybe_start_drag (ETableHeaderItem *ethi,
 
 	item = GNOME_CANVAS_ITEM (ethi);
 
-	return gtk_drag_check_threshold (GTK_WIDGET (item->canvas), ethi->click_x, ethi->click_y, event->x, event->y);
+	gdk_event_get_coords (event, &x, &y);
+	return gtk_drag_check_threshold (GTK_WIDGET (item->canvas), ethi->click_x, ethi->click_y, x, y);
 }
 
 static void
@@ -1233,16 +1223,16 @@ ethi_start_drag (ETableHeaderItem *ethi,
 	gint col_width;
 	cairo_surface_t *s;
 	cairo_t *cr;
-
-	gint group_indent = 0;
 	GHashTable *arrows;
+	gdouble motion_x = 0, motion_y = 0;
 
 	GtkTargetEntry  ethi_drag_types[] = {
 		{ (gchar *) TARGET_ETABLE_COL_TYPE, 0, TARGET_ETABLE_COL_HEADER },
 	};
 
 	widget = GTK_WIDGET (GNOME_CANVAS_ITEM (ethi)->canvas);
-	ethi->drag_col = ethi_find_col_by_x (ethi, event->motion.x);
+	gdk_event_get_coords (event, &motion_x, &motion_y);
+	ethi->drag_col = ethi_find_col_by_x (ethi, motion_x);
 
 	if (ethi->drag_col == -1)
 		return;
@@ -1255,8 +1245,6 @@ ethi_start_drag (ETableHeaderItem *ethi,
 		for (i = 0; i < length; i++) {
 			ETableColumnSpecification *spec;
 			GtkSortType sort_type;
-
-			group_indent++;
 
 			spec = e_table_sort_info_grouping_get_nth (
 				ethi->sort_info, i, &sort_type);
@@ -1498,9 +1486,9 @@ ethi_popup_field_chooser (GtkWidget *widget,
 
 	g_object_set (
 		info->ethi->etfcd.widget,
-		"full_header", info->ethi->full_header,
+		"full-header", info->ethi->full_header,
 		"header", info->ethi->eth,
-		"dnd_code", info->ethi->dnd_code,
+		"dnd-code", info->ethi->dnd_code,
 		NULL);
 
 	gtk_widget_show (etfcd);
@@ -1947,7 +1935,7 @@ ethi_event (GnomeCanvasItem *item,
 			sort_flag = E_TABLE_HEADER_ITEM_SORT_FLAG_ADD_AS_LAST;
 	}
 
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 	case GDK_ENTER_NOTIFY:
 		convert (canvas, event_x_win, event_y_win, &x, &y);
 		set_cursor (ethi, x);
@@ -1986,7 +1974,7 @@ ethi_event (GnomeCanvasItem *item,
 			e_table_header_set_size (ethi->eth, ethi->resize_col, new_width);
 
 			gnome_canvas_item_request_update (GNOME_CANVAS_ITEM (ethi));
-		} else if (ethi_maybe_start_drag (ethi, &event->motion)) {
+		} else if (ethi_maybe_start_drag (ethi, event)) {
 			ethi_start_drag (ethi, event);
 		} else
 			set_cursor (ethi, x);
@@ -2001,7 +1989,7 @@ ethi_event (GnomeCanvasItem *item,
 		convert (canvas, event_x_win, event_y_win, &x, &y);
 
 		if (is_pointer_on_division (ethi, x, &start, &col) &&
-		    event_button == 1) {
+		    event_button == GDK_BUTTON_PRIMARY) {
 			ETableCol *ecol;
 
 				/*
@@ -2024,7 +2012,7 @@ ethi_event (GnomeCanvasItem *item,
 			else if (ethi->tree)
 				e_tree_freeze_state_change (ethi->tree);
 		} else {
-			if (event_button == 1) {
+			if (event_button == GDK_BUTTON_PRIMARY) {
 				ethi->click_x = event_x_win;
 				ethi->click_y = event_y_win;
 				ethi->maybe_drag = TRUE;
@@ -2034,7 +2022,7 @@ ethi_event (GnomeCanvasItem *item,
 					ethi->selected_col = col;
 				if (gtk_widget_get_can_focus (GTK_WIDGET (item->canvas)))
 					e_canvas_item_grab_focus (item, TRUE);
-			} else if (event_button == 3) {
+			} else if (event_button == GDK_BUTTON_SECONDARY) {
 				ethi_header_context_menu (ethi, event);
 			} else
 				ethi_button_pressed (ethi, event);
@@ -2045,7 +2033,7 @@ ethi_event (GnomeCanvasItem *item,
 		if (!resizing)
 			break;
 
-		if (event_button != 1)
+		if (event_button != GDK_BUTTON_PRIMARY)
 			break;
 		else {
 			gint width = 0;
@@ -2171,75 +2159,49 @@ ethi_class_init (ETableHeaderItemClass *class)
 	item_class->point = ethi_point;
 	item_class->event = ethi_event;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DND_CODE,
+	properties[PROP_DND_CODE] =
 		g_param_spec_string (
-			"dnd_code",
-			"DnD code",
+			"dnd-code", NULL, NULL,
 			NULL,
-			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TABLE_FONT_DESC,
+	properties[PROP_TABLE_FONT_DESC] =
 		g_param_spec_boxed (
-			"font-desc",
-			"Font Description",
-			NULL,
+			"font-desc", NULL, NULL,
 			PANGO_TYPE_FONT_DESCRIPTION,
-			G_PARAM_WRITABLE));
+			G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FULL_HEADER,
+	properties[PROP_FULL_HEADER] =
 		g_param_spec_object (
-			"full_header",
-			"Full Header",
-			NULL,
+			"full-header", NULL, NULL,
 			E_TYPE_TABLE_HEADER,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TABLE_HEADER,
+	properties[PROP_TABLE_HEADER] =
 		g_param_spec_object (
-			"ETableHeader",
-			"Header",
-			NULL,
+			"ETableHeader", NULL, NULL,
 			E_TYPE_TABLE_HEADER,
-			G_PARAM_WRITABLE));
+			G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SORT_INFO,
+	properties[PROP_SORT_INFO] =
 		g_param_spec_object (
-			"sort_info",
-			"Sort Info",
-			NULL,
+			"sort-info", NULL, NULL,
 			E_TYPE_TABLE_SORT_INFO,
-			G_PARAM_WRITABLE));
+			G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TABLE,
+	properties[PROP_TABLE] =
 		g_param_spec_object (
-			"table",
-			"Table",
-			NULL,
+			"table", NULL, NULL,
 			E_TYPE_TABLE,
-			G_PARAM_WRITABLE));
+			G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TREE,
+	properties[PROP_TREE] =
 		g_param_spec_object (
-			"tree",
-			"Tree",
-			NULL,
+			"tree", NULL, NULL,
 			E_TYPE_TREE,
-			G_PARAM_WRITABLE));
+			G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	ethi_signals[BUTTON_PRESSED] = g_signal_new (
 		"button_pressed",

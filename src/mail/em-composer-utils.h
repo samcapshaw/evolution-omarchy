@@ -1,23 +1,7 @@
 /*
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Jeffrey Stedfast <fejj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jeffrey Stedfast <fejj@ximian.com>
  */
 
 #ifndef EM_COMPOSER_UTILS_H
@@ -119,6 +103,14 @@ ESource *	em_utils_check_send_account_override
 						 gchar **out_alias_name,
 						 gchar **out_alias_address);
 void		em_utils_apply_send_account_override_to_composer
+						(EMsgComposer *composer,
+						 CamelFolder *folder);
+EContentEditorMode
+		em_utils_check_composer_mode_override
+						(EShell *shell,
+						 CamelMimeMessage *message,
+						 CamelFolder *folder);
+void		em_utils_apply_composer_mode_override_to_composer
 						(EMsgComposer *composer,
 						 CamelFolder *folder);
 gchar *		em_composer_utils_get_forward_marker

@@ -19,54 +19,6 @@
 #define E_TYPE_CONTACT_CARD_ACCESSIBLE e_contact_card_accessible_get_type ()
 G_DECLARE_FINAL_TYPE (EContactCardAccessible, e_contact_card_accessible, E, CONTACT_CARD_ACCESSIBLE, GtkContainerAccessible)
 
-struct _EContactCardAccessible {
-	GtkContainerAccessible parent;
-};
-
-G_DEFINE_TYPE (EContactCardAccessible, e_contact_card_accessible, GTK_TYPE_CONTAINER_ACCESSIBLE)
-
-static void
-e_contact_card_accessible_init (EContactCardAccessible *accessible)
-{
-}
-
-static void
-e_contact_card_accessible_initialize (AtkObject *obj,
-				      gpointer   data)
-{
-	ATK_OBJECT_CLASS (e_contact_card_accessible_parent_class)->initialize (obj, data);
-	obj->role = ATK_ROLE_TABLE_CELL;
-}
-
-static AtkStateSet *
-e_contact_card_accessible_ref_state_set (AtkObject *obj)
-{
-	AtkStateSet *state_set;
-	GtkWidget *widget;
-
-	state_set = ATK_OBJECT_CLASS (e_contact_card_accessible_parent_class)->ref_state_set (obj);
-	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE (obj));
-	if (widget) {
-		atk_state_set_add_state (state_set, ATK_STATE_SELECTABLE);
-
-		if ((gtk_widget_get_state_flags (widget) & GTK_STATE_FLAG_SELECTED) != 0)
-			atk_state_set_add_state (state_set, ATK_STATE_SELECTED);
-	}
-
-	return state_set;
-}
-
-static void
-e_contact_card_accessible_class_init (EContactCardAccessibleClass *klass)
-{
-	AtkObjectClass *object_class = ATK_OBJECT_CLASS (klass);
-
-	object_class->initialize = e_contact_card_accessible_initialize;
-	object_class->ref_state_set = e_contact_card_accessible_ref_state_set;
-}
-
-/* ************************************************************************* */
-
 typedef struct _Row {
 	GtkLabel *label;
 	GtkLabel *value;
@@ -83,17 +35,102 @@ struct _EContactCardPrivate {
 	Row rows[N_ROWS];
 
 	gboolean have_image;
+
+	guint item_index;
+	guint n_items;
+	gboolean has_position;
 };
 
 enum {
 	PROP_0,
 	PROP_CSS_PROVIDER,
-	LAST_PROP
+	N_PROPS
 };
 
-static GParamSpec *obj_props[LAST_PROP] = { NULL, };
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EContactCard, e_contact_card, GTK_TYPE_EVENT_BOX)
+
+/* ************************************************************************* */
+
+struct _EContactCardAccessible {
+	GtkContainerAccessible parent;
+};
+
+G_DEFINE_TYPE (EContactCardAccessible, e_contact_card_accessible, GTK_TYPE_CONTAINER_ACCESSIBLE)
+
+static void
+e_contact_card_accessible_init (EContactCardAccessible *accessible)
+{
+}
+
+static void
+e_contact_card_accessible_initialize (AtkObject *obj,
+				      gpointer   data)
+{
+	ATK_OBJECT_CLASS (e_contact_card_accessible_parent_class)->initialize (obj, data);
+	obj->role = ATK_ROLE_LIST_ITEM;
+}
+
+static AtkStateSet *
+e_contact_card_accessible_ref_state_set (AtkObject *obj)
+{
+	AtkStateSet *state_set;
+	GtkWidget *widget;
+
+	state_set = ATK_OBJECT_CLASS (e_contact_card_accessible_parent_class)->ref_state_set (obj);
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE (obj));
+	if (widget) {
+		atk_state_set_add_state (state_set, ATK_STATE_SELECTABLE);
+
+		if (gtk_style_context_has_class (gtk_widget_get_style_context (widget), "selected"))
+			atk_state_set_add_state (state_set, ATK_STATE_SELECTED);
+	}
+
+	return state_set;
+}
+
+static AtkAttributeSet *
+e_contact_card_accessible_get_attributes (AtkObject *obj)
+{
+	AtkAttributeSet *attributes;
+	GtkWidget *widget;
+
+	attributes = ATK_OBJECT_CLASS (e_contact_card_accessible_parent_class)->get_attributes (obj);
+
+	widget = gtk_accessible_get_widget (GTK_ACCESSIBLE (obj));
+	if (widget) {
+		EContactCard *card = E_CONTACT_CARD (widget);
+
+		if (card->priv->has_position) {
+			AtkAttribute *attr;
+
+			attr = g_new0 (AtkAttribute, 1);
+			attr->name = g_strdup ("posinset");
+			attr->value = g_strdup_printf ("%u", card->priv->item_index + 1);
+			attributes = g_slist_append (attributes, attr);
+
+			attr = g_new0 (AtkAttribute, 1);
+			attr->name = g_strdup ("setsize");
+			attr->value = g_strdup_printf ("%u", card->priv->n_items);
+			attributes = g_slist_append (attributes, attr);
+		}
+	}
+
+	return attributes;
+}
+
+static void
+e_contact_card_accessible_class_init (EContactCardAccessibleClass *klass)
+{
+	AtkObjectClass *object_class = ATK_OBJECT_CLASS (klass);
+
+	object_class->initialize = e_contact_card_accessible_initialize;
+	object_class->ref_state_set = e_contact_card_accessible_ref_state_set;
+	object_class->get_attributes = e_contact_card_accessible_get_attributes;
+}
+
+/* ************************************************************************* */
 
 static void
 e_contact_card_get_preferred_width (GtkWidget *widget,
@@ -360,12 +397,12 @@ e_contact_card_class_init (EContactCardClass *klass)
 	 *
 	 * Since: 3.50
 	 **/
-	obj_props[PROP_CSS_PROVIDER] =
+	properties[PROP_CSS_PROVIDER] =
 		g_param_spec_object ("css-provider", NULL, NULL,
 			GTK_TYPE_CSS_PROVIDER,
 			G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
-	g_object_class_install_properties (object_class, G_N_ELEMENTS (obj_props), obj_props);
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -414,6 +451,30 @@ e_contact_card_set_contact (EContactCard *self,
 	self->priv->contact = contact;
 
 	e_contact_card_update (self);
+}
+
+/**
+ * e_contact_card_set_position:
+ * @self: an #EContactCard
+ * @item_index: logical index of the contact @self currently shows, counting from zero
+ * @n_items: total number of items in the view @self is part of
+ *
+ * Records where @self sits within the full (possibly virtualized) list of
+ * contacts, so its accessible object can report the true position/set size
+ * instead of the recycled widget's sibling index/count.
+ *
+ * Since: 3.62
+ **/
+void
+e_contact_card_set_position (EContactCard *self,
+			     guint item_index,
+			     guint n_items)
+{
+	g_return_if_fail (E_IS_CONTACT_CARD (self));
+
+	self->priv->item_index = item_index;
+	self->priv->n_items = n_items;
+	self->priv->has_position = TRUE;
 }
 
 static guint
@@ -466,6 +527,8 @@ e_contact_card_update (EContactCard *self)
 
 		file_as = e_contact_get (self->priv->contact, E_CONTACT_FILE_AS);
 		gtk_label_set_label (self->priv->header, file_as ? file_as : "");
+
+		atk_object_set_name (gtk_widget_get_accessible (GTK_WIDGET (self)), file_as ? file_as : "");
 
 		is_list = e_contact_get (self->priv->contact, E_CONTACT_IS_LIST) != NULL;
 		row = 0;
@@ -630,6 +693,7 @@ e_contact_card_update (EContactCard *self)
 		gtk_widget_set_visible (GTK_WIDGET (self->priv->image), self->priv->have_image);
 	} else {
 		self->priv->have_image = FALSE;
+		atk_object_set_name (gtk_widget_get_accessible (GTK_WIDGET (self)), "");
 		gtk_widget_set_visible (GTK_WIDGET (self->priv->header), FALSE);
 		gtk_widget_set_visible (GTK_WIDGET (self->priv->image), FALSE);
 		gtk_widget_set_visible (self->priv->spinner, TRUE);

@@ -1,21 +1,7 @@
-/* e-source-selector-dialog.c
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * published by the Free Software Foundation; either the version 2 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser  General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Author: Rodrigo Moya <rodrigo@novell.com>
+/*
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Rodrigo Moya <rodrigo@novell.com>
  */
 
 #include "evolution-config.h"
@@ -40,8 +26,11 @@ enum {
 	PROP_EXTENSION_NAME,
 	PROP_REGISTRY,
 	PROP_SELECTOR,
-	PROP_EXCEPT_SOURCE
+	PROP_EXCEPT_SOURCE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (ESourceSelectorDialog, e_source_selector_dialog, GTK_TYPE_DIALOG)
 
@@ -260,47 +249,33 @@ e_source_selector_dialog_class_init (ESourceSelectorDialogClass *class)
 	object_class->finalize = source_selector_dialog_finalize;
 	object_class->constructed = source_selector_dialog_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_EXTENSION_NAME,
+	properties[PROP_EXTENSION_NAME] =
 		g_param_spec_string (
-			"extension-name",
-			NULL,
-			NULL,
+			"extension-name", NULL, NULL,
 			NULL,
 			G_PARAM_WRITABLE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_REGISTRY,
+	properties[PROP_REGISTRY] =
 		g_param_spec_object (
-			"registry",
-			NULL,
-			NULL,
+			"registry", NULL, NULL,
 			E_TYPE_SOURCE_REGISTRY,
 			G_PARAM_WRITABLE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SELECTOR,
+	properties[PROP_SELECTOR] =
 		g_param_spec_object (
-			"selector",
-			NULL,
-			NULL,
+			"selector", NULL, NULL,
 			E_TYPE_SOURCE_SELECTOR,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_EXCEPT_SOURCE,
+	properties[PROP_EXCEPT_SOURCE] =
 		g_param_spec_object (
-			"except-source",
-			NULL,
-			NULL,
+			"except-source", NULL, NULL,
 			E_TYPE_SOURCE,
-			G_PARAM_WRITABLE));
+			G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -473,5 +448,5 @@ e_source_selector_dialog_set_except_source (ESourceSelectorDialog *dialog,
 
 	primary_selection_changed_cb (E_SOURCE_SELECTOR (dialog->priv->selector), dialog);
 
-	g_object_notify (G_OBJECT (dialog), "except-source");
+	g_object_notify_by_pspec (G_OBJECT (dialog), properties[PROP_EXCEPT_SOURCE]);
 }

@@ -1,21 +1,6 @@
 /*
- * e-attachment-view.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -1542,11 +1527,16 @@ e_attachment_view_button_press_event (EAttachmentView *view,
 	gboolean editable;
 	gboolean handled = FALSE;
 	gboolean path_is_selected = FALSE;
+	guint button = 0;
+	gdouble x = 0, y = 0;
 
 	g_return_val_if_fail (E_IS_ATTACHMENT_VIEW (view), FALSE);
 	g_return_val_if_fail (event != NULL, FALSE);
 
 	priv = e_attachment_view_get_private (view);
+
+	gdk_event_get_button ((GdkEvent *) event, &button);
+	gdk_event_get_coords ((GdkEvent *) event, &x, &y);
 
 	if (g_list_find (priv->event_list, event) != NULL)
 		return FALSE;
@@ -1560,10 +1550,10 @@ e_attachment_view_button_press_event (EAttachmentView *view,
 	}
 
 	editable = e_attachment_view_get_editable (view);
-	path = e_attachment_view_get_path_at_pos (view, event->x, event->y);
+	path = e_attachment_view_get_path_at_pos (view, x, y);
 	path_is_selected = e_attachment_view_path_is_selected (view, path);
 
-	if (event->button == 1 && event->type == GDK_BUTTON_PRESS) {
+	if (button == GDK_BUTTON_PRIMARY && gdk_event_get_event_type ((GdkEvent *) event) == GDK_BUTTON_PRESS) {
 		GList *list, *iter;
 		gboolean busy = FALSE;
 
@@ -1578,8 +1568,8 @@ e_attachment_view_button_press_event (EAttachmentView *view,
 		/* Prepare for dragging if the clicked item is selected
 		 * and none of the selected items are loading or saving. */
 		if (path_is_selected && !busy) {
-			priv->start_x = event->x;
-			priv->start_y = event->y;
+			priv->start_x = x;
+			priv->start_y = y;
 			priv->event_list = g_list_append (
 				priv->event_list,
 				gdk_event_copy ((GdkEvent *) event));
@@ -1590,7 +1580,7 @@ e_attachment_view_button_press_event (EAttachmentView *view,
 		g_list_free (list);
 	}
 
-	if (event->button == 3 && event->type == GDK_BUTTON_PRESS) {
+	if (button == GDK_BUTTON_SECONDARY && gdk_event_get_event_type ((GdkEvent *) event) == GDK_BUTTON_PRESS) {
 		/* If the user clicked on a selected item, retain the
 		 * current selection.  If the user clicked on an unselected
 		 * item, select the clicked item only.  If the user did not
@@ -1655,6 +1645,7 @@ e_attachment_view_motion_notify_event (EAttachmentView *view,
 	EAttachmentViewPrivate *priv;
 	GtkWidget *widget = GTK_WIDGET (view);
 	GtkTargetList *targets;
+	gdouble x = 0, y = 0;
 
 	g_return_val_if_fail (E_IS_ATTACHMENT_VIEW (view), FALSE);
 	g_return_val_if_fail (event != NULL, FALSE);
@@ -1664,8 +1655,9 @@ e_attachment_view_motion_notify_event (EAttachmentView *view,
 	if (priv->event_list == NULL)
 		return FALSE;
 
+	gdk_event_get_coords ((GdkEvent *) event, &x, &y);
 	if (!gtk_drag_check_threshold (
-		widget, priv->start_x, priv->start_y, event->x, event->y))
+		widget, priv->start_x, priv->start_y, x, y))
 		return TRUE;
 
 	g_list_foreach (priv->event_list, (GFunc) gdk_event_free, NULL);
@@ -1685,13 +1677,16 @@ e_attachment_view_key_press_event (EAttachmentView *view,
                                    GdkEventKey *event)
 {
 	gboolean editable;
+	guint keyval = 0;
 
 	g_return_val_if_fail (E_IS_ATTACHMENT_VIEW (view), FALSE);
 	g_return_val_if_fail (event != NULL, FALSE);
 
 	editable = e_attachment_view_get_editable (view);
 
-	if (event->keyval == GDK_KEY_Delete && editable) {
+	gdk_event_get_keyval ((GdkEvent *) event, &keyval);
+
+	if (keyval == GDK_KEY_Delete && editable) {
 		e_attachment_view_remove_selected (view, TRUE);
 		return TRUE;
 	}

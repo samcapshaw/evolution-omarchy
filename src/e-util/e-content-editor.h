@@ -1,17 +1,6 @@
 /*
- * Copyright (C) 2016 Red Hat, Inc. (www.redhat.com)
- *
- * This library is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library. If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 2016 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #if !defined (__E_UTIL_H_INSIDE__) && !defined (LIBEUTIL_COMPILATION)
@@ -119,6 +108,8 @@ struct _EContentEditorInterface {
 	void		(*selection_unindent)		(EContentEditor *editor);
 
 	void		(*selection_unlink)		(EContentEditor *editor);
+
+	void		(*selection_unformat)		(EContentEditor *editor);
 
 	void		(*find)				(EContentEditor *editor,
 							 guint32 flags,
@@ -630,6 +621,9 @@ void		e_content_editor_selection_unindent
 						(EContentEditor *editor);
 
 void		e_content_editor_selection_unlink
+						(EContentEditor *editor);
+
+void		e_content_editor_selection_unformat
 						(EContentEditor *editor);
 
 void		e_content_editor_find		(EContentEditor *editor,

@@ -1,17 +1,6 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -578,6 +567,11 @@ e_composer_private_dispose (EMsgComposer *composer)
 		composer->priv->shell = NULL;
 	}
 
+	if (composer->priv->autocrypt_cancellable) {
+		g_cancellable_cancel (composer->priv->autocrypt_cancellable);
+		g_clear_object (&composer->priv->autocrypt_cancellable);
+	}
+
 	g_clear_object (&composer->priv->editor);
 	g_clear_object (&composer->priv->header_table);
 	g_clear_object (&composer->priv->attachment_paned);
@@ -606,6 +600,7 @@ e_composer_private_finalize (EMsgComposer *composer)
 	g_ptr_array_free (array, TRUE);
 
 	g_clear_object (&composer->priv->load_signature_cancellable);
+	g_clear_object (&composer->priv->autocrypt_cancellable);
 
 	g_free (composer->priv->charset);
 	g_free (composer->priv->mime_type);

@@ -1,18 +1,5 @@
 /*
- * e-mail-print-config-headers.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -29,8 +16,11 @@ struct _EMailPrintConfigHeadersPrivate {
 
 enum {
 	PROP_0,
-	PROP_PART
+	PROP_PART,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EMailPrintConfigHeaders, e_mail_print_config_headers, E_TYPE_TREE_VIEW_FRAME)
 
@@ -237,17 +227,20 @@ e_mail_print_config_headers_class_init (EMailPrintConfigHeadersClass *class)
 	 *
 	 * The #EMailPartHeaders to configure.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_PART,
+	/**
+	 * EMailPrintConfigHeaders:part
+	 *
+	 * The EMailPartHeaders to configure
+	 **/
+	properties[PROP_PART] =
 		g_param_spec_object (
-			"part",
-			"Part",
-			"The EMailPartHeaders to configure",
+			"part", NULL, NULL,
 			E_TYPE_MAIL_PART_HEADERS,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

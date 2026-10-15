@@ -1,21 +1,6 @@
 /*
- * e-shell-content.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /**
@@ -50,8 +35,11 @@ struct _EShellContentPrivate {
 enum {
 	PROP_0,
 	PROP_ALERT_BAR,
-	PROP_SHELL_VIEW
+	PROP_SHELL_VIEW,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Forward Declarations */
 static void	e_shell_content_alert_sink_init
@@ -400,33 +388,32 @@ e_shell_content_class_init (EShellContentClass *class)
 	 *
 	 * Displays informational and error messages.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_ALERT_BAR,
+	/**
+	 * EShellContent:alert-bar
+	 *
+	 * Displays informational and error messages
+	 **/
+	properties[PROP_ALERT_BAR] =
 		g_param_spec_object (
-			"alert-bar",
-			"Alert Bar",
-			"Displays informational and error messages",
+			"alert-bar", NULL, NULL,
 			E_TYPE_ALERT_BAR,
 			G_PARAM_READABLE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * EShellContent:shell-view
 	 *
 	 * The #EShellView to which the content widget belongs.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_SHELL_VIEW,
+	properties[PROP_SHELL_VIEW] =
 		g_param_spec_object (
-			"shell-view",
-			NULL,
-			NULL,
+			"shell-view", NULL, NULL,
 			E_TYPE_SHELL_VIEW,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

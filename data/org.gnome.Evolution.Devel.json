@@ -451,7 +451,7 @@
 				{
 					"type": "git",
 					"url": "https://gitlab.gnome.org/GNOME/evolution-data-server.git",
-					"branch": "gnome-50"
+					"branch": "gnome-51"
 				}
 			]
 		},
@@ -485,7 +485,7 @@
 				{
 					"type": "git",
 					"url": "https://gitlab.gnome.org/GNOME/evolution.git",
-					"branch": "gnome-50"
+					"branch": "gnome-51"
 				},
 				{
 					"type": "shell",

@@ -1,21 +1,6 @@
 /*
- * e-charset-combo-box.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -40,8 +25,11 @@ struct _ECharsetComboBox {
 
 enum {
 	PROP_0,
-	PROP_CHARSET
+	PROP_CHARSET,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE (ECharsetComboBox, e_charset_combo_box, GTK_TYPE_COMBO_BOX)
 
@@ -162,7 +150,7 @@ charset_combo_box_changed (GtkComboBox *combo_box)
 		g_clear_pointer (&self->previous_id, g_free);
 		self->previous_id = g_strdup (charset);
 
-		g_object_notify (G_OBJECT (self), "charset");
+		g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_CHARSET]);
 	}
 }
 
@@ -240,15 +228,18 @@ e_charset_combo_box_class_init (ECharsetComboBoxClass *class)
 	combo_box_class = GTK_COMBO_BOX_CLASS (class);
 	combo_box_class->changed = charset_combo_box_changed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CHARSET,
+	/**
+	 * ECharsetComboBox:charset
+	 *
+	 * The selected character set
+	 **/
+	properties[PROP_CHARSET] =
 		g_param_spec_string (
-			"charset",
-			"Charset",
-			"The selected character set",
+			"charset", NULL, NULL,
 			"",
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -338,7 +329,7 @@ e_charset_combo_box_set_charset (ECharsetComboBox *combo_box,
 		gtk_combo_box_set_active_id (GTK_COMBO_BOX (combo_box), charset);
 	}
 
-	g_object_notify (G_OBJECT (combo_box), "charset");
+	g_object_notify_by_pspec (G_OBJECT (combo_box), properties[PROP_CHARSET]);
 
 	combo_box->block_dialog = FALSE;
 }

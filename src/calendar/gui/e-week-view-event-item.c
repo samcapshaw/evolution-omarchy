@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Damon Chaplin <damon@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Damon Chaplin <damon@ximian.com>
  */
 
 /*
@@ -45,8 +30,11 @@ struct _EWeekViewEventItemPrivate {
 enum {
 	PROP_0,
 	PROP_EVENT_NUM,
-	PROP_SPAN_NUM
+	PROP_SPAN_NUM,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EWeekViewEventItem, e_week_view_event_item, GNOME_TYPE_CANVAS_ITEM)
 
@@ -206,7 +194,7 @@ week_view_event_item_button_press (EWeekViewEventItem *event_item,
 	if (pos == E_CALENDAR_VIEW_POS_NONE)
 		return FALSE;
 
-	if (event_button == 1) {
+	if (event_button == GDK_BUTTON_PRIMARY) {
 		week_view->pressed_event_num = event_item->priv->event_num;
 		week_view->pressed_span_num = event_item->priv->span_num;
 
@@ -224,7 +212,7 @@ week_view_event_item_button_press (EWeekViewEventItem *event_item,
 
 		return TRUE;
 
-	} else if (event_button == 3) {
+	} else if (event_button == GDK_BUTTON_SECONDARY) {
 		if (!gtk_widget_has_focus (GTK_WIDGET (week_view))) {
 			gtk_widget_grab_focus (GTK_WIDGET (week_view));
 			if (week_view->event_destroyed) {
@@ -1126,7 +1114,7 @@ week_view_event_item_event (GnomeCanvasItem *item,
 
 	event_item = E_WEEK_VIEW_EVENT_ITEM (item);
 
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 	case GDK_2BUTTON_PRESS:
 		return week_view_event_item_double_click (event_item, event);
 	case GDK_BUTTON_PRESS:
@@ -1158,29 +1146,23 @@ e_week_view_event_item_class_init (EWeekViewEventItemClass *class)
 	item_class->point = week_view_event_item_point;
 	item_class->event = week_view_event_item_event;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_EVENT_NUM,
+	properties[PROP_EVENT_NUM] =
 		g_param_spec_int (
-			"event-num",
-			"Event Num",
-			NULL,
+			"event-num", NULL, NULL,
 			G_MININT,
 			G_MAXINT,
 			-1,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SPAN_NUM,
+	properties[PROP_SPAN_NUM] =
 		g_param_spec_int (
-			"span-num",
-			"Span Num",
-			NULL,
+			"span-num", NULL, NULL,
 			G_MININT,
 			G_MAXINT,
 			-1,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -1212,7 +1194,7 @@ e_week_view_event_item_set_event_num (EWeekViewEventItem *event_item,
 	event_item->priv->event_num = event_num;
 	gnome_canvas_item_request_update (GNOME_CANVAS_ITEM (event_item));
 
-	g_object_notify (G_OBJECT (event_item), "event-num");
+	g_object_notify_by_pspec (G_OBJECT (event_item), properties[PROP_EVENT_NUM]);
 }
 
 gint
@@ -1235,5 +1217,5 @@ e_week_view_event_item_set_span_num (EWeekViewEventItem *event_item,
 	event_item->priv->span_num = span_num;
 	gnome_canvas_item_request_update (GNOME_CANVAS_ITEM (event_item));
 
-	g_object_notify (G_OBJECT (event_item), "span-num");
+	g_object_notify_by_pspec (G_OBJECT (event_item), properties[PROP_SPAN_NUM]);
 }

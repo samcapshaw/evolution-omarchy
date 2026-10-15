@@ -1,23 +1,7 @@
 /*
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Jeffrey Stedfast <fejj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jeffrey Stedfast <fejj@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -64,8 +48,11 @@ enum {
 	PROP_CAN_NONE,
 	PROP_CAPTION,
 	PROP_DEFAULT_BUTTON_LABEL,
-	PROP_MODEL
+	PROP_MODEL,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	FOLDER_SELECTED,
@@ -654,7 +641,6 @@ folder_selector_constructed (GObject *object)
 	widget = e_tree_view_frame_new ();
 	gtk_box_pack_end (GTK_BOX (container), widget, TRUE, TRUE, 0);
 	selector->priv->tree_view_frame = g_object_ref (widget);
-	gtk_widget_set_size_request (widget, -1, 240);
 	gtk_widget_show (widget);
 
 	g_signal_connect (
@@ -713,6 +699,8 @@ folder_selector_constructed (GObject *object)
 		E_TREE_VIEW_FRAME (selector->priv->tree_view_frame),
 		E_TREE_VIEW_FRAME_ACTION_REMOVE);
 	e_ui_action_set_visible (action, FALSE);
+
+	e_restore_window (GTK_WINDOW (selector), "/org/gnome/evolution/mail/folder-selector-window/", E_RESTORE_WINDOW_SIZE);
 }
 
 static void
@@ -748,64 +736,65 @@ em_folder_selector_class_init (EMFolderSelectorClass *class)
 
 	class->folder_selected = folder_selector_folder_selected;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CAN_CREATE,
+	/**
+	 * EMFolderSelector:can-create
+	 *
+	 * Allow the user to create a new folder " "before making a final selection
+	 **/
+	properties[PROP_CAN_CREATE] =
 		g_param_spec_boolean (
-			"can-create",
-			"Can Create",
-			"Allow the user to create a new folder "
-			"before making a final selection",
+			"can-create", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CAN_NONE,
+	/**
+	 * EMFolderSelector:can-none
+	 *
+	 * Whether can show 'None' button, to be able to unselect folder
+	 **/
+	properties[PROP_CAN_NONE] =
 		g_param_spec_boolean (
-			"can-none",
-			"Can None",
-			"Whether can show 'None' button, to be able to unselect folder",
+			"can-none", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CAPTION,
+	/**
+	 * EMFolderSelector:caption
+	 *
+	 * Brief description above folder tree
+	 **/
+	properties[PROP_CAPTION] =
 		g_param_spec_string (
-			"caption",
-			"Caption",
-			"Brief description above folder tree",
+			"caption", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DEFAULT_BUTTON_LABEL,
+	/**
+	 * EMFolderSelector:default-button-label
+	 *
+	 * Label for the dialog's default button
+	 **/
+	properties[PROP_DEFAULT_BUTTON_LABEL] =
 		g_param_spec_string (
-			"default-button-label",
-			"Default Button Label",
-			"Label for the dialog's default button",
+			"default-button-label", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MODEL,
+	properties[PROP_MODEL] =
 		g_param_spec_object (
-			"model",
-			NULL,
-			NULL,
+			"model", NULL, NULL,
 			EM_TYPE_FOLDER_TREE_MODEL,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[FOLDER_SELECTED] = g_signal_new (
 		"folder-selected",
@@ -884,7 +873,7 @@ em_folder_selector_set_can_create (EMFolderSelector *selector,
 
 	selector->priv->can_create = can_create;
 
-	g_object_notify (G_OBJECT (selector), "can-create");
+	g_object_notify_by_pspec (G_OBJECT (selector), properties[PROP_CAN_CREATE]);
 }
 
 /**
@@ -925,7 +914,7 @@ em_folder_selector_set_can_none (EMFolderSelector *selector,
 
 	selector->priv->can_none = can_none;
 
-	g_object_notify (G_OBJECT (selector), "can-none");
+	g_object_notify_by_pspec (G_OBJECT (selector), properties[PROP_CAN_NONE]);
 }
 
 /**
@@ -972,7 +961,7 @@ em_folder_selector_set_caption (EMFolderSelector *selector,
 	visible = (selector->priv->caption != NULL);
 	gtk_widget_set_visible (selector->priv->caption_label, visible);
 
-	g_object_notify (G_OBJECT (selector), "caption");
+	g_object_notify_by_pspec (G_OBJECT (selector), properties[PROP_CAPTION]);
 }
 
 /**
@@ -1016,7 +1005,7 @@ em_folder_selector_set_default_button_label (EMFolderSelector *selector,
 	g_free (selector->priv->default_button_label);
 	selector->priv->default_button_label = g_strdup (button_label);
 
-	g_object_notify (G_OBJECT (selector), "default-button-label");
+	g_object_notify_by_pspec (G_OBJECT (selector), properties[PROP_DEFAULT_BUTTON_LABEL]);
 }
 
 EMFolderTreeModel *

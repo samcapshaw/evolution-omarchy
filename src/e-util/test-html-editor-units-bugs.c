@@ -1,17 +1,6 @@
 /*
- * Copyright (C) 2016 Red Hat, Inc. (www.redhat.com)
- *
- * This library is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library. If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 2016 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -3106,6 +3095,38 @@ test_issue_1763 (TestFixture *fixture)
 	}
 }
 
+static void
+test_issue_3271 (TestFixture *fixture)
+{
+	if (!test_utils_process_commands (fixture,
+		"mode:html\n")) {
+		g_test_fail ();
+		return;
+	}
+
+	test_utils_insert_content (fixture,
+		"<!-- text/html -->"
+		"<body style=\"color: #444444; background-color: #ffb6c1;\">"
+		"<div><span>the first line text</span></div>"
+		"<br>"
+		"<div><span>the third line text</span></div>"
+		"</body>"
+		"<span class=\"-x-evo-to-body\" data-credits=\"On Today, User wrote:\"></span><span class=\"-x-evo-cite-body\"></span>",
+		E_CONTENT_EDITOR_INSERT_REPLACE_ALL | E_CONTENT_EDITOR_INSERT_TEXT_HTML);
+
+	if (!test_utils_run_simple_test (fixture,
+		"seq:Chcddb\n",
+		HTML_PREFIX "<div>On Today, User wrote:</div>"
+		"<blockquote type=\"cite\" " BLOCKQUOTE_STYLE ">"
+		"<div><span>the first line text</span></div>"
+		"<div><span>the third line text</span></div>"
+		"</blockquote>" HTML_SUFFIX,
+		"On Today, User wrote:\n"
+		"> the first line text\n"
+		"> the third line text\n"))
+		g_test_fail ();
+}
+
 void
 test_add_html_editor_bug_tests (void)
 {
@@ -3156,4 +3177,5 @@ test_add_html_editor_bug_tests (void)
 	test_utils_add_test ("/issue/1392", test_issue_1392);
 	test_utils_add_test ("/issue/1708", test_issue_1708);
 	test_utils_add_test ("/issue/1763", test_issue_1763);
+	test_utils_add_test ("/issue/3271", test_issue_3271);
 }

@@ -1,18 +1,5 @@
 /*
- * e-mail-formatter-error.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -70,7 +57,7 @@ emfe_error_format (EMailFormatterExtension *extension,
 		"cellpadding=\"0\" width=\"100%%\">\n"
 		"<tr valign=\"top\"><td width=50>"
 		"<img src=\"gtk-stock://%s/?size=%d\" width=\"%dpx\" height=\"%dpx\"/></td>\n"
-		"<td style=\"color: red;\">",
+		"<td class=\"-e-mail-formatter-error-color\">",
 		"dialog-error", GTK_ICON_SIZE_DIALOG, icon_width, icon_height);
 
 	g_output_stream_write_all (

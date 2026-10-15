@@ -1,24 +1,7 @@
 /*
- * EDateTimeList - list of calendar dates/times with GtkTreeModel interface.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Hans Petter Jansson  <hpj@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Hans Petter Jansson  <hpj@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -53,8 +36,11 @@ struct _EDateTimeListPrivate {
 enum {
 	PROP_0,
 	PROP_USE_24_HOUR_FORMAT,
-	PROP_TIMEZONE
+	PROP_TIMEZONE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static GType column_types[E_DATE_TIME_LIST_NUM_COLUMNS];
 
@@ -445,24 +431,20 @@ e_date_time_list_class_init (EDateTimeListClass *class)
 	object_class->get_property = date_time_list_get_property;
 	object_class->finalize = date_time_list_finalize;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_USE_24_HOUR_FORMAT,
+	properties[PROP_USE_24_HOUR_FORMAT] =
 		g_param_spec_boolean (
-			"use-24-hour-format",
-			"Use 24-hour Format",
-			NULL,
+			"use-24-hour-format", NULL, NULL,
 			FALSE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TIMEZONE,
+	properties[PROP_TIMEZONE] =
 		g_param_spec_pointer (
 			"timezone",
 			"Time Zone",
 			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	column_types[E_DATE_TIME_LIST_COLUMN_DESCRIPTION] = G_TYPE_STRING;
 }
@@ -544,7 +526,7 @@ e_date_time_list_set_use_24_hour_format (EDateTimeList *date_time_list,
 
 	date_time_list->priv->use_24_hour_format = use_24_hour_format;
 
-	g_object_notify (G_OBJECT (date_time_list), "use-24-hour-format");
+	g_object_notify_by_pspec (G_OBJECT (date_time_list), properties[PROP_USE_24_HOUR_FORMAT]);
 }
 
 ICalTimezone *
@@ -568,7 +550,7 @@ e_date_time_list_set_timezone (EDateTimeList *date_time_list,
 	if (zone)
 		date_time_list->priv->zone = g_object_ref ((ICalTimezone *) zone);
 
-	g_object_notify (G_OBJECT (date_time_list), "timezone");
+	g_object_notify_by_pspec (G_OBJECT (date_time_list), properties[PROP_TIMEZONE]);
 }
 
 void

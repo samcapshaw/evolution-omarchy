@@ -1,18 +1,5 @@
 /*
- * e-stock-request.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -35,8 +22,11 @@ struct _EStockRequestPrivate {
 
 enum {
 	PROP_0,
-	PROP_SCALE_FACTOR
+	PROP_SCALE_FACTOR,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static void e_stock_request_content_request_init (EContentRequestInterface *iface);
 
@@ -402,16 +392,14 @@ e_stock_request_class_init (EStockRequestClass *class)
 	object_class->set_property = e_stock_request_set_property;
 	object_class->get_property = e_stock_request_get_property;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SCALE_FACTOR,
+	properties[PROP_SCALE_FACTOR] =
 		g_param_spec_int (
-			"scale-factor",
-			"Scale Factor",
-			NULL,
+			"scale-factor", NULL, NULL,
 			G_MININT, G_MAXINT, 0,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -446,5 +434,5 @@ e_stock_request_set_scale_factor (EStockRequest *stock_request,
 
 	stock_request->priv->scale_factor = scale_factor;
 
-	g_object_notify (G_OBJECT (stock_request), "scale-factor");
+	g_object_notify_by_pspec (G_OBJECT (stock_request), properties[PROP_SCALE_FACTOR]);
 }

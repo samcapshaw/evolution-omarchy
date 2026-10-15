@@ -1,18 +1,5 @@
 /*
- * e-mail-config-confirm-page.h
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -29,8 +16,11 @@ struct _EMailConfigConfirmPagePrivate {
 
 enum {
 	PROP_0,
-	PROP_TEXT
+	PROP_TEXT,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Forward Declarations */
 static void	e_mail_config_confirm_page_interface_init
@@ -130,20 +120,23 @@ e_mail_config_confirm_page_class_init (EMailConfigConfirmPageClass *class)
 	object_class->finalize = mail_config_confirm_page_finalize;
 	object_class->constructed = mail_config_confirm_page_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TEXT,
+	/**
+	 * EMailConfigConfirmPage:text
+	 *
+	 * Confirmation message
+	 **/
+	properties[PROP_TEXT] =
 		g_param_spec_string (
-			"text",
-			"Text",
-			"Confirmation message",
+			"text", NULL, NULL,
 			_("Congratulations, your mail configuration is "
 			"complete.\n\nYou are now ready to send and "
 			"receive email using Evolution.\n\nClick "
 			"“Apply” to save your settings."),
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -186,6 +179,6 @@ e_mail_config_confirm_page_set_text (EMailConfigConfirmPage *page,
 	g_free (page->priv->text);
 	page->priv->text = g_strdup ((text != NULL) ? text : "");
 
-	g_object_notify (G_OBJECT (page), "text");
+	g_object_notify_by_pspec (G_OBJECT (page), properties[PROP_TEXT]);
 }
 

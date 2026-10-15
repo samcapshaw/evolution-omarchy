@@ -1,18 +1,5 @@
 /*
- * evolution-bogofilter.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -53,8 +40,11 @@ struct _EBogofilterClass {
 enum {
 	PROP_0,
 	PROP_CONVERT_TO_UNICODE,
-	PROP_COMMAND
+	PROP_COMMAND,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Module Entry Points */
 void e_module_load (GTypeModule *type_module);
@@ -142,7 +132,8 @@ bogofilter_command (const gchar **argv,
 		(gchar **) argv,
 		NULL,
 		G_SPAWN_DO_NOT_REAP_CHILD |
-		G_SPAWN_STDOUT_TO_DEV_NULL,
+		G_SPAWN_STDOUT_TO_DEV_NULL |
+		G_SPAWN_CLOEXEC_PIPES,
 		NULL, NULL,
 		&child_pid,
 		&standard_input,
@@ -271,7 +262,7 @@ bogofilter_set_convert_to_unicode (EBogofilter *extension,
 
 	extension->convert_to_unicode = convert_to_unicode;
 
-	g_object_notify (G_OBJECT (extension), "convert-to-unicode");
+	g_object_notify_by_pspec (G_OBJECT (extension), properties[PROP_CONVERT_TO_UNICODE]);
 }
 
 static const gchar *
@@ -290,7 +281,7 @@ bogofilter_set_command (EBogofilter *extension,
 	g_free (extension->command);
 	extension->command = g_strdup (command);
 
-	g_object_notify (G_OBJECT (extension), "command");
+	g_object_notify_by_pspec (G_OBJECT (extension), properties[PROP_COMMAND]);
 }
 
 static void
@@ -538,25 +529,29 @@ e_bogofilter_class_init (EBogofilterClass *class)
 	junk_filter_class->available = bogofilter_available;
 	junk_filter_class->new_config_widget = bogofilter_new_config_widget;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CONVERT_TO_UNICODE,
+	/**
+	 * EBogofilter:convert-to-unicode
+	 *
+	 * Convert message text to Unicode
+	 **/
+	properties[PROP_CONVERT_TO_UNICODE] =
 		g_param_spec_boolean (
-			"convert-to-unicode",
-			"Convert to Unicode",
-			"Convert message text to Unicode",
+			"convert-to-unicode", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_COMMAND,
+	/**
+	 * EBogofilter:command
+	 *
+	 * Full path command to use to run bogofilter
+	 **/
+	properties[PROP_COMMAND] =
 		g_param_spec_string (
-			"command",
-			"Full Path Command",
-			"Full path command to use to run bogofilter",
+			"command", NULL, NULL,
 			"",
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

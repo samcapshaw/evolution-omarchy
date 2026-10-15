@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Bolian Yin <bolian.yin@sun.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Bolian Yin <bolian.yin@sun.com>
  */
 
 #include "evolution-config.h"
@@ -128,7 +113,7 @@ ea_calendar_focus_watcher (GSignalInvocationHint *ihint,
 		GnomeCanvasItem *canvas_item;
 
 		canvas_item = GNOME_CANVAS_ITEM (object);
-		if (event->type == GDK_FOCUS_CHANGE) {
+		if (gdk_event_get_event_type (event) == GDK_FOCUS_CHANGE) {
 			ea_event =
 				ea_calendar_helpers_get_accessible_for (canvas_item);
 			if (!ea_event)
@@ -139,7 +124,7 @@ ea_calendar_focus_watcher (GSignalInvocationHint *ihint,
 	}
 	else if (E_IS_DAY_VIEW (object)) {
 		EDayView *day_view = E_DAY_VIEW (object);
-		if (event->type == GDK_FOCUS_CHANGE) {
+		if (gdk_event_get_event_type (event) == GDK_FOCUS_CHANGE) {
 			if (event->focus_change.in) {
 				/* give main item chance to emit focus */
 				gnome_canvas_item_grab_focus (day_view->main_canvas_item);
@@ -147,7 +132,7 @@ ea_calendar_focus_watcher (GSignalInvocationHint *ihint,
 		}
 	}
 	else if (E_IS_DAY_VIEW_MAIN_ITEM (object)) {
-		if (event->type == GDK_FOCUS_CHANGE) {
+		if (gdk_event_get_event_type (event) == GDK_FOCUS_CHANGE) {
 			/* we should emit focus on main item */
 			ea_event = atk_gobject_accessible_for_object (object);
 #ifdef ACC_DEBUG
@@ -157,7 +142,7 @@ ea_calendar_focus_watcher (GSignalInvocationHint *ihint,
 		}
 	} else if (E_IS_WEEK_VIEW (object)) {
 		EWeekView *week_view = E_WEEK_VIEW (object);
-		if (event->type == GDK_FOCUS_CHANGE) {
+		if (gdk_event_get_event_type (event) == GDK_FOCUS_CHANGE) {
 			if (event->focus_change.in) {
 				/* give main item chance to emit focus */
 				gnome_canvas_item_grab_focus (week_view->main_canvas_item);
@@ -165,7 +150,7 @@ ea_calendar_focus_watcher (GSignalInvocationHint *ihint,
 		}
 	}
 	else if (E_IS_WEEK_VIEW_MAIN_ITEM (object)) {
-		if (event->type == GDK_FOCUS_CHANGE) {
+		if (gdk_event_get_event_type (event) == GDK_FOCUS_CHANGE) {
 			/* we should emit focus on main item */
 			ea_event = atk_gobject_accessible_for_object (object);
 			atk_object_notify_state_change (ea_event, ATK_STATE_FOCUSED, event->focus_change.in);

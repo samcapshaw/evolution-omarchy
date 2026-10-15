@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -49,8 +34,11 @@ enum {
 
 enum {
 	PROP_0,
-	PROP_IS_EDITING
+	PROP_IS_EDITING,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static guint etg_signals[LAST_SIGNAL] = { 0, };
 
@@ -618,7 +606,7 @@ etg_event (GnomeCanvasItem *item,
 	ETableGroup *table_group = E_TABLE_GROUP (item);
 	gboolean return_val = TRUE;
 
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 
 	case GDK_FOCUS_CHANGE:
 		table_group->has_focus = event->focus_change.in;
@@ -675,15 +663,18 @@ e_table_group_class_init (ETableGroupClass *class)
 	class->get_mouse_over = NULL;
 	class->get_cell_geometry = NULL;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_IS_EDITING,
+	/**
+	 * ETableGroup:is-editing
+	 *
+	 * Whether is in an editing mode
+	 **/
+	properties[PROP_IS_EDITING] =
 		g_param_spec_boolean (
-			"is-editing",
-			"Whether is in an editing mode",
-			"Whether is in an editing mode",
+			"is-editing", NULL, NULL,
 			FALSE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	etg_signals[CURSOR_CHANGE] = g_signal_new (
 		"cursor_change",

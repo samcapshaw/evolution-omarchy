@@ -1,21 +1,6 @@
 /*
- * e-search-bar.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -53,8 +38,11 @@ enum {
 	PROP_CASE_SENSITIVE,
 	PROP_CAN_HIDE,
 	PROP_TEXT,
-	PROP_WEB_VIEW
+	PROP_WEB_VIEW,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	CHANGED,
@@ -106,7 +94,7 @@ webkit_find_controller_found_text_cb (WebKitFindController *find_controller,
 	gtk_widget_set_sensitive (search_bar->priv->next_button, TRUE);
 	gtk_widget_set_sensitive (search_bar->priv->prev_button, TRUE);
 
-	g_object_notify (G_OBJECT (search_bar), "active-search");
+	g_object_notify_by_pspec (G_OBJECT (search_bar), properties[PROP_ACTIVE_SEARCH]);
 
 	options = webkit_find_controller_get_options (find_controller);
 
@@ -156,7 +144,7 @@ webkit_find_controller_failed_to_found_text_cb (WebKitFindController *find_contr
 	gtk_widget_set_sensitive (search_bar->priv->next_button, FALSE);
 	gtk_widget_set_sensitive (search_bar->priv->prev_button, FALSE);
 
-	g_object_notify (G_OBJECT (search_bar), "active-search");
+	g_object_notify_by_pspec (G_OBJECT (search_bar), properties[PROP_ACTIVE_SEARCH]);
 
 	/* Update wrapped label visibility. */
 	widget = search_bar->priv->wrapped_next_box;
@@ -220,7 +208,7 @@ search_bar_changed_cb (ESearchBar *search_bar)
 	gtk_widget_set_sensitive (search_bar->priv->next_button, TRUE);
 	gtk_widget_set_sensitive (search_bar->priv->prev_button, TRUE);
 
-	g_object_notify (G_OBJECT (search_bar), "text");
+	g_object_notify_by_pspec (G_OBJECT (search_bar), properties[PROP_TEXT]);
 }
 
 static void
@@ -252,8 +240,8 @@ search_bar_toggled_cb (ESearchBar *search_bar)
 	g_free (search_bar->priv->active_search);
 	search_bar->priv->active_search = NULL;
 
-	g_object_notify (G_OBJECT (search_bar), "active-search");
-	g_object_notify (G_OBJECT (search_bar), "case-sensitive");
+	g_object_notify_by_pspec (G_OBJECT (search_bar), properties[PROP_ACTIVE_SEARCH]);
+	g_object_notify_by_pspec (G_OBJECT (search_bar), properties[PROP_CASE_SENSITIVE]);
 }
 
 static void
@@ -492,7 +480,7 @@ search_bar_clear (ESearchBar *search_bar)
 
 	search_bar_update_highlights (search_bar);
 
-	g_object_notify (G_OBJECT (search_bar), "active-search");
+	g_object_notify_by_pspec (G_OBJECT (search_bar), properties[PROP_ACTIVE_SEARCH]);
 }
 
 static void
@@ -515,56 +503,38 @@ e_search_bar_class_init (ESearchBarClass *class)
 
 	class->clear = search_bar_clear;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ACTIVE_SEARCH,
+	properties[PROP_ACTIVE_SEARCH] =
 		g_param_spec_boolean (
-			"active-search",
-			"Active Search",
-			NULL,
+			"active-search", NULL, NULL,
 			FALSE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CAN_HIDE,
+	properties[PROP_CAN_HIDE] =
 		g_param_spec_boolean (
-			"can-hide",
-			"Can Hide",
-			NULL,
+			"can-hide", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CASE_SENSITIVE,
+	properties[PROP_CASE_SENSITIVE] =
 		g_param_spec_boolean (
-			"case-sensitive",
-			"Case Sensitive",
-			NULL,
+			"case-sensitive", NULL, NULL,
 			FALSE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TEXT,
+	properties[PROP_TEXT] =
 		g_param_spec_string (
-			"text",
-			"Search Text",
+			"text", NULL, NULL,
 			NULL,
-			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_WEB_VIEW,
+	properties[PROP_WEB_VIEW] =
 		g_param_spec_object (
-			"web-view",
-			"Web View",
-			NULL,
+			"web-view", NULL, NULL,
 			E_TYPE_WEB_VIEW,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT_ONLY));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[CHANGED] = g_signal_new (
 		"changed",
@@ -811,7 +781,7 @@ e_search_bar_set_case_sensitive (ESearchBar *search_bar,
 
 	gtk_toggle_button_set_active (button, case_sensitive);
 
-	g_object_notify (G_OBJECT (search_bar), "case-sensitive");
+	g_object_notify_by_pspec (G_OBJECT (search_bar), properties[PROP_CASE_SENSITIVE]);
 }
 
 gchar *
@@ -868,7 +838,7 @@ e_search_bar_set_can_hide (ESearchBar *search_bar,
 	if (!can_hide)
 		gtk_widget_show (GTK_WIDGET (search_bar));
 
-	g_object_notify (G_OBJECT (search_bar), "can-hide");
+	g_object_notify_by_pspec (G_OBJECT (search_bar), properties[PROP_CAN_HIDE]);
 }
 
 void

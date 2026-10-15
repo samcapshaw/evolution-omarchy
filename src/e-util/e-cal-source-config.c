@@ -1,18 +1,5 @@
 /*
- * e-cal-source-config.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -30,8 +17,11 @@ struct _ECalSourceConfigPrivate {
 
 enum {
 	PROP_0,
-	PROP_SOURCE_TYPE
+	PROP_SOURCE_TYPE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (ECalSourceConfig, e_cal_source_config, E_TYPE_SOURCE_CONFIG)
 
@@ -361,18 +351,21 @@ e_cal_source_config_class_init (ECalSourceConfigClass *class)
 	source_config_class->init_candidate = cal_source_config_init_candidate;
 	source_config_class->commit_changes = cal_source_config_commit_changes;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SOURCE_TYPE,
+	/**
+	 * ECalSourceConfig:source-type
+	 *
+	 * The iCalendar object type
+	 **/
+	properties[PROP_SOURCE_TYPE] =
 		g_param_spec_enum (
-			"source-type",
-			"Source Type",
-			"The iCalendar object type",
+			"source-type", NULL, NULL,
 			E_TYPE_CAL_CLIENT_SOURCE_TYPE,
 			E_CAL_CLIENT_SOURCE_TYPE_EVENTS,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

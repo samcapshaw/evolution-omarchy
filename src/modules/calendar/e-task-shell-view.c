@@ -1,18 +1,7 @@
 /*
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- * Copyright (C) 2014 Red Hat, Inc. (www.redhat.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 2014 Red Hat, Inc. (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -30,8 +19,11 @@ G_DEFINE_DYNAMIC_TYPE_EXTENDED (ETaskShellView, e_task_shell_view, E_TYPE_CAL_BA
 
 enum {
 	PROP_0,
-	PROP_CONFIRM_PURGE
+	PROP_CONFIRM_PURGE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static void
 task_shell_view_execute_search (EShellView *shell_view)
@@ -566,15 +558,13 @@ e_task_shell_view_class_init (ETaskShellViewClass *class)
 	cal_base_shell_view_class = E_CAL_BASE_SHELL_VIEW_CLASS (class);
 	cal_base_shell_view_class->source_type = E_CAL_CLIENT_SOURCE_TYPE_TASKS;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CONFIRM_PURGE,
+	properties[PROP_CONFIRM_PURGE] =
 		g_param_spec_boolean (
-			"confirm-purge",
-			"Confirm Purge",
-			NULL,
+			"confirm-purge", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	/* Ensure the GalView types we need are registered. */
 	g_type_ensure (GAL_TYPE_VIEW_ETABLE);
@@ -621,5 +611,5 @@ e_task_shell_view_set_confirm_purge (ETaskShellView *task_shell_view,
 
 	task_shell_view->priv->confirm_purge = confirm_purge;
 
-	g_object_notify (G_OBJECT (task_shell_view), "confirm-purge");
+	g_object_notify_by_pspec (G_OBJECT (task_shell_view), properties[PROP_CONFIRM_PURGE]);
 }

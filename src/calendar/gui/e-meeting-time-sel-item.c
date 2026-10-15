@@ -1,25 +1,7 @@
 /*
- * EMeetingTimeSelectorItem - A GnomeCanvasItem which is used for both the main
- * display canvas and the top display (with the dates, times & All Attendees).
- * I didn't make these separate GnomeCanvasItems since they share a lot of
- * code.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *		Damon Chaplin <damon@gtk.org>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Damon Chaplin <damon@gtk.org>
  */
 
 #include "evolution-config.h"
@@ -87,8 +69,11 @@ static gboolean e_meeting_time_selector_item_calculate_busy_range (EMeetingTimeS
 
 enum {
 	PROP_0,
-	PROP_MEETING_TIME_SELECTOR
+	PROP_MEETING_TIME_SELECTOR,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE (EMeetingTimeSelectorItem, e_meeting_time_selector_item, GNOME_TYPE_CANVAS_ITEM)
 
@@ -108,14 +93,12 @@ e_meeting_time_selector_item_class_init (EMeetingTimeSelectorItemClass *class)
 	item_class->point = e_meeting_time_selector_item_point;
 	item_class->event = e_meeting_time_selector_item_event;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MEETING_TIME_SELECTOR,
+	properties[PROP_MEETING_TIME_SELECTOR] =
 		g_param_spec_pointer (
-			"meeting_time_selector",
-			NULL,
-			NULL,
-			G_PARAM_WRITABLE));
+			"meeting-time-selector", NULL, NULL,
+			G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -788,7 +771,7 @@ e_meeting_time_selector_item_event (GnomeCanvasItem *item,
 
 	mts_item = E_MEETING_TIME_SELECTOR_ITEM (item);
 
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 	case GDK_BUTTON_PRESS:
 		return e_meeting_time_selector_item_button_press (
 			mts_item,
@@ -821,11 +804,13 @@ e_meeting_time_selector_item_button_press (EMeetingTimeSelectorItem *mts_item,
 	EMeetingTime start_time, end_time;
 	EMeetingTimeSelectorPosition position;
 	GDate *start_date, *end_date;
+	gdouble dx = 0, dy = 0;
 	gint x, y;
 
 	mts = mts_item->mts;
-	x = (gint) event->button.x;
-	y = (gint) event->button.y;
+	gdk_event_get_coords (event, &dx, &dy);
+	x = (gint) dx;
+	y = (gint) dy;
 
 	/* Check if we are starting a drag of the vertical meeting time bars.*/
 	position = e_meeting_time_selector_item_get_drag_position (
@@ -949,7 +934,7 @@ e_meeting_time_selector_item_button_release (EMeetingTimeSelectorItem *mts_item,
 		e_meeting_time_selector_remove_timeout (mts);
 		gnome_canvas_item_ungrab (
 			GNOME_CANVAS_ITEM (mts_item),
-			event->button.time);
+			gdk_event_get_time (event));
 	}
 
 	return FALSE;
@@ -966,11 +951,13 @@ e_meeting_time_selector_item_motion_notify (EMeetingTimeSelectorItem *mts_item,
 	EMeetingTimeSelector *mts;
 	EMeetingTimeSelectorPosition position;
 	GdkCursor *cursor;
+	gdouble dx = 0, dy = 0;
 	gint x, y;
 
 	mts = mts_item->mts;
-	x = (gint) event->motion.x;
-	y = (gint) event->motion.y;
+	gdk_event_get_coords (event, &dx, &dy);
+	x = (gint) dx;
+	y = (gint) dy;
 
 	if (mts->dragging_position != E_MEETING_TIME_SELECTOR_POS_NONE) {
 		e_meeting_time_selector_drag_meeting_time (mts, x);

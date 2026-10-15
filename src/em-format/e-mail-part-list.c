@@ -1,18 +1,5 @@
 /*
- * e-mail-part-list.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -35,8 +22,11 @@ enum {
 	PROP_0,
 	PROP_FOLDER,
 	PROP_MESSAGE,
-	PROP_MESSAGE_UID
+	PROP_MESSAGE_UID,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EMailPartList, e_mail_part_list, G_TYPE_OBJECT)
 
@@ -212,41 +202,31 @@ e_mail_part_list_class_init (EMailPartListClass *class)
 	object_class->dispose = mail_part_list_dispose;
 	object_class->finalize = mail_part_list_finalize;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FOLDER,
+	properties[PROP_FOLDER] =
 		g_param_spec_object (
-			"folder",
-			"Folder",
-			NULL,
+			"folder", NULL, NULL,
 			CAMEL_TYPE_FOLDER,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MESSAGE,
+	properties[PROP_MESSAGE] =
 		g_param_spec_object (
-			"message",
-			"Message",
-			NULL,
+			"message", NULL, NULL,
 			CAMEL_TYPE_MIME_MESSAGE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MESSAGE_UID,
+	properties[PROP_MESSAGE_UID] =
 		g_param_spec_string (
-			"message-uid",
-			"Message UID",
-			NULL,
+			"message-uid", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

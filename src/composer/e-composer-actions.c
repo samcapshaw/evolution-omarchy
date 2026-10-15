@@ -1,17 +1,6 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -332,6 +321,41 @@ composer_actions_toolbar_option_notify_active_cb (EUIAction *action,
 		e_ui_action_set_visible (action, TRUE);
 }
 
+static void
+eca_update_use_theme_colors_visibility (EMsgComposer *composer)
+{
+	EHTMLEditor *editor;
+	GSettings *settings;
+	EUIAction *action;
+	gboolean is_html;
+	gboolean inherit;
+
+	editor = e_msg_composer_get_editor (composer);
+	action = e_html_editor_get_action (editor, "view-use-theme-colors");
+	is_html = e_html_editor_get_mode (editor) == E_CONTENT_EDITOR_MODE_HTML;
+	settings = e_util_ref_settings ("org.gnome.evolution.mail");
+	inherit = g_settings_get_boolean (settings, "composer-inherit-theme-colors");
+	g_object_unref (settings);
+
+	e_ui_action_set_visible (action, is_html && !inherit);
+}
+
+static void
+eca_use_theme_colors_notify_mode_cb (EHTMLEditor *editor,
+				     GParamSpec *param,
+				     EMsgComposer *composer)
+{
+	eca_update_use_theme_colors_visibility (composer);
+}
+
+static void
+eca_use_theme_colors_settings_changed_cb (GSettings *settings,
+					  const gchar *key,
+					  EMsgComposer *composer)
+{
+	eca_update_use_theme_colors_visibility (composer);
+}
+
 static gboolean
 eca_transform_mode_html_to_boolean_cb (GBinding *binding,
 				       const GValue *source_value,
@@ -624,6 +648,13 @@ e_composer_actions_init (EMsgComposer *composer)
 		  N_("Visually _Wrap Long Lines"),
 		  NULL,
 		  N_("Whether to visually wrap long lines of text to avoid horizontal scrolling"),
+		  NULL, NULL, "false", (EUIActionFunc) e_ui_action_set_state },
+
+		{ "view-use-theme-colors",
+		  NULL,
+		  N_("Use _Theme Colors"),
+		  NULL,
+		  N_("Use theme colors in the editor without including them in the sent message"),
 		  NULL, NULL, "false", (EUIActionFunc) e_ui_action_set_state }
 	};
 
@@ -696,6 +727,16 @@ e_composer_actions_init (EMsgComposer *composer)
 		action, "active",
 		G_SETTINGS_BIND_DEFAULT);
 
+	action = e_html_editor_get_action (editor, "view-use-theme-colors");
+	g_settings_bind (
+		settings, "composer-use-theme-colors",
+		action, "active",
+		G_SETTINGS_BIND_DEFAULT);
+
+	g_signal_connect_object (
+		settings, "changed::composer-inherit-theme-colors",
+		G_CALLBACK (eca_use_theme_colors_settings_changed_cb), composer, 0);
+
 	g_object_unref (settings);
 
 	e_binding_bind_property_full (
@@ -741,6 +782,12 @@ e_composer_actions_init (EMsgComposer *composer)
 		G_BINDING_SYNC_CREATE,
 		eca_mode_to_bool_hide_in_markdown_cb,
 		NULL, NULL, NULL);
+
+	g_signal_connect (
+		editor, "notify::mode",
+		G_CALLBACK (eca_use_theme_colors_notify_mode_cb), composer);
+
+	eca_update_use_theme_colors_visibility (composer);
 
 #if defined (ENABLE_SMIME)
 	visible = TRUE;

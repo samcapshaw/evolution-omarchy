@@ -1,21 +1,6 @@
 /*
- * e-mail-display.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -111,8 +96,11 @@ enum {
 	PROP_MODE,
 	PROP_PART_LIST,
 	PROP_REMOTE_CONTENT,
-	PROP_MAIL_READER
+	PROP_MAIL_READER,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	REMOTE_CONTENT_CLICKED,
@@ -324,8 +312,18 @@ mail_display_update_formatter_colors (EMailDisplay *display)
 	formatter = display->priv->formatter;
 	state_flags = gtk_widget_get_state_flags (GTK_WIDGET (display));
 
-	if (formatter != NULL)
+	if (formatter != NULL) {
+		GdkRGBA error_color = { 1.0, 0.0, 0.0, 1.0 };
+
 		e_mail_formatter_update_style (formatter, state_flags);
+
+		if (e_util_is_dark_theme (GTK_WIDGET (display))) {
+			error_color.green = 0.4;
+			error_color.blue = 0.4;
+		}
+
+		e_mail_formatter_set_color (formatter, E_MAIL_FORMATTER_COLOR_ERROR, &error_color);
+	}
 }
 
 static gboolean
@@ -427,7 +425,7 @@ add_color_css_rule_for_web_view (EWebView *web_view,
 
 	selector = g_strconcat (".-e-mail-formatter-", color_name, NULL);
 
-	if (g_strstr_len (color_name, -1, "header")) {
+	if (g_strstr_len (color_name, -1, "header") || g_strstr_len (color_name, -1, "error")) {
 		style = g_strconcat (
 			"color: ", color_value, " !important;", NULL);
 	} else if (g_strstr_len (color_name, -1, "frame")) {
@@ -464,6 +462,7 @@ initialize_web_view_colors (EMailDisplay *display,
 		"citation-color",
 		"frame-color",
 		"header-color",
+		"error-color",
 		NULL
 	};
 
@@ -1356,6 +1355,7 @@ mail_display_load_changed_cb (WebKitWebView *wk_web_view,
 		e_attachment_bar_clear_possible_attachments (E_ATTACHMENT_BAR (display->priv->attachment_view));
 		g_hash_table_remove_all (display->priv->cid_attachments);
 		display->priv->loaded = FALSE;
+		e_mail_formatter_reset_page_token (display->priv->formatter);
 	} else if (load_event == WEBKIT_LOAD_FINISHED) {
 		display->priv->loaded = TRUE;
 		mail_display_update_remote_content_buttons (display);
@@ -1370,6 +1370,7 @@ mail_display_content_loaded_cb (EWebView *web_view,
 	EMailDisplay *mail_display;
 	GList *attachments, *link;
 	gchar *citation_color = NULL;
+	const gchar *page_token;
 
 	g_return_if_fail (E_IS_MAIL_DISPLAY (web_view));
 
@@ -1424,9 +1425,12 @@ mail_display_content_loaded_cb (EWebView *web_view,
 		}
 	}
 
-	e_web_view_jsc_run_script (WEBKIT_WEB_VIEW (web_view), e_web_view_get_cancellable (web_view),
-		"Evo.MailDisplayBindDOM(%s, %s);", iframe_id, citation_color);
+	page_token = e_mail_formatter_dup_page_token (mail_display->priv->formatter);
 
+	e_web_view_jsc_run_script (WEBKIT_WEB_VIEW (web_view), e_web_view_get_cancellable (web_view),
+		"Evo.MailDisplayBindDOM(%s, %s, %s);", iframe_id, citation_color, page_token);
+
+	g_clear_pointer (&page_token, camel_pstring_free);
 	g_free (citation_color);
 
 	if (mail_display->priv->part_list) {
@@ -2920,105 +2924,73 @@ e_mail_display_class_init (EMailDisplayClass *class)
 	web_view_class->set_fonts = mail_display_set_fonts;
 	web_view_class->before_popup_event = mail_display_before_popup_event;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ATTACHMENT_STORE,
+	properties[PROP_ATTACHMENT_STORE] =
 		g_param_spec_object (
-			"attachment-store",
-			"Attachment Store",
-			NULL,
+			"attachment-store", NULL, NULL,
 			E_TYPE_ATTACHMENT_STORE,
 			G_PARAM_READABLE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ATTACHMENT_VIEW,
+	properties[PROP_ATTACHMENT_VIEW] =
 		g_param_spec_object (
-			"attachment-view",
-			"Attachment View",
-			NULL,
+			"attachment-view", NULL, NULL,
 			E_TYPE_ATTACHMENT_VIEW,
 			G_PARAM_READABLE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FORMATTER,
+	properties[PROP_FORMATTER] =
 		g_param_spec_object (
-			"formatter",
-			"Mail Formatter",
-			NULL,
+			"formatter", NULL, NULL,
 			E_TYPE_MAIL_FORMATTER,
 			G_PARAM_READABLE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HEADERS_COLLAPSABLE,
+	properties[PROP_HEADERS_COLLAPSABLE] =
 		g_param_spec_boolean (
-			"headers-collapsable",
-			"Headers Collapsable",
-			NULL,
+			"headers-collapsable", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HEADERS_COLLAPSED,
+	properties[PROP_HEADERS_COLLAPSED] =
 		g_param_spec_boolean (
-			"headers-collapsed",
-			"Headers Collapsed",
-			NULL,
+			"headers-collapsed", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MODE,
+	properties[PROP_MODE] =
 		g_param_spec_enum (
-			"mode",
-			"Mode",
-			NULL,
+			"mode", NULL, NULL,
 			E_TYPE_MAIL_FORMATTER_MODE,
 			E_MAIL_FORMATTER_MODE_NORMAL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PART_LIST,
+	properties[PROP_PART_LIST] =
 		g_param_spec_pointer (
 			"part-list",
 			"Part List",
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_REMOTE_CONTENT,
+	properties[PROP_REMOTE_CONTENT] =
 		g_param_spec_object (
-			"remote-content",
-			"Mail Remote Content",
-			NULL,
+			"remote-content", NULL, NULL,
 			E_TYPE_MAIL_REMOTE_CONTENT,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MAIL_READER,
+	properties[PROP_MAIL_READER] =
 		g_param_spec_object (
-			"mail-reader",
-			"a mail reader this instance is part of",
-			NULL,
+			"mail-reader", NULL, NULL,
 			E_TYPE_MAIL_READER,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[REMOTE_CONTENT_CLICKED] = g_signal_new (
 		"remote-content-clicked",
@@ -3326,6 +3298,10 @@ e_mail_display_set_mode (EMailDisplay *display,
 		formatter, "notify::header-color",
 		G_CALLBACK (e_mail_display_update_colors), display, G_CONNECT_SWAPPED);
 
+	e_signal_connect_notify_object (
+		formatter, "notify::error-color",
+		G_CALLBACK (e_mail_display_update_colors), display, G_CONNECT_SWAPPED);
+
 	g_object_connect (formatter,
 		"swapped-object-signal::need-redraw",
 			G_CALLBACK (e_mail_display_reload), display,
@@ -3335,7 +3311,7 @@ e_mail_display_set_mode (EMailDisplay *display,
 
 	e_mail_display_reload (display);
 
-	g_object_notify (G_OBJECT (display), "mode");
+	g_object_notify_by_pspec (G_OBJECT (display), properties[PROP_MODE]);
 }
 
 EMailFormatter *
@@ -3423,7 +3399,7 @@ e_mail_display_set_part_list (EMailDisplay *display,
 	display->priv->skip_insecure_parts = !g_settings_get_boolean (settings, "show-insecure-parts");
 	g_object_unref (settings);
 
-	g_object_notify (G_OBJECT (display), "part-list");
+	g_object_notify_by_pspec (G_OBJECT (display), properties[PROP_PART_LIST]);
 }
 
 gboolean
@@ -3446,7 +3422,7 @@ e_mail_display_set_headers_collapsable (EMailDisplay *display,
 	display->priv->headers_collapsable = collapsable;
 	e_mail_display_reload (display);
 
-	g_object_notify (G_OBJECT (display), "headers-collapsable");
+	g_object_notify_by_pspec (G_OBJECT (display), properties[PROP_HEADERS_COLLAPSABLE]);
 }
 
 gboolean
@@ -3471,7 +3447,7 @@ e_mail_display_set_headers_collapsed (EMailDisplay *display,
 
 	display->priv->headers_collapsed = collapsed;
 
-	g_object_notify (G_OBJECT (display), "headers-collapsed");
+	g_object_notify_by_pspec (G_OBJECT (display), properties[PROP_HEADERS_COLLAPSED]);
 }
 
 void

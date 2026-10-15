@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -39,8 +24,11 @@ static gint etsm_get_row_count (ESelectionModelArray *esm);
 enum {
 	PROP_0,
 	PROP_MODEL,
-	PROP_HEADER
+	PROP_HEADER,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static void
 save_to_hash (gint model_row,
@@ -76,7 +64,7 @@ model_pre_change (ETableModel *etm,
 
 		g_object_get (
 			etsm,
-			"cursor_row", &cursor_row,
+			"cursor-row", &cursor_row,
 			NULL);
 		g_free (etsm->cursor_id);
 		if (cursor_row != -1)
@@ -333,25 +321,19 @@ e_table_selection_model_class_init (ETableSelectionModelClass *class)
 
 	esma_class->get_row_count = etsm_get_row_count;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MODEL,
+	properties[PROP_MODEL] =
 		g_param_spec_object (
-			"model",
-			"Model",
-			NULL,
+			"model", NULL, NULL,
 			E_TYPE_TABLE_MODEL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HEADER,
+	properties[PROP_HEADER] =
 		g_param_spec_object (
-			"header",
-			"Header",
-			NULL,
+			"header", NULL, NULL,
 			E_TYPE_TABLE_HEADER,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 /**

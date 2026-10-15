@@ -1,18 +1,5 @@
 /*
- * e-web-view.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -109,7 +96,6 @@ struct _AsyncContext {
 enum {
 	PROP_0,
 	PROP_CARET_MODE,
-	PROP_COPY_TARGET_LIST,
 	PROP_CURSOR_IMAGE_SRC,
 	PROP_DISABLE_PRINTING,
 	PROP_DISABLE_SAVE_TO_DISK,
@@ -117,11 +103,15 @@ enum {
 	PROP_NEED_INPUT,
 	PROP_MINIMUM_FONT_SIZE,
 	PROP_OPEN_PROXY,
-	PROP_PASTE_TARGET_LIST,
 	PROP_PRINT_PROXY,
 	PROP_SAVE_AS_PROXY,
-	PROP_SELECTED_URI
+	PROP_SELECTED_URI,
+	N_PROPS,
+	PROP_COPY_TARGET_LIST,
+	PROP_PASTE_TARGET_LIST
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	NEW_ACTIVITY,
@@ -294,21 +284,28 @@ static void
 webview_mailto_copy (EWebView *web_view,
 		     gboolean only_email_address)
 {
-	CamelURL *curl;
 	CamelInternetAddress *inet_addr;
 	GtkClipboard *clipboard;
 	const gchar *uri, *name = NULL, *email = NULL;
-	gchar *text;
+	gchar *text, *path = NULL;
 
 	uri = e_web_view_get_selected_uri (web_view);
 	g_return_if_fail (uri != NULL);
 
 	/* This should work because we checked it in update_actions(). */
-	curl = camel_url_new (uri, NULL);
-	g_return_if_fail (curl != NULL);
+	g_uri_split (uri, G_URI_FLAGS_NONE, NULL, NULL, NULL,
+		     NULL, &path, NULL, NULL, NULL);
 
 	inet_addr = camel_internet_address_new ();
-	camel_address_decode (CAMEL_ADDRESS (inet_addr), curl->path);
+	if (path != NULL && *path) {
+		gchar *decoded_path = g_uri_unescape_string (path, NULL);
+		if (decoded_path) {
+			camel_address_decode (CAMEL_ADDRESS (inet_addr), decoded_path);
+			g_free (decoded_path);
+		}
+	}
+	g_clear_pointer (&path, g_free);
+
 	if (only_email_address &&
 	    camel_internet_address_get (inet_addr, 0, &name, &email) &&
 	    email && *email) {
@@ -320,7 +317,6 @@ webview_mailto_copy (EWebView *web_view,
 	}
 
 	g_object_unref (inet_addr);
-	camel_url_free (curl);
 
 	clipboard = gtk_clipboard_get (GDK_SELECTION_PRIMARY);
 	gtk_clipboard_set_text (clipboard, text, -1);
@@ -560,7 +556,7 @@ web_view_context_menu_cb (WebKitWebView *webkit_web_view,
 	WebKitHitTestResultContext context;
 	EWebView *web_view;
 	gchar *link_uri = NULL;
-	gdouble xx, yy;
+	gdouble xx = 0, yy = 0;
 
 	web_view = E_WEB_VIEW (webkit_web_view);
 
@@ -837,7 +833,7 @@ e_web_view_set_has_selection (EWebView *web_view,
 
 	web_view->priv->has_selection = has_selection;
 
-	g_object_notify (G_OBJECT (web_view), "has-selection");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_HAS_SELECTION]);
 }
 
 static void
@@ -868,13 +864,13 @@ web_view_load_changed_cb (WebKitWebView *webkit_web_view,
 
 static GObjectConstructParam*
 find_property (guint n_properties,
-               GObjectConstructParam* properties,
+               GObjectConstructParam* props,
                GParamSpec* param_spec)
 {
 	while (n_properties--) {
-		if (properties->pspec == param_spec)
-			return properties;
-		properties++;
+		if (props->pspec == param_spec)
+			return props;
+		props++;
 	}
 
 	return NULL;
@@ -1006,13 +1002,41 @@ web_view_web_context_gone (gpointer user_data,
 }
 
 static void
-web_view_ensure_scheme_known (WebKitWebContext *web_context,
-			      const gchar *scheme)
+web_view_update_cors_allow_list (WebKitWebView *web_view)
 {
+	GPtrArray *allow_list;
 	GSList *link;
 
-	g_return_if_fail (WEBKIT_IS_WEB_CONTEXT (web_context));
+	allow_list = g_ptr_array_new_full (g_slist_length (known_schemes), g_free);
+
+	for (link = known_schemes; link; link = g_slist_next (link)) {
+		const gchar *scheme_str = link->data;
+
+		if (scheme_str && *scheme_str) {
+			/* construct pattern like "cid://_/_" (where '_' is '*', but in the comment
+			   it cannot be used verbatim), which is what the WebKitGTK expects */
+			g_ptr_array_add (allow_list, g_strconcat (scheme_str, "://*/*", NULL));
+		}
+	}
+
+	g_ptr_array_add (allow_list, NULL);
+
+	webkit_web_view_set_cors_allowlist (web_view, (const gchar * const *) allow_list->pdata);
+
+	g_ptr_array_unref (allow_list);
+}
+
+static void
+web_view_ensure_scheme_known (WebKitWebView *web_view,
+			      const gchar *scheme)
+{
+	WebKitWebContext *web_context;
+	GSList *link;
+
+	g_return_if_fail (WEBKIT_IS_WEB_VIEW (web_view));
 	g_return_if_fail (scheme != NULL);
+
+	web_context = webkit_web_view_get_context (web_view);
 
 	for (link = known_schemes; link; link = g_slist_next (link)) {
 		if (g_strcmp0 (scheme, link->data) == 0)
@@ -1023,6 +1047,8 @@ web_view_ensure_scheme_known (WebKitWebContext *web_context,
 		known_schemes = g_slist_prepend (known_schemes, g_strdup (scheme));
 
 		webkit_web_context_register_uri_scheme (web_context, scheme, web_view_process_uri_request_cb, NULL, NULL);
+
+		web_view_update_cors_allow_list (web_view);
 	}
 }
 
@@ -1346,7 +1372,7 @@ e_web_view_register_content_request_for_scheme (EWebView *web_view,
 
 	g_hash_table_insert (web_view->priv->scheme_handlers, g_strdup (scheme), g_object_ref (content_request));
 
-	web_view_ensure_scheme_known (webkit_web_view_get_context (WEBKIT_WEB_VIEW (web_view)), scheme);
+	web_view_ensure_scheme_known (WEBKIT_WEB_VIEW (web_view), scheme);
 }
 
 static void
@@ -1525,7 +1551,7 @@ e_web_view_set_need_input (EWebView *web_view,
 
 	web_view->priv->need_input = need_input;
 
-	g_object_notify (G_OBJECT (web_view), "need-input");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_NEED_INPUT]);
 }
 
 static void
@@ -1868,6 +1894,8 @@ web_view_constructed (GObject *object)
 		G_CALLBACK (e_web_view_spell_settings_changed_cb), web_view, 0);
 	e_web_view_update_spell_checking (web_view, settings);
 	g_clear_object (&settings);
+
+	web_view_update_cors_allow_list (WEBKIT_WEB_VIEW (web_view));
 }
 
 static void
@@ -1889,7 +1917,11 @@ static gboolean
 web_view_scroll_event (GtkWidget *widget,
                        GdkEventScroll *event)
 {
-	if (event->state & GDK_CONTROL_MASK) {
+	GdkModifierType state = 0;
+
+	gdk_event_get_state ((GdkEvent *) event, &state);
+
+	if (state & GDK_CONTROL_MASK) {
 		GdkScrollDirection direction = event->direction;
 
 		if (direction == GDK_SCROLL_SMOOTH) {
@@ -2113,11 +2145,7 @@ web_view_update_actions (EWebView *web_view)
 
 	/* Parse the URI early so we know if the actions will work. */
 	if (uri != NULL) {
-		CamelURL *curl;
-
-		curl = camel_url_new (uri, NULL);
-		uri_is_valid = (curl != NULL);
-		camel_url_free (curl);
+		uri_is_valid = g_uri_is_valid (uri, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL);
 
 		scheme_is_http =
 			(g_ascii_strncasecmp (uri, "http:", 5) == 0) ||
@@ -2141,15 +2169,20 @@ web_view_update_actions (EWebView *web_view)
 	e_ui_action_group_set_visible (action_group, visible);
 
 	if (visible) {
-		CamelURL *curl;
+		gchar *path = NULL;
 
-		curl = camel_url_new (uri, NULL);
-		if (curl) {
+		if (g_uri_split (uri, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL, NULL, NULL,
+				 NULL, &path, NULL, NULL, NULL) && path != NULL) {
 			CamelInternetAddress *inet_addr;
 			const gchar *name = NULL, *email = NULL;
+			gchar *decoded_path;
 
 			inet_addr = camel_internet_address_new ();
-			camel_address_decode (CAMEL_ADDRESS (inet_addr), curl->path);
+			decoded_path = g_uri_unescape_string (path, NULL);
+			if (decoded_path) {
+				camel_address_decode (CAMEL_ADDRESS (inet_addr), decoded_path);
+				g_free (decoded_path);
+			}
 
 			action = e_ui_action_group_get_action (action_group, "mailto-copy-raw");
 			e_ui_action_set_visible (action,
@@ -2157,7 +2190,7 @@ web_view_update_actions (EWebView *web_view)
 				name && *name && email && *email);
 
 			g_object_unref (inet_addr);
-			camel_url_free (curl);
+			g_clear_pointer (&path, g_free);
 		}
 	}
 
@@ -2374,7 +2407,7 @@ web_view_toplevel_event_after_cb (GtkWidget *widget,
 				  GdkEvent *event,
 				  EWebView *web_view)
 {
-	if (event && event->type == GDK_MOTION_NOTIFY && web_view->priv->has_hover_link &&
+	if (event && gdk_event_get_event_type (event) == GDK_MOTION_NOTIFY && web_view->priv->has_hover_link &&
 	    gdk_event_get_window (event) != gtk_widget_get_window (GTK_WIDGET (web_view))) {
 		/* This won't reset WebKitGTK's cached link the cursor stays on, but do this,
 		   instead of sending a fake signal to the WebKitGTK. */
@@ -2442,15 +2475,11 @@ e_web_view_class_init (EWebViewClass *class)
 	class->stop_loading = web_view_stop_loading;
 	class->update_actions = web_view_update_actions;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CARET_MODE,
+	properties[PROP_CARET_MODE] =
 		g_param_spec_boolean (
-			"caret-mode",
-			"Caret Mode",
-			NULL,
+			"caret-mode", NULL, NULL,
 			FALSE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
 	/* Inherited from ESelectableInterface; just a fake property here */
 	g_object_class_override_property (
@@ -2464,107 +2493,69 @@ e_web_view_class_init (EWebViewClass *class)
 		PROP_PASTE_TARGET_LIST,
 		"paste-target-list");
 
-	g_object_class_install_property (
-		object_class,
-		PROP_CURSOR_IMAGE_SRC,
+	properties[PROP_CURSOR_IMAGE_SRC] =
 		g_param_spec_string (
-			"cursor-image-src",
-			"Image source uri at the mouse cursor",
+			"cursor-image-src", NULL, NULL,
 			NULL,
-			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DISABLE_PRINTING,
+	properties[PROP_DISABLE_PRINTING] =
 		g_param_spec_boolean (
-			"disable-printing",
-			"Disable Printing",
-			NULL,
+			"disable-printing", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DISABLE_SAVE_TO_DISK,
+	properties[PROP_DISABLE_SAVE_TO_DISK] =
 		g_param_spec_boolean (
-			"disable-save-to-disk",
-			"Disable Save-to-Disk",
-			NULL,
+			"disable-save-to-disk", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HAS_SELECTION,
+	properties[PROP_HAS_SELECTION] =
 		g_param_spec_boolean (
-			"has-selection",
-			"Has Selection",
-			NULL,
+			"has-selection", NULL, NULL,
 			FALSE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MINIMUM_FONT_SIZE,
+	properties[PROP_MINIMUM_FONT_SIZE] =
 		g_param_spec_int (
-			"minimum-font-size",
-			"Minimum Font Size",
-			NULL,
+			"minimum-font-size", NULL, NULL,
 			G_MININT, G_MAXINT, 0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_NEED_INPUT,
+	properties[PROP_NEED_INPUT] =
 		g_param_spec_boolean (
-			"need-input",
-			"Need Input",
-			NULL,
+			"need-input", NULL, NULL,
 			FALSE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_OPEN_PROXY,
+	properties[PROP_OPEN_PROXY] =
 		g_param_spec_object (
-			"open-proxy",
-			"Open Proxy",
-			NULL,
+			"open-proxy", NULL, NULL,
 			E_TYPE_UI_ACTION,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PRINT_PROXY,
+	properties[PROP_PRINT_PROXY] =
 		g_param_spec_object (
-			"print-proxy",
-			"Print Proxy",
-			NULL,
+			"print-proxy", NULL, NULL,
 			E_TYPE_UI_ACTION,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SAVE_AS_PROXY,
+	properties[PROP_SAVE_AS_PROXY] =
 		g_param_spec_object (
-			"save-as-proxy",
-			"Save As Proxy",
-			NULL,
+			"save-as-proxy", NULL, NULL,
 			E_TYPE_UI_ACTION,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SELECTED_URI,
+	properties[PROP_SELECTED_URI] =
 		g_param_spec_string (
-			"selected-uri",
-			"Selected URI",
+			"selected-uri", NULL, NULL,
 			NULL,
-			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[SET_FONTS] = g_signal_new (
 		"set-fonts",
@@ -2848,7 +2839,7 @@ e_web_view_set_caret_mode (EWebView *web_view,
 
 	web_view->priv->caret_mode = caret_mode;
 
-	g_object_notify (G_OBJECT (web_view), "caret-mode");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_CARET_MODE]);
 }
 
 GtkTargetList *
@@ -2881,7 +2872,7 @@ e_web_view_set_disable_printing (EWebView *web_view,
 
 	web_view->priv->disable_printing = disable_printing;
 
-	g_object_notify (G_OBJECT (web_view), "disable-printing");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_DISABLE_PRINTING]);
 }
 
 gboolean
@@ -2903,7 +2894,7 @@ e_web_view_set_disable_save_to_disk (EWebView *web_view,
 
 	web_view->priv->disable_save_to_disk = disable_save_to_disk;
 
-	g_object_notify (G_OBJECT (web_view), "disable-save-to-disk");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_DISABLE_SAVE_TO_DISK]);
 }
 
 gboolean
@@ -2951,7 +2942,7 @@ e_web_view_set_selected_uri (EWebView *web_view,
 	g_free (web_view->priv->selected_uri);
 	web_view->priv->selected_uri = g_strdup (selected_uri);
 
-	g_object_notify (G_OBJECT (web_view), "selected-uri");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_SELECTED_URI]);
 }
 
 const gchar *
@@ -2974,7 +2965,7 @@ e_web_view_set_cursor_image_src (EWebView *web_view,
 	g_free (web_view->priv->cursor_image_src);
 	web_view->priv->cursor_image_src = g_strdup (src_uri);
 
-	g_object_notify (G_OBJECT (web_view), "cursor-image-src");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_CURSOR_IMAGE_SRC]);
 }
 
 EUIAction *
@@ -3004,7 +2995,7 @@ e_web_view_set_open_proxy (EWebView *web_view,
 
 	web_view->priv->open_proxy = open_proxy;
 
-	g_object_notify (G_OBJECT (web_view), "open-proxy");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_OPEN_PROXY]);
 }
 
 GtkTargetList *
@@ -3045,7 +3036,7 @@ e_web_view_set_print_proxy (EWebView *web_view,
 
 	web_view->priv->print_proxy = print_proxy;
 
-	g_object_notify (G_OBJECT (web_view), "print-proxy");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_PRINT_PROXY]);
 }
 
 EUIAction *
@@ -3075,7 +3066,7 @@ e_web_view_set_save_as_proxy (EWebView *web_view,
 
 	web_view->priv->save_as_proxy = save_as_proxy;
 
-	g_object_notify (G_OBJECT (web_view), "save-as-proxy");
+	g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_SAVE_AS_PROXY]);
 }
 
 void
@@ -3749,7 +3740,7 @@ e_web_view_set_minimum_font_size (EWebView *web_view,
 		wk_settings = webkit_web_view_get_settings (WEBKIT_WEB_VIEW (web_view));
 		e_web_view_utils_apply_minimum_font_size (wk_settings);
 
-		g_object_notify (G_OBJECT (web_view), "minimum-font-size");
+		g_object_notify_by_pspec (G_OBJECT (web_view), properties[PROP_MINIMUM_FONT_SIZE]);
 	}
 }
 

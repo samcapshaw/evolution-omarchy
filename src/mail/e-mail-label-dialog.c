@@ -1,21 +1,6 @@
 /*
- * e-mail-label-dialog.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -33,8 +18,11 @@ struct _EMailLabelDialogPrivate {
 enum {
 	PROP_0,
 	PROP_LABEL_COLOR,
-	PROP_LABEL_NAME
+	PROP_LABEL_NAME,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EMailLabelDialog, e_mail_label_dialog, GTK_TYPE_DIALOG)
 
@@ -143,25 +131,19 @@ e_mail_label_dialog_class_init (EMailLabelDialogClass *class)
 	object_class->dispose = mail_label_dialog_dispose;
 	object_class->constructed = mail_label_dialog_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_LABEL_COLOR,
+	properties[PROP_LABEL_COLOR] =
 		g_param_spec_boxed (
-			"label-color",
-			"Label Color",
-			NULL,
+			"label-color", NULL, NULL,
 			GDK_TYPE_RGBA,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_LABEL_NAME,
+	properties[PROP_LABEL_NAME] =
 		g_param_spec_string (
-			"label-name",
-			"Label Name",
+			"label-name", NULL, NULL,
 			NULL,
-			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -256,7 +238,7 @@ e_mail_label_dialog_set_label_name (EMailLabelDialog *dialog,
 
 	gtk_entry_set_text (entry, label_name);
 
-	g_object_notify (G_OBJECT (dialog), "label-name");
+	g_object_notify_by_pspec (G_OBJECT (dialog), properties[PROP_LABEL_NAME]);
 }
 
 void
@@ -286,5 +268,5 @@ e_mail_label_dialog_set_label_color (EMailLabelDialog *dialog,
 
 	gtk_color_selection_set_current_rgba (colorsel, label_color);
 
-	g_object_notify (G_OBJECT (dialog), "label-color");
+	g_object_notify_by_pspec (G_OBJECT (dialog), properties[PROP_LABEL_COLOR]);
 }

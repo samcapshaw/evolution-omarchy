@@ -1,18 +1,5 @@
 /*
- * e-mail-config-auth-check.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -46,8 +33,11 @@ struct _AsyncContext {
 enum {
 	PROP_0,
 	PROP_ACTIVE_MECHANISM,
-	PROP_BACKEND
+	PROP_BACKEND,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EMailConfigAuthCheck, e_mail_config_auth_check, GTK_TYPE_BOX)
 
@@ -475,28 +465,32 @@ e_mail_config_auth_check_class_init (EMailConfigAuthCheckClass *class)
 	object_class->finalize = mail_config_auth_check_finalize;
 	object_class->constructed = mail_config_auth_check_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ACTIVE_MECHANISM,
+	/**
+	 * EMailConfigAuthCheck:active-mechanism
+	 *
+	 * Active authentication mechanism
+	 **/
+	properties[PROP_ACTIVE_MECHANISM] =
 		g_param_spec_string (
-			"active-mechanism",
-			"Active Mechanism",
-			"Active authentication mechanism",
+			"active-mechanism", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_BACKEND,
+	/**
+	 * EMailConfigAuthCheck:backend
+	 *
+	 * Mail configuration backend
+	 **/
+	properties[PROP_BACKEND] =
 		g_param_spec_object (
-			"backend",
-			"Backend",
-			"Mail configuration backend",
+			"backend", NULL, NULL,
 			E_TYPE_MAIL_CONFIG_SERVICE_BACKEND,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -553,5 +547,5 @@ e_mail_config_auth_check_set_active_mechanism (EMailConfigAuthCheck *auth_check,
 	   empty string as ID, will match in the combo */
 	auth_check->priv->active_mechanism = g_strdup (active_mechanism ? active_mechanism : "");
 
-	g_object_notify (G_OBJECT (auth_check), "active-mechanism");
+	g_object_notify_by_pspec (G_OBJECT (auth_check), properties[PROP_ACTIVE_MECHANISM]);
 }

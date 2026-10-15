@@ -1,21 +1,6 @@
 /*
- * e-html-editor-dialog.h
- *
- * Copyright (C) 2012 Dan Vrátil <dvratil@redhat.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) version 3.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with the program; if not, see <http://www.gnu.org/licenses/>
- *
+ * SPDX-FileCopyrightText: (C) 2012 Dan Vrátil <dvratil@redhat.com>
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -35,7 +20,10 @@ struct _EHTMLEditorDialogPrivate {
 enum {
 	PROP_0,
 	PROP_EDITOR,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (EHTMLEditorDialog, e_html_editor_dialog, GTK_TYPE_WINDOW)
 
@@ -45,7 +33,7 @@ html_editor_dialog_set_editor (EHTMLEditorDialog *dialog,
 {
 	dialog->priv->editor = g_object_ref (editor);
 
-	g_object_notify (G_OBJECT (dialog), "editor");
+	g_object_notify_by_pspec (G_OBJECT (dialog), properties[PROP_EDITOR]);
 }
 
 static void
@@ -134,15 +122,13 @@ e_html_editor_dialog_class_init (EHTMLEditorDialogClass *class)
 	widget_class = GTK_WIDGET_CLASS (class);
 	widget_class->show = html_editor_dialog_show;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_EDITOR,
+	properties[PROP_EDITOR] =
 		g_param_spec_object (
-			"editor",
-			NULL,
-			NULL,
+			"editor", NULL, NULL,
 			E_TYPE_HTML_EDITOR,
-			G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+			G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static gboolean

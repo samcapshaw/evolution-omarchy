@@ -1,18 +1,5 @@
 /*
- * e-mail-formatter-headers.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -498,18 +485,21 @@ format_full_headers (EMailFormatter *formatter,
 	/* Prefer contact photos over archaic "Face" headers. */
 	if (show_sender_photo && photo_name != NULL) {
 		gchar *escaped_name;
+		const gchar *page_token;
 
 		escaped_name = g_uri_escape_string (photo_name, NULL, FALSE);
+		page_token = e_mail_formatter_ensure_page_token (formatter);
 		g_string_append (
 			buffer,
 			"<td align=\"right\" valign=\"top\">");
 		g_string_append_printf (
 			buffer,
 			"<img src=\"mail://contact-photo?mailaddr=\" "
-			"data-mailaddr=\"%s\" id=\"__evo-contact-photo\"/>",
-			escaped_name);
+			"data-mailaddr=\"%s\" evo-token=\"%s\" id=\"__evo-contact-photo\"/>",
+			escaped_name, page_token);
 		g_string_append (buffer, "</td>");
 
+		g_clear_pointer (&page_token, camel_pstring_free);
 		g_free (escaped_name);
 
 	} else if (!is_rfc822_headers && face_header_value != NULL) {
@@ -623,7 +613,7 @@ emfe_headers_format (EMailFormatterExtension *extension,
 			"<tr>",
 			(context->mode != E_MAIL_FORMATTER_MODE_PRINTING) ?
 				"<div class=\"headers -e-mail-formatter-body-color\"" :
-				"<div class=\"headers\" style=\"background-color: #ffffff;\"",
+				"<div class=\"headers\" style=\"background-color: #f7f7f7;\"",
 			e_mail_part_get_id (part),
 			direction);
 	}

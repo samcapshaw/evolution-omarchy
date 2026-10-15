@@ -1,18 +1,5 @@
 /*
- * e-mail-signature-manager.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "e-mail-signature-manager.h"
@@ -48,8 +35,11 @@ struct _EMailSignatureManagerPrivate {
 enum {
 	PROP_0,
 	PROP_PREFER_MODE,
-	PROP_REGISTRY
+	PROP_REGISTRY,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	ADD_SIGNATURE,
@@ -578,30 +568,24 @@ e_mail_signature_manager_class_init (EMailSignatureManagerClass *class)
 	class->edit_signature = mail_signature_manager_edit_signature;
 	class->remove_signature = mail_signature_manager_remove_signature;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PREFER_MODE,
+	properties[PROP_PREFER_MODE] =
 		g_param_spec_enum (
-			"prefer-mode",
-			"Prefer editor mode",
-			NULL,
+			"prefer-mode", NULL, NULL,
 			E_TYPE_CONTENT_EDITOR_MODE,
 			E_CONTENT_EDITOR_MODE_HTML,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_REGISTRY,
+	properties[PROP_REGISTRY] =
 		g_param_spec_object (
-			"registry",
-			"Registry",
-			NULL,
+			"registry", NULL, NULL,
 			E_TYPE_SOURCE_REGISTRY,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[ADD_SIGNATURE] = g_signal_new (
 		"add-signature",
@@ -721,7 +705,7 @@ e_mail_signature_manager_set_prefer_mode (EMailSignatureManager *manager,
 
 	manager->priv->prefer_mode = prefer_mode;
 
-	g_object_notify (G_OBJECT (manager), "prefer-mode");
+	g_object_notify_by_pspec (G_OBJECT (manager), properties[PROP_PREFER_MODE]);
 }
 
 ESourceRegistry *

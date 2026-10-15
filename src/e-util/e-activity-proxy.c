@@ -1,21 +1,6 @@
 /*
- * e-activity-proxy.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -51,8 +36,11 @@ struct _EActivityProxyPrivate {
 
 enum {
 	PROP_0,
-	PROP_ACTIVITY
+	PROP_ACTIVITY,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EActivityProxy, e_activity_proxy, GTK_TYPE_FRAME)
 
@@ -324,16 +312,14 @@ e_activity_proxy_class_init (EActivityProxyClass *class)
 	object_class->get_property = activity_proxy_get_property;
 	object_class->dispose = activity_proxy_dispose;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ACTIVITY,
+	properties[PROP_ACTIVITY] =
 		g_param_spec_object (
-			"activity",
-			NULL,
-			NULL,
+			"activity", NULL, NULL,
 			E_TYPE_ACTIVITY,
 			G_PARAM_READWRITE |
-			G_PARAM_CONSTRUCT));
+			G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -344,7 +330,7 @@ e_activity_proxy_init (EActivityProxy *proxy)
 
 	proxy->priv = e_activity_proxy_get_instance_private (proxy);
 
-	gtk_frame_set_shadow_type (GTK_FRAME (proxy), GTK_SHADOW_IN);
+	gtk_frame_set_shadow_type (GTK_FRAME (proxy), GTK_SHADOW_NONE);
 
 	container = GTK_WIDGET (proxy);
 
@@ -449,5 +435,5 @@ e_activity_proxy_set_activity (EActivityProxy *proxy,
 
 	activity_proxy_update (proxy);
 
-	g_object_notify (G_OBJECT (proxy), "activity");
+	g_object_notify_by_pspec (G_OBJECT (proxy), properties[PROP_ACTIVITY]);
 }

@@ -1,18 +1,5 @@
 /*
- * e-mail-parser-text-html.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -60,13 +47,7 @@ empe_text_html_parse (EMailParserExtension *extension,
 	location = camel_mime_part_get_content_location (part);
 	if (location != NULL) {
 		if (strchr (location, ':') == NULL && base != NULL) {
-			CamelURL *uri;
-			CamelURL *base_url = camel_url_new (base, NULL);
-
-			uri = camel_url_new_with_base (base_url, location);
-			cid = camel_url_to_string (uri, 0);
-			camel_url_free (uri);
-			camel_url_free (base_url);
+			cid = g_uri_resolve_relative (base, location, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL);
 		} else {
 			cid = g_strdup (location);
 		}

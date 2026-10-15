@@ -1,24 +1,8 @@
 /*
- * e-mail-backend.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *   Jonathon Jongsma <jonathon.jongsma@collabora.co.uk>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- * Copyright (C) 2009 Intel Corporation
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 2009 Intel Corporation
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Jonathon Jongsma <jonathon.jongsma@collabora.co.uk>
  */
 
 #include "evolution-config.h"
@@ -47,6 +31,7 @@
 struct _EMailBackendPrivate {
 	EMailSession *session;
 	GHashTable *jobs;
+	EMailComposerModeOverride *composer_mode_override;
 	EMailSendAccountOverride *send_account_override;
 	EMailRemoteContent *remote_content;
 	EMailProperties *mail_properties;
@@ -57,8 +42,11 @@ enum {
 	PROP_SESSION,
 	PROP_SEND_ACCOUNT_OVERRIDE,
 	PROP_REMOTE_CONTENT,
-	PROP_MAIL_PROPERTIES
+	PROP_MAIL_PROPERTIES,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (EMailBackend, e_mail_backend, E_TYPE_SHELL_BACKEND)
 
@@ -1255,6 +1243,7 @@ mail_backend_finalize (GObject *object)
 	EMailBackend *self = E_MAIL_BACKEND (object);
 
 	g_hash_table_destroy (self->priv->jobs);
+	g_clear_object (&self->priv->composer_mode_override);
 	g_clear_object (&self->priv->send_account_override);
 	g_clear_object (&self->priv->remote_content);
 	g_clear_object (&self->priv->mail_properties);
@@ -1526,6 +1515,10 @@ mail_backend_constructed (GObject *object)
 	/* Chain up to parent's constructed() method. */
 	G_OBJECT_CLASS (e_mail_backend_parent_class)->constructed (object);
 
+	config_filename = g_build_filename (e_shell_backend_get_config_dir (shell_backend), "composer-mode-overrides.ini", NULL);
+	self->priv->composer_mode_override = e_mail_composer_mode_override_new (config_filename);
+	g_free (config_filename);
+
 	config_filename = g_build_filename (e_shell_backend_get_config_dir (shell_backend), "send-overrides.ini", NULL);
 	self->priv->send_account_override = e_mail_send_account_override_new (config_filename);
 	g_free (config_filename);
@@ -1556,45 +1549,31 @@ e_mail_backend_class_init (EMailBackendClass *class)
 	shell_backend_class->get_data_dir = mail_shell_backend_get_data_dir;
 	shell_backend_class->get_config_dir = mail_shell_backend_get_config_dir;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SESSION,
+	properties[PROP_SESSION] =
 		g_param_spec_object (
-			"session",
-			NULL,
-			NULL,
+			"session", NULL, NULL,
 			E_TYPE_MAIL_SESSION,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SEND_ACCOUNT_OVERRIDE,
+	properties[PROP_SEND_ACCOUNT_OVERRIDE] =
 		g_param_spec_object (
-			"send-account-override",
-			NULL,
-			NULL,
+			"send-account-override", NULL, NULL,
 			E_TYPE_MAIL_SEND_ACCOUNT_OVERRIDE,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_REMOTE_CONTENT,
+	properties[PROP_REMOTE_CONTENT] =
 		g_param_spec_object (
-			"remote-content",
-			NULL,
-			NULL,
+			"remote-content", NULL, NULL,
 			E_TYPE_MAIL_REMOTE_CONTENT,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_MAIL_PROPERTIES,
+	properties[PROP_MAIL_PROPERTIES] =
 		g_param_spec_object (
-			"mail-properties",
-			NULL,
-			NULL,
+			"mail-properties", NULL, NULL,
 			E_TYPE_MAIL_PROPERTIES,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -1688,6 +1667,14 @@ e_mail_backend_empty_trash_policy_decision (EMailBackend *backend)
 		return FALSE;
 
 	return class->empty_trash_policy_decision (backend);
+}
+
+EMailComposerModeOverride *
+e_mail_backend_get_composer_mode_override (EMailBackend *backend)
+{
+	g_return_val_if_fail (E_IS_MAIL_BACKEND (backend), NULL);
+
+	return backend->priv->composer_mode_override;
 }
 
 EMailSendAccountOverride *

@@ -1,24 +1,9 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Miguel de Icaza (miguel@ximian.com)
- *      Bertrand Guiheneuf (bg@aful.org)
- *      And just about everyone else in evolution ...
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Miguel de Icaza (miguel@ximian.com)
+ * SPDX-FileContributor: Bertrand Guiheneuf (bg@aful.org)
+ * SPDX-FileContributor: And just about everyone else in evolution ...
  */
 
 #include "evolution-config.h"
@@ -66,6 +51,9 @@
 /* Common search expression segments. */
 #define EXCLUDE_DELETED_MESSAGES_EXPR	"(not (system-flag \"deleted\"))"
 #define EXCLUDE_JUNK_MESSAGES_EXPR	"(not (system-flag \"junk\"))"
+
+#define DEFAULT_IMPORTANT_FG_COLOR_LIGHT	"#A7453E"
+#define DEFAULT_IMPORTANT_FG_COLOR_DARK	"#FF6B6B"
 
 typedef struct _ExtendedGNode ExtendedGNode;
 typedef struct _RegenData RegenData;
@@ -126,6 +114,7 @@ struct _MessageListPrivate {
 
 	GdkRGBA *new_mail_bg_color;
 	gchar *new_mail_fg_color;
+	gchar *important_fg_color;
 
 	guint update_actions_idle_id;
 
@@ -182,18 +171,21 @@ struct _RegenData {
 
 enum {
 	PROP_0,
-	PROP_COPY_TARGET_LIST,
 	PROP_FOLDER,
 	PROP_GROUP_BY_THREADS,
-	PROP_PASTE_TARGET_LIST,
 	PROP_SESSION,
 	PROP_SHOW_DELETED,
 	PROP_SHOW_JUNK,
 	PROP_THREAD_LATEST,
 	PROP_THREAD_SUBJECT,
 	PROP_THREAD_COMPRESS,
-	PROP_THREAD_FLAT
+	PROP_THREAD_FLAT,
+	N_PROPS,
+	PROP_COPY_TARGET_LIST,
+	PROP_PASTE_TARGET_LIST
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Forward Declarations */
 static void	message_list_selectable_init
@@ -1976,11 +1968,15 @@ ml_tree_value_at_ex (ETreeModel *etm,
 		}
 
 		if (!colour) {
-			if (((followup && *followup) || (due_by && *due_by)) && !(completed && *completed)) {
+			const gchar *important_fg_color = message_list->priv->important_fg_color ? message_list->priv->important_fg_color : DEFAULT_IMPORTANT_FG_COLOR_LIGHT;
+
+			if (camel_message_info_get_flags (msg_info) & CAMEL_MESSAGE_FLAGGED) {
+				colour = important_fg_color;
+			} else if (((followup && *followup) || (due_by && *due_by)) && !(completed && *completed)) {
 				time_t now = time (NULL);
 
 				if ((followup && *followup) || now >= camel_header_decode_date (due_by, NULL))
-					colour = "#7aa2f7";
+					colour = important_fg_color;
 			}
 		}
 
@@ -2265,9 +2261,9 @@ create_composite_cell (GSettings *mail_settings,
 	e_cell_date_set_format_component (E_CELL_DATE (cell_date), "mail");
 	g_object_set (
 		cell_date,
-		"bold_column", COL_UNREAD,
+		"bold-column", COL_UNREAD,
 		"italic-column", COL_ITALIC,
-		"color_column", COL_COLOUR,
+		"color-column", COL_COLOUR,
 		NULL);
 
 	cell_from = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
@@ -2275,9 +2271,9 @@ create_composite_cell (GSettings *mail_settings,
 	g_object_set_data (G_OBJECT (cell_from), "oma-emphasize", GINT_TO_POINTER (1));
 	g_object_set (
 		cell_from,
-		"bold_column", COL_UNREAD,
+		"bold-column", COL_UNREAD,
 		"italic-column", COL_ITALIC,
-		"color_column", COL_COLOUR,
+		"color-column", COL_COLOUR,
 		NULL);
 
 	cell_preview = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
@@ -2394,9 +2390,9 @@ message_list_create_extras (GSettings *mail_settings)
 	e_cell_date_set_format_component (E_CELL_DATE (cell), "mail");
 	g_object_set (
 		cell,
-		"bold_column", COL_UNREAD,
+		"bold-column", COL_UNREAD,
 		"italic-column", COL_ITALIC,
-		"color_column", COL_COLOUR,
+		"color-column", COL_COLOUR,
 		NULL);
 	e_table_extras_add_cell (extras, "render_date", cell);
 	g_object_unref (cell);
@@ -2404,9 +2400,9 @@ message_list_create_extras (GSettings *mail_settings)
 	cell = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set (
 		cell,
-		"bold_column", COL_UNREAD,
+		"bold-column", COL_UNREAD,
 		"italic-column", COL_ITALIC,
-		"color_column", COL_COLOUR,
+		"color-column", COL_COLOUR,
 		"ellipsize-mode", PANGO_ELLIPSIZE_MIDDLE,
 		NULL);
 	e_table_extras_add_cell (extras, "render_location", cell);
@@ -2416,9 +2412,9 @@ message_list_create_extras (GSettings *mail_settings)
 	cell = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set (
 		cell,
-		"bold_column", COL_UNREAD,
+		"bold-column", COL_UNREAD,
 		"italic-column", COL_ITALIC,
-		"color_column", COL_COLOUR,
+		"color-column", COL_COLOUR,
 		NULL);
 	e_table_extras_add_cell (extras, "render_text", cell);
 	g_object_unref (cell);
@@ -2431,9 +2427,9 @@ message_list_create_extras (GSettings *mail_settings)
 	cell = e_cell_size_new (NULL, GTK_JUSTIFY_RIGHT);
 	g_object_set (
 		cell,
-		"bold_column", COL_UNREAD,
+		"bold-column", COL_UNREAD,
 		"italic-column", COL_ITALIC,
-		"color_column", COL_COLOUR,
+		"color-column", COL_COLOUR,
 		NULL);
 	e_table_extras_add_cell (extras, "render_size", cell);
 	g_object_unref (cell);
@@ -2542,7 +2538,7 @@ message_list_setup_etree (MessageList *message_list)
 
 		item = e_tree_get_item (E_TREE (message_list));
 
-		g_object_set (message_list, "uniform_row_height", TRUE, NULL);
+		g_object_set (message_list, "uniform-row-height", TRUE, NULL);
 		g_object_set_data (
 			G_OBJECT (((GnomeCanvasItem *) item)->canvas),
 			"freeze-cursor", &data);
@@ -3041,21 +3037,32 @@ static void
 ml_style_updated_cb (MessageList *message_list)
 {
 	GdkRGBA *new_mail_fg_color = NULL;
+	GdkRGBA *important_fg_color = NULL;
 
 	g_return_if_fail (IS_MESSAGE_LIST (message_list));
 
 	g_clear_pointer (&message_list->priv->new_mail_bg_color, gdk_rgba_free);
 	g_clear_pointer (&message_list->priv->new_mail_fg_color, g_free);
+	g_clear_pointer (&message_list->priv->important_fg_color, g_free);
 
 	gtk_widget_style_get (GTK_WIDGET (message_list),
 		"new-mail-bg-color", &message_list->priv->new_mail_bg_color,
 		"new-mail-fg-color", &new_mail_fg_color,
+		"important-fg-color", &important_fg_color,
 		NULL);
 
 	if (new_mail_fg_color) {
 		message_list->priv->new_mail_fg_color = gdk_rgba_to_string (new_mail_fg_color);
 
 		gdk_rgba_free (new_mail_fg_color);
+	}
+
+	if (important_fg_color) {
+		message_list->priv->important_fg_color = gdk_rgba_to_string (important_fg_color);
+
+		gdk_rgba_free (important_fg_color);
+	} else {
+		message_list->priv->important_fg_color = g_strdup (e_util_is_dark_theme (GTK_WIDGET (message_list)) ? DEFAULT_IMPORTANT_FG_COLOR_DARK : DEFAULT_IMPORTANT_FG_COLOR_LIGHT);
 	}
 }
 
@@ -3536,6 +3543,7 @@ message_list_finalize (GObject *object)
 
 	g_clear_pointer (&message_list->priv->new_mail_bg_color, gdk_rgba_free);
 	g_clear_pointer (&message_list->priv->new_mail_fg_color, g_free);
+	g_clear_pointer (&message_list->priv->important_fg_color, g_free);
 
 	for (ii = 0; ii < CAMEL_UTILS_MAX_USER_HEADERS; ii++) {
 		g_free (message_list->priv->user_headers[ii]);
@@ -3742,7 +3750,7 @@ message_list_sort_value_at (ETreeModel *tree_model,
 	ld.latest = 0;
 
 	latest_foreach (tree_model, path, &ld);
-	if (message_list->priv->thread_latest && !message_list->priv->thread_flat &&
+	if (message_list->priv->thread_latest &&
 	    (!e_tree_get_sort_children_ascending (E_TREE (message_list)) ||
 	    !path_node || !path_node->parent || !path_node->parent->parent))
 		e_tree_model_node_traverse (
@@ -4101,28 +4109,30 @@ message_list_class_init (MessageListClass *class)
 		PROP_COPY_TARGET_LIST,
 		"copy-target-list");
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FOLDER,
+	/**
+	 * MessageList:folder
+	 *
+	 * The source folder
+	 **/
+	properties[PROP_FOLDER] =
 		g_param_spec_object (
-			"folder",
-			"Folder",
-			"The source folder",
+			"folder", NULL, NULL,
 			CAMEL_TYPE_FOLDER,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_GROUP_BY_THREADS,
+	/**
+	 * MessageList:group-by-threads
+	 *
+	 * Group messages into conversation threads
+	 **/
+	properties[PROP_GROUP_BY_THREADS] =
 		g_param_spec_boolean (
-			"group-by-threads",
-			"Group By Threads",
-			"Group messages into conversation threads",
+			"group-by-threads", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
 	/* Inherited from ESelectableInterface */
 	g_object_class_override_property (
@@ -4130,89 +4140,98 @@ message_list_class_init (MessageListClass *class)
 		PROP_PASTE_TARGET_LIST,
 		"paste-target-list");
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SESSION,
+	/**
+	 * MessageList:session
+	 *
+	 * The mail session
+	 **/
+	properties[PROP_SESSION] =
 		g_param_spec_object (
-			"session",
-			"Mail Session",
-			"The mail session",
+			"session", NULL, NULL,
 			E_TYPE_MAIL_SESSION,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_DELETED,
+	/**
+	 * MessageList:show-deleted
+	 *
+	 * Show messages marked for deletion
+	 **/
+	properties[PROP_SHOW_DELETED] =
 		g_param_spec_boolean (
-			"show-deleted",
-			"Show Deleted",
-			"Show messages marked for deletion",
+			"show-deleted", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SHOW_JUNK,
+	/**
+	 * MessageList:show-junk
+	 *
+	 * Show messages marked as junk
+	 **/
+	properties[PROP_SHOW_JUNK] =
 		g_param_spec_boolean (
-			"show-junk",
-			"Show Junk",
-			"Show messages marked as junk",
+			"show-junk", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_THREAD_LATEST,
+	/**
+	 * MessageList:thread-latest
+	 *
+	 * Sort threads by latest message
+	 **/
+	properties[PROP_THREAD_LATEST] =
 		g_param_spec_boolean (
-			"thread-latest",
-			"Thread Latest",
-			"Sort threads by latest message",
+			"thread-latest", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_THREAD_SUBJECT,
+	/**
+	 * MessageList:thread-subject
+	 *
+	 * Thread messages by Subject headers
+	 **/
+	properties[PROP_THREAD_SUBJECT] =
 		g_param_spec_boolean (
-			"thread-subject",
-			"Thread Subject",
-			"Thread messages by Subject headers",
+			"thread-subject", NULL, NULL,
 			FALSE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_THREAD_COMPRESS,
+	/**
+	 * MessageList:thread-compress
+	 *
+	 * Compress flat threads
+	 **/
+	properties[PROP_THREAD_COMPRESS] =
 		g_param_spec_boolean (
-			"thread-compress",
-			"Thread Compress",
-			"Compress flat threads",
+			"thread-compress", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_THREAD_FLAT,
+	/**
+	 * MessageList:thread-flat
+	 *
+	 * Generate flat threads
+	 **/
+	properties[PROP_THREAD_FLAT] =
 		g_param_spec_boolean (
-			"thread-flat",
-			"Thread Flat",
-			"Generate flat threads",
+			"thread-flat", NULL, NULL,
 			TRUE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	gtk_widget_class_install_style_property (
 		GTK_WIDGET_CLASS (class),
@@ -4229,6 +4248,15 @@ message_list_class_init (MessageListClass *class)
 			"new-mail-fg-color",
 			"New Mail Foreground Color",
 			"Foreground color to use for new mails",
+			GDK_TYPE_RGBA,
+			G_PARAM_READABLE));
+
+	gtk_widget_class_install_style_property (
+		GTK_WIDGET_CLASS (class),
+		g_param_spec_boxed (
+			"important-fg-color",
+			NULL,
+			NULL,
 			GDK_TYPE_RGBA,
 			G_PARAM_READABLE));
 
@@ -4355,6 +4383,7 @@ message_list_init (MessageList *message_list)
 	message_list->priv->group_by_threads = TRUE;
 	message_list->priv->new_mail_bg_color = NULL;
 	message_list->priv->new_mail_fg_color = NULL;
+	message_list->priv->important_fg_color = NULL;
 
 	g_signal_connect (message_list->priv->mail_settings, "changed::composer-localized-re",
 		G_CALLBACK (message_list_localized_re_changed_cb), message_list);
@@ -4961,19 +4990,6 @@ build_subtree (MessageList *message_list,
 
 		node = ml_uid_nodemap_insert (message_list, nfo, parent, -1);
 
-		if (thread_latest && thread_flat && parent && node && parent->data && node->data) {
-			CamelMessageInfo *parent_nfo, *node_nfo;
-
-			parent_nfo = parent->data;
-			node_nfo = node->data;
-
-			if (camel_message_info_get_date_received (parent_nfo) < camel_message_info_get_date_received (node_nfo)) {
-				/* Swap the root node's message info with the added one, because the added is the latest */
-				parent->data = node_nfo;
-				node->data = parent_nfo;
-			}
-		}
-
 		if (camel_folder_thread_node_get_child (c)) {
 			build_subtree (message_list, (camel_folder_thread_node_get_parent (c) && thread_flat) ? parent : node,
 				camel_folder_thread_node_get_child (c), thread_flat, thread_latest, row);
@@ -5472,7 +5488,7 @@ message_list_set_group_by_threads (MessageList *message_list,
 	message_list->priv->group_by_threads = group_by_threads;
 	e_tree_set_grouped_view (E_TREE (message_list), group_by_threads);
 
-	g_object_notify (G_OBJECT (message_list), "group-by-threads");
+	g_object_notify_by_pspec (G_OBJECT (message_list), properties[PROP_GROUP_BY_THREADS]);
 
 	/* Changing this property triggers a message list regen. */
 	if (message_list->frozen == 0)
@@ -5500,7 +5516,7 @@ message_list_set_show_deleted (MessageList *message_list,
 
 	message_list->priv->show_deleted = show_deleted;
 
-	g_object_notify (G_OBJECT (message_list), "show-deleted");
+	g_object_notify_by_pspec (G_OBJECT (message_list), properties[PROP_SHOW_DELETED]);
 
 	/* Changing this property triggers a message list regen. */
 	if (message_list->frozen == 0)
@@ -5528,7 +5544,7 @@ message_list_set_show_junk (MessageList *message_list,
 
 	message_list->priv->show_junk = show_junk;
 
-	g_object_notify (G_OBJECT (message_list), "show-junk");
+	g_object_notify_by_pspec (G_OBJECT (message_list), properties[PROP_SHOW_JUNK]);
 
 	/* Changing this property triggers a message list regen. */
 	if (message_list->frozen == 0)
@@ -5556,7 +5572,7 @@ message_list_set_thread_latest (MessageList *message_list,
 
 	message_list->priv->thread_latest = thread_latest;
 
-	g_object_notify (G_OBJECT (message_list), "thread-latest");
+	g_object_notify_by_pspec (G_OBJECT (message_list), properties[PROP_THREAD_LATEST]);
 }
 
 gboolean
@@ -5578,7 +5594,7 @@ message_list_set_thread_subject (MessageList *message_list,
 
 	message_list->priv->thread_subject = thread_subject;
 
-	g_object_notify (G_OBJECT (message_list), "thread-subject");
+	g_object_notify_by_pspec (G_OBJECT (message_list), properties[PROP_THREAD_SUBJECT]);
 }
 
 gboolean
@@ -5600,7 +5616,7 @@ message_list_set_thread_compress (MessageList *message_list,
 
 	message_list->priv->thread_compress = thread_compress;
 
-	g_object_notify (G_OBJECT (message_list), "thread-compress");
+	g_object_notify_by_pspec (G_OBJECT (message_list), properties[PROP_THREAD_COMPRESS]);
 
 	gtk_widget_queue_draw (GTK_WIDGET (message_list));
 }
@@ -5624,7 +5640,7 @@ message_list_set_thread_flat (MessageList *message_list,
 
 	message_list->priv->thread_flat = thread_flat;
 
-	g_object_notify (G_OBJECT (message_list), "thread-flat");
+	g_object_notify_by_pspec (G_OBJECT (message_list), properties[PROP_THREAD_FLAT]);
 
 	if (message_list->priv->group_by_threads) {
 		if (!message_list->frozen)

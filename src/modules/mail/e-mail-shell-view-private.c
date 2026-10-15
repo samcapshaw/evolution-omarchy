@@ -1,21 +1,6 @@
 /*
- * e-mail-shell-view-private.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -229,7 +214,7 @@ mail_shell_view_match_folder_tree_and_message_list_folder (EMailShellView *mail_
 	/* If the folder tree and message list disagree on the current
 	 * folder, reset the folder tree to match the message list. */
 	if (list_uri != NULL && g_strcmp0 (tree_uri, list_uri) != 0)
-		em_folder_tree_set_selected (folder_tree, list_uri, FALSE);
+		em_folder_tree_set_selected_no_scroll (folder_tree, list_uri, FALSE);
 
 	g_free (list_uri);
 	g_free (tree_uri);

@@ -1,21 +1,6 @@
 /*
- * e-web-view-preview.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -35,8 +20,11 @@ enum {
 	PROP_0,
 	PROP_TREE_VIEW,
 	PROP_PREVIEW_WIDGET,
-	PROP_ESCAPE_VALUES
+	PROP_ESCAPE_VALUES,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EWebViewPreview, e_web_view_preview, GTK_TYPE_PANED)
 
@@ -110,35 +98,25 @@ e_web_view_preview_class_init (EWebViewPreviewClass *class)
 	object_class->get_property = web_view_preview_get_property;
 	object_class->dispose = web_view_preview_dispose;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TREE_VIEW,
+	properties[PROP_TREE_VIEW] =
 		g_param_spec_object (
-			"tree-view",
-			"Tree View",
-			NULL,
+			"tree-view", NULL, NULL,
 			GTK_TYPE_TREE_VIEW,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_PREVIEW_WIDGET,
+	properties[PROP_PREVIEW_WIDGET] =
 		g_param_spec_object (
-			"preview-widget",
-			"Preview Widget",
-			NULL,
+			"preview-widget", NULL, NULL,
 			GTK_TYPE_WIDGET,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ESCAPE_VALUES,
+	properties[PROP_ESCAPE_VALUES] =
 		g_param_spec_boolean (
-			"escape-values",
-			"Whether escaping values automatically, when inserting",
-			NULL,
+			"escape-values", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static GtkWidget *

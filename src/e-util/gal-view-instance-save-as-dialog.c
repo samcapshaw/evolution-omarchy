@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -32,8 +17,11 @@ G_DEFINE_TYPE (GalViewInstanceSaveAsDialog, gal_view_instance_save_as_dialog, GT
 
 enum {
 	PROP_0,
-	PROP_INSTANCE
+	PROP_INSTANCE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	COL_GALVIEW_NAME,
@@ -227,15 +215,13 @@ gal_view_instance_save_as_dialog_class_init (GalViewInstanceSaveAsDialogClass *c
 	object_class->get_property = gal_view_instance_save_as_dialog_get_property;
 	object_class->dispose = gal_view_instance_save_as_dialog_dispose;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_INSTANCE,
+	properties[PROP_INSTANCE] =
 		g_param_spec_object (
-			"instance",
-			"Instance",
-			NULL,
+			"instance", NULL, NULL,
 			GAL_TYPE_VIEW_INSTANCE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

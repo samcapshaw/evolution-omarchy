@@ -1,18 +1,5 @@
 /*
- * e-mail-config-defaults-page.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -53,8 +40,11 @@ enum {
 	PROP_IDENTITY_SOURCE,
 	PROP_ORIGINAL_SOURCE,
 	PROP_TRANSPORT_SOURCE,
-	PROP_SESSION
+	PROP_SESSION,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Forward Declarations */
 static void	e_mail_config_defaults_page_interface_init
@@ -927,77 +917,85 @@ e_mail_config_defaults_page_class_init (EMailConfigDefaultsPageClass *class)
 	object_class->dispose = mail_config_defaults_page_dispose;
 	object_class->constructed = mail_config_defaults_page_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ACCOUNT_SOURCE,
+	/**
+	 * EMailConfigDefaultsPage:account-source
+	 *
+	 * Mail account source being edited
+	 **/
+	properties[PROP_ACCOUNT_SOURCE] =
 		g_param_spec_object (
-			"account-source",
-			"Account Source",
-			"Mail account source being edited",
+			"account-source", NULL, NULL,
 			E_TYPE_SOURCE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_COLLECTION_SOURCE,
+	/**
+	 * EMailConfigDefaultsPage:collection-source
+	 *
+	 * Collection source being edited
+	 **/
+	properties[PROP_COLLECTION_SOURCE] =
 		g_param_spec_object (
-			"collection-source",
-			"Collection Source",
-			"Collection source being edited",
+			"collection-source", NULL, NULL,
 			E_TYPE_SOURCE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_IDENTITY_SOURCE,
+	/**
+	 * EMailConfigDefaultsPage:identity-source
+	 *
+	 * Mail identity source being edited
+	 **/
+	properties[PROP_IDENTITY_SOURCE] =
 		g_param_spec_object (
-			"identity-source",
-			"Identity Source",
-			"Mail identity source being edited",
+			"identity-source", NULL, NULL,
 			E_TYPE_SOURCE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ORIGINAL_SOURCE,
+	/**
+	 * EMailConfigDefaultsPage:original-source
+	 *
+	 * Mail account original source being edited
+	 **/
+	properties[PROP_ORIGINAL_SOURCE] =
 		g_param_spec_object (
-			"original-source",
-			"Original Source",
-			"Mail account original source being edited",
+			"original-source", NULL, NULL,
 			E_TYPE_SOURCE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_TRANSPORT_SOURCE,
+	/**
+	 * EMailConfigDefaultsPage:transport-source
+	 *
+	 * Mail transport source being edited
+	 **/
+	properties[PROP_TRANSPORT_SOURCE] =
 		g_param_spec_object (
-			"transport-source",
-			"Transport Source",
-			"Mail transport source being edited",
+			"transport-source", NULL, NULL,
 			E_TYPE_SOURCE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SESSION,
+	/**
+	 * EMailConfigDefaultsPage:session
+	 *
+	 * Mail session
+	 **/
+	properties[PROP_SESSION] =
 		g_param_spec_object (
-			"session",
-			"Session",
-			"Mail session",
+			"session", NULL, NULL,
 			E_TYPE_MAIL_SESSION,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

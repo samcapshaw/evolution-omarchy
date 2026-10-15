@@ -1,18 +1,5 @@
 /*
- * e-mail-formatter-utils.h
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -372,6 +359,8 @@ e_mail_formatter_format_header (EMailFormatter *formatter,
 		time_t msg_date;
 		struct tm local;
 		gchar *html;
+		gchar *date_str;
+		gchar *date_html;
 		gboolean hide_real_date;
 
 		hide_real_date = !e_mail_formatter_get_show_real_date (formatter);
@@ -393,34 +382,24 @@ e_mail_formatter_format_header (EMailFormatter *formatter,
 		/* Turn into offset from localtime, not UTC */
 		msg_offset -= local_tz / 60;
 
-		/* value will be freed at the end */
-		if (!hide_real_date && !msg_offset) {
-			/* No timezone difference; just
-			 * show the real Date: header. */
-			txt = value = html;
+		date_str = e_datetime_format_format (
+			"mail", "header",
+			DTFormatKindDateTime, msg_date);
+
+		date_html = camel_text_to_html (date_str, text_format_flags, 0);
+
+		if (hide_real_date) {
+			/* Show only the local-formatted date, losing
+			 * all timezone information like Outlook does.
+			 * Should we attempt to show it somehow? */
+			txt = value = date_html;
 		} else {
-			gchar *date_str;
-			gchar *date_html;
-
-			date_str = e_datetime_format_format (
-				"mail", "header",
-				DTFormatKindDateTime, msg_date);
-
-			date_html = camel_text_to_html (date_str, text_format_flags, 0);
-
-			if (hide_real_date) {
-				/* Show only the local-formatted date, losing
-				 * all timezone information like Outlook does.
-				 * Should we attempt to show it somehow? */
-				txt = value = date_html;
-			} else {
-				txt = value = g_strdup_printf ("%s (<I>%s</I>)", html, date_html);
-				g_free (date_html);
-			}
-
-			g_free (date_str);
-			g_free (html);
+			txt = value = g_strdup_printf ("%s (<I>%s</I>)", html, date_html);
+			g_free (date_html);
 		}
+
+		g_free (date_str);
+		g_free (html);
 
 		flags |= E_MAIL_FORMATTER_HEADER_FLAG_HTML;
 		flags |= E_MAIL_FORMATTER_HEADER_FLAG_BOLD;
@@ -442,14 +421,15 @@ e_mail_formatter_format_header (EMailFormatter *formatter,
 		scan = ng;
 		while (scan) {
 			const gchar *newsgroup = scan->data;
+			gchar *escaped = g_markup_escape_text (newsgroup, -1);
 
 			if (flags & E_MAIL_FORMATTER_HEADER_FLAG_NOLINKS)
-				g_string_append_printf (
-					html, "%s", newsgroup);
+				g_string_append (html, escaped);
 			else
 				g_string_append_printf (
 					html, "<a href=\"news:%s\">%s</a>",
-					newsgroup, newsgroup);
+					escaped, escaped);
+			g_free (escaped);
 			scan = g_slist_next (scan);
 			if (scan)
 				g_string_append_printf (html, ", ");

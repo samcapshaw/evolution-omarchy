@@ -1,17 +1,6 @@
 /*
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -52,8 +41,11 @@ enum {
 
 enum {
 	PROP_0,
-	PROP_ENTRY_VISIBLE
+	PROP_ENTRY_VISIBLE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	ENTRY_CHANGED,
@@ -215,15 +207,13 @@ e_categories_editor_class_init (ECategoriesEditorClass *class)
 	object_class->set_property = categories_editor_set_property;
 	object_class->get_property = categories_editor_get_property;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_ENTRY_VISIBLE,
+	properties[PROP_ENTRY_VISIBLE] =
 		g_param_spec_boolean (
-			"entry-visible",
-			NULL,
-			NULL,
+			"entry-visible", NULL, NULL,
 			TRUE,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[ENTRY_CHANGED] = g_signal_new (
 		"entry-changed",
@@ -500,5 +490,5 @@ e_categories_editor_set_entry_visible (ECategoriesEditor *editor,
 	e_categories_selector_set_items_checkable (
 		editor->priv->categories_list, entry_visible);
 
-	g_object_notify (G_OBJECT (editor), "entry-visible");
+	g_object_notify_by_pspec (G_OBJECT (editor), properties[PROP_ENTRY_VISIBLE]);
 }

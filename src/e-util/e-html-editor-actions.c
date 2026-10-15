@@ -1,20 +1,6 @@
-/* e-html-editor-actions.c
- *
- * Copyright (C) 2012 Dan Vrátil <dvratil@redhat.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of version 2 of the GNU Lesser General Public
- * License as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+/*
+ * SPDX-FileCopyrightText: (C) 2012 Dan Vrátil <dvratil@redhat.com>
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -861,6 +847,19 @@ action_paste_as_text_cb (EUIAction *action,
 		clipboard,
 		(GtkClipboardTextReceivedFunc) clipboard_text_received_for_paste_as_text,
 		editor);
+}
+
+static void
+action_remove_formatting_cb (EUIAction *action,
+			     GVariant *parameter,
+			     gpointer user_data)
+{
+	EHTMLEditor *editor = user_data;
+	EContentEditor *cnt_editor;
+
+	cnt_editor = e_html_editor_get_content_editor (editor);
+	if (e_html_editor_action_can_run (GTK_WIDGET (cnt_editor)))
+		e_content_editor_selection_unformat (cnt_editor);
 }
 
 static void
@@ -1894,6 +1893,14 @@ static const EUIActionEntry html_entries[] = {
 	  NULL,
 	  action_paste_as_text_cb, NULL, NULL, NULL },
 
+	{ "remove-formatting",
+	  NULL,
+	  N_("_Remove Formatting"),
+	  "<Control>backslash",
+	  N_("Remove direct character formatting, such as bold, font and color, from the selected text; "
+	     "formatting coming from stylesheets or nested paragraphs is not affected"),
+	  action_remove_formatting_cb, NULL, NULL, NULL },
+
 };
 
 static const EUIActionEntry html_toggle_entries[] = {
@@ -2699,18 +2706,23 @@ e_html_editor_sensitize_html_actions_cb (GBinding *binding,
 
 /**
  * e_html_editor_util_new_mode_combobox:
+ * @unknown_label: (nullable): label for the "unknown" mode entry, or %NULL
  *
  * Creates a new combo box containing all composer modes.
+ *
+ * When @unknown_label is not %NULL, an extra entry for
+ * %E_CONTENT_EDITOR_MODE_UNKNOWN is added with the given label,
+ * typically used for "Use global setting" in override combos.
  *
  * It's a descendant of #EActionComboBox, thus use e_action_combo_box_get_current_value()
  * and e_action_combo_box_set_current_value() to get the currently selected mode.
  *
- * Returns: (transfer full): a new #EActionComboBox with composer modes
+ * Returns: (transfer full): a new #GtkWidget, which is an #EActionComboBox with composer modes
  *
  * Since: 3.44
  **/
-EActionComboBox *
-e_html_editor_util_new_mode_combobox (void)
+GtkWidget *
+e_html_editor_util_new_mode_combobox (const gchar *unknown_label)
 {
 	EUIActionGroup *action_group;
 	EUIAction *action;
@@ -2740,6 +2752,20 @@ e_html_editor_util_new_mode_combobox (void)
 			e_ui_action_set_radio_group (radio_action, group);
 		}
 
+		if (unknown_label) {
+			EUIAction *unknown_action;
+
+			unknown_action = e_ui_action_new_stateful (
+				e_ui_action_get_map_name (g_ptr_array_index (actions, 0)),
+				"unknown", G_VARIANT_TYPE_INT32,
+				g_variant_new_int32 (E_CONTENT_EDITOR_MODE_UNKNOWN));
+			e_ui_action_set_label (unknown_action, unknown_label);
+			e_ui_action_set_radio_group (unknown_action, group);
+			e_ui_action_set_action_group (unknown_action, action_group);
+
+			g_object_unref (unknown_action);
+		}
+
 		g_ptr_array_unref (group);
 		g_ptr_array_unref (actions);
 	}
@@ -2752,7 +2778,7 @@ e_html_editor_util_new_mode_combobox (void)
 
 	g_object_set_data_full (G_OBJECT (widget), "core-mode-entries-action-group", action_group, g_object_unref);
 
-	return E_ACTION_COMBO_BOX (widget);
+	return widget;
 }
 
 void

@@ -1,18 +1,5 @@
 /*
- * e-weekday-chooser.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -42,7 +29,7 @@ struct _EWeekdayChooser {
 enum {
 	PROP_0,
 	PROP_WEEK_START_DAY,
-	N_PROPERTIES
+	N_PROPS
 };
 
 enum {
@@ -51,7 +38,7 @@ enum {
 };
 
 static guint chooser_signals[LAST_SIGNAL];
-static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_FINAL_TYPE_WITH_CODE (EWeekdayChooser, e_weekday_chooser, GTK_TYPE_BOX,
 	G_IMPLEMENT_INTERFACE (E_TYPE_EXTENSIBLE, NULL))
@@ -119,20 +106,16 @@ e_weekday_chooser_class_init (EWeekdayChooserClass *class)
 	object_class->get_property = weekday_chooser_get_property;
 	object_class->constructed = weekday_chooser_constructed;
 
-	obj_properties[PROP_WEEK_START_DAY] =
+	properties[PROP_WEEK_START_DAY] =
 		g_param_spec_enum (
-			"week-start-day",
-			"Week Start Day",
-			NULL,
+			"week-start-day", NULL, NULL,
 			E_TYPE_DATE_WEEKDAY,
 			G_DATE_MONDAY,
 			G_PARAM_READWRITE |
 			G_PARAM_STATIC_STRINGS |
 			G_PARAM_EXPLICIT_NOTIFY);
 
-	g_object_class_install_properties (object_class,
-		N_PROPERTIES,
-		obj_properties);
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	chooser_signals[CHANGED] = g_signal_new (
 		"changed",
@@ -260,6 +243,6 @@ e_weekday_chooser_set_week_start_day (EWeekdayChooser *chooser,
 		week_start_day = e_weekday_get_next (week_start_day);
 	}
 
-	g_object_notify_by_pspec (G_OBJECT (chooser), obj_properties[PROP_WEEK_START_DAY]);
+	g_object_notify_by_pspec (G_OBJECT (chooser), properties[PROP_WEEK_START_DAY]);
 }
 

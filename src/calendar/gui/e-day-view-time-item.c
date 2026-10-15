@@ -1,23 +1,7 @@
 /*
- * EDayViewTimeItem - canvas item which displays the times down the left of
- * the EDayView.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- * Authors:
- *		Damon Chaplin <damon@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Damon Chaplin <damon@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -109,8 +93,11 @@ static void	edvti_second_zone_changed_cb	(GSettings *settings,
 
 enum {
 	PROP_0,
-	PROP_DAY_VIEW
+	PROP_DAY_VIEW,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (EDayViewTimeItem, e_day_view_time_item, GNOME_TYPE_CANVAS_ITEM)
 
@@ -192,15 +179,13 @@ e_day_view_time_item_class_init (EDayViewTimeItemClass *class)
 	item_class->point = e_day_view_time_item_point;
 	item_class->event = e_day_view_time_item_event;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DAY_VIEW,
+	properties[PROP_DAY_VIEW] =
 		g_param_spec_object (
-			"day-view",
-			"Day View",
-			NULL,
+			"day-view", NULL, NULL,
 			E_TYPE_DAY_VIEW,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -690,20 +675,22 @@ e_day_view_time_item_event (GnomeCanvasItem *item,
                             GdkEvent *event)
 {
 	EDayViewTimeItem *time_item;
+	guint button = 0;
 
 	time_item = E_DAY_VIEW_TIME_ITEM (item);
+	gdk_event_get_button (event, &button);
 
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 	case GDK_BUTTON_PRESS:
-		if (event->button.button == 1) {
+		if (button == GDK_BUTTON_PRIMARY) {
 			e_day_view_time_item_on_button_press (time_item, event);
-		} else if (event->button.button == 3) {
+		} else if (button == GDK_BUTTON_SECONDARY) {
 			e_day_view_time_item_show_popup_menu (time_item, event);
 			return TRUE;
 		}
 		break;
 	case GDK_BUTTON_RELEASE:
-		if (event->button.button == 1)
+		if (button == GDK_BUTTON_PRIMARY)
 			e_day_view_time_item_on_button_release (
 				time_item, event);
 		break;
@@ -923,6 +910,7 @@ e_day_view_time_item_on_button_press (EDayViewTimeItem *time_item,
 	GdkGrabStatus grab_status;
 	GdkDevice *event_device;
 	guint32 event_time;
+	gdouble ev_x = 0, ev_y = 0;
 	gint row;
 
 	day_view = e_day_view_time_item_get_day_view (time_item);
@@ -930,9 +918,10 @@ e_day_view_time_item_on_button_press (EDayViewTimeItem *time_item,
 
 	canvas = GNOME_CANVAS_ITEM (time_item)->canvas;
 
+	gdk_event_get_coords (event, &ev_x, &ev_y);
 	row = e_day_view_time_item_convert_position_to_row (
 		time_item,
-		event->button.y);
+		(gint) ev_y);
 
 	if (row == -1)
 		return;
@@ -992,6 +981,7 @@ e_day_view_time_item_on_motion_notify (EDayViewTimeItem *time_item,
 	EDayView *day_view;
 	GnomeCanvas *canvas;
 	gdouble window_y;
+	gdouble ev_x = 0, ev_y = 0;
 	gint y, row;
 
 	if (!time_item->priv->dragging_selection)
@@ -1002,12 +992,13 @@ e_day_view_time_item_on_motion_notify (EDayViewTimeItem *time_item,
 
 	canvas = GNOME_CANVAS_ITEM (time_item)->canvas;
 
-	y = event->motion.y;
+	gdk_event_get_coords (event, &ev_x, &ev_y);
+	y = (gint) ev_y;
 	row = e_day_view_time_item_convert_position_to_row (time_item, y);
 
 	if (row != -1) {
 		gnome_canvas_world_to_window (
-			canvas, 0, event->motion.y,
+			canvas, 0, ev_y,
 			NULL, &window_y);
 		e_day_view_update_selection (day_view, -1, row);
 		e_day_view_check_auto_scroll (day_view, -1, (gint) window_y);
@@ -1058,7 +1049,7 @@ e_day_view_time_item_set_day_view (EDayViewTimeItem *time_item,
 
 	time_item->priv->day_view = g_object_ref (day_view);
 
-	g_object_notify (G_OBJECT (time_item), "day-view");
+	g_object_notify_by_pspec (G_OBJECT (time_item), properties[PROP_DAY_VIEW]);
 }
 
 /* Returns the minimum width needed for the column, by adding up all the

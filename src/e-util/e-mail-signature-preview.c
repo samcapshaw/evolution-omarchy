@@ -1,18 +1,5 @@
 /*
- * e-mail-signature-preview.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "e-mail-signature-preview.h"
@@ -37,8 +24,11 @@ struct _EMailSignaturePreviewPrivate {
 enum {
 	PROP_0,
 	PROP_REGISTRY,
-	PROP_SOURCE_UID
+	PROP_SOURCE_UID,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	REFRESH,
@@ -264,28 +254,22 @@ e_mail_signature_preview_class_init (EMailSignaturePreviewClass *class)
 
 	class->refresh = mail_signature_preview_refresh;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_REGISTRY,
+	properties[PROP_REGISTRY] =
 		g_param_spec_object (
-			"registry",
-			"Registry",
-			NULL,
+			"registry", NULL, NULL,
 			E_TYPE_SOURCE_REGISTRY,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SOURCE_UID,
+	properties[PROP_SOURCE_UID] =
 		g_param_spec_string (
-			"source-uid",
-			"Source UID",
-			NULL,
+			"source-uid", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[REFRESH] = g_signal_new (
 		"refresh",
@@ -355,7 +339,7 @@ e_mail_signature_preview_set_source_uid (EMailSignaturePreview *preview,
 	g_free (preview->priv->source_uid);
 	preview->priv->source_uid = g_strdup (source_uid);
 
-	g_object_notify (G_OBJECT (preview), "source-uid");
+	g_object_notify_by_pspec (G_OBJECT (preview), properties[PROP_SOURCE_UID]);
 
 	e_mail_signature_preview_refresh (preview);
 }

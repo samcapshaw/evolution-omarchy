@@ -1,21 +1,6 @@
 /*
- * e-shell-taskbar.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 /**
@@ -55,8 +40,11 @@ struct _EShellTaskbarPrivate {
 enum {
 	PROP_0,
 	PROP_MESSAGE,
-	PROP_SHELL_VIEW
+	PROP_SHELL_VIEW,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 G_DEFINE_TYPE_WITH_CODE (EShellTaskbar, e_shell_taskbar, GTK_TYPE_BOX,
 	G_ADD_PRIVATE (EShellTaskbar)
@@ -434,34 +422,28 @@ e_shell_taskbar_class_init (EShellTaskbarClass *class)
 	 *
 	 * The message to display in the taskbar.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_MESSAGE,
+	properties[PROP_MESSAGE] =
 		g_param_spec_string (
-			"message",
-			NULL,
-			NULL,
+			"message", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
 	/**
 	 * EShellTaskbar:shell-view
 	 *
 	 * The #EShellView to which the taskbar widget belongs.
 	 **/
-	g_object_class_install_property (
-		object_class,
-		PROP_SHELL_VIEW,
+	properties[PROP_SHELL_VIEW] =
 		g_param_spec_object (
-			"shell-view",
-			NULL,
-			NULL,
+			"shell-view", NULL, NULL,
 			E_TYPE_SHELL_VIEW,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void
@@ -569,7 +551,7 @@ e_shell_taskbar_set_message (EShellTaskbar *shell_taskbar,
 	else
 		gtk_widget_hide (label);
 
-	g_object_notify (G_OBJECT (shell_taskbar), "message");
+	g_object_notify_by_pspec (G_OBJECT (shell_taskbar), properties[PROP_MESSAGE]);
 }
 
 /**

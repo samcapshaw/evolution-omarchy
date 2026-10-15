@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -61,8 +46,11 @@ enum {
 	PROP_HEADER,
 	PROP_DND_CODE,
 	PROP_WIDTH,
-	PROP_HEIGHT
+	PROP_HEIGHT,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 static void
 etfci_dispose (GObject *object)
@@ -642,23 +630,31 @@ etfci_event (GnomeCanvasItem *item,
 	GnomeCanvas *canvas = item->canvas;
 	gint x, y;
 
-	switch (e->type) {
-	case GDK_MOTION_NOTIFY:
-		gnome_canvas_w2c (canvas, e->motion.x, e->motion.y, &x, &y);
+	switch (gdk_event_get_event_type (e)) {
+	case GDK_MOTION_NOTIFY: {
+		gdouble ex = 0, ey = 0;
+		gdk_event_get_coords (e, &ex, &ey);
+		gnome_canvas_w2c (canvas, ex, ey, &x, &y);
 
 		if (etfci_maybe_start_drag (etfci, x, y))
 			etfci_start_drag (etfci, e, x, y);
 		break;
+	}
 
-	case GDK_BUTTON_PRESS:
-		gnome_canvas_w2c (canvas, e->button.x, e->button.y, &x, &y);
+	case GDK_BUTTON_PRESS: {
+		gdouble ex = 0, ey = 0;
+		guint ebutton = 0;
+		gdk_event_get_coords (e, &ex, &ey);
+		gdk_event_get_button (e, &ebutton);
+		gnome_canvas_w2c (canvas, ex, ey, &x, &y);
 
-		if (e->button.button == 1) {
+		if (ebutton == GDK_BUTTON_PRIMARY) {
 			etfci->click_x = x;
 			etfci->click_y = y;
 			etfci->maybe_drag = TRUE;
 		}
 		break;
+	}
 
 	case GDK_BUTTON_RELEASE: {
 		etfci->maybe_drag = FALSE;
@@ -688,55 +684,37 @@ e_table_field_chooser_item_class_init (ETableFieldChooserItemClass *class)
 	item_class->point = etfci_point;
 	item_class->event = etfci_event;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_DND_CODE,
+	properties[PROP_DND_CODE] =
 		g_param_spec_string (
-			"dnd_code",
-			"DnD code",
+			"dnd-code", NULL, NULL,
 			NULL,
-			NULL,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_FULL_HEADER,
+	properties[PROP_FULL_HEADER] =
 		g_param_spec_object (
-			"full_header",
-			"Full Header",
-			NULL,
+			"full-header", NULL, NULL,
 			E_TYPE_TABLE_HEADER,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HEADER,
+	properties[PROP_HEADER] =
 		g_param_spec_object (
-			"header",
-			"Header",
-			NULL,
+			"header", NULL, NULL,
 			E_TYPE_TABLE_HEADER,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_WIDTH,
+	properties[PROP_WIDTH] =
 		g_param_spec_double (
-			"width",
-			"Width",
-			NULL,
+			"width", NULL, NULL,
 			0, G_MAXDOUBLE, 0,
-			G_PARAM_READWRITE));
+			G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_HEIGHT,
+	properties[PROP_HEIGHT] =
 		g_param_spec_double (
-			"height",
-			"Height",
-			NULL,
+			"height", NULL, NULL,
 			0, G_MAXDOUBLE, 0,
-			G_PARAM_READABLE));
+			G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

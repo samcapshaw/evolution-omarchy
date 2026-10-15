@@ -1,22 +1,7 @@
 /*
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Authors:
- *		Chris Lahey <clahey@ximian.com>
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Lahey <clahey@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -1636,7 +1621,7 @@ e_utf8_strftime_match_lc_messages (gchar *string,
  *
  * Returns: localized strftime() format specifier for a month name
  *
- * Since: 3.60.1
+ * Since: 3.62
  **/
 const gchar *
 e_get_localized_month_name_format (void)
@@ -1661,7 +1646,7 @@ e_get_localized_month_name_format (void)
  *
  * Returns: localized strftime() format specifier for a month name and year
  *
- * Since: 3.60.1
+ * Since: 3.62
  **/
 const gchar *
 e_get_localized_month_name_with_year_format (void)
@@ -3779,11 +3764,7 @@ iso_codes_parse (const GMarkupParser *parser,
 		g_markup_parse_context_parse (
 			context, contents, length, &error);
 		g_markup_parse_context_free (context);
-#if GLIB_CHECK_VERSION(2,21,3)
 		g_mapped_file_unref (mapped_file);
-#else
-		g_mapped_file_free (mapped_file);
-#endif
 	}
 
 	if (error != NULL) {
@@ -4151,14 +4132,15 @@ gchar *
 e_util_get_uri_tooltip (const gchar *uri)
 {
 	CamelInternetAddress *address;
-	CamelURL *curl;
+	GUri *guri = NULL;
 	const gchar *format = NULL;
 	GString *message = NULL;
-	gchar *who;
+	gchar *who = NULL;
 
 	if (!uri || !*uri)
 		goto exit;
 
+	guri = g_uri_parse (uri, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL);
 	if (g_str_has_prefix (uri, "mailto:"))
 		format = _("Click to mail %s");
 	else if (g_str_has_prefix (uri, "callto:") ||
@@ -4170,9 +4152,7 @@ e_util_get_uri_tooltip (const gchar *uri)
 		message = g_string_new (_("Click to hide/unhide addresses"));
 	else if (g_str_has_prefix (uri, "mail:")) {
 		const gchar *fragment;
-		GUri *guri;
 
-		guri = g_uri_parse (uri, SOUP_HTTP_URI_FLAGS | G_URI_FLAGS_PARSE_RELAXED, NULL);
 		if (!guri)
 			goto exit;
 
@@ -4183,8 +4163,6 @@ e_util_get_uri_tooltip (const gchar *uri)
 			g_string_append_printf (message, _("Go to the section %s of the message"), fragment);
 		else
 			g_string_append (message, _("Go to the beginning of the message"));
-
-		g_uri_unref (guri);
 	} else {
 		message = g_string_new (NULL);
 
@@ -4194,18 +4172,23 @@ e_util_get_uri_tooltip (const gchar *uri)
 	if (!format)
 		goto exit;
 
-	/* XXX Use something other than Camel here.  Surely
-	 *     there's other APIs around that can do this. */
-	curl = camel_url_new (uri, NULL);
 	address = camel_internet_address_new ();
-	camel_address_decode (CAMEL_ADDRESS (address), curl->path);
-	camel_internet_address_sanitize_ascii_domain (address);
-	who = camel_address_format (CAMEL_ADDRESS (address));
+	if (guri != NULL) {
+		const gchar *path = g_uri_get_path (guri);
+		if (path && *path) {
+			gchar *decoded_path = g_uri_unescape_string (path, NULL);
+			if (decoded_path && camel_address_decode (CAMEL_ADDRESS (address), decoded_path) > 0) {
+				camel_internet_address_sanitize_ascii_domain (address);
+				who = camel_address_format (CAMEL_ADDRESS (address));
+			}
+			g_free (decoded_path);
+		}
+	}
 
-	if (!who && g_str_has_prefix (uri, "mailto:") && curl->query && *curl->query) {
+	if (!who && g_str_has_prefix (uri, "mailto:") && g_uri_get_query (guri)) {
 		GHashTable *query;
 
-		query = soup_form_decode (curl->query);
+		query = soup_form_decode (g_uri_get_query (guri));
 		if (query) {
 			const gchar *to = g_hash_table_lookup (query, "to");
 			if (to && *to) {
@@ -4218,9 +4201,9 @@ e_util_get_uri_tooltip (const gchar *uri)
 	}
 
 	g_object_unref (address);
-	camel_url_free (curl);
 
-	if (!who) {
+	if (!who || !*who) {
+		g_free (who);
 		who = g_strdup (strchr (uri, ':') + 1);
 		camel_url_decode (who);
 	}
@@ -4232,6 +4215,7 @@ e_util_get_uri_tooltip (const gchar *uri)
 	g_free (who);
 
  exit:
+	g_clear_pointer (&guri, g_uri_unref);
 
 	if (!message)
 		return NULL;
@@ -4624,8 +4608,29 @@ e_util_ignore_accel_for_focused (GtkWidget *focused)
 	if (!focused)
 		return FALSE;
 
+	if (gtk_widget_get_ancestor (focused, GTK_TYPE_POPOVER) != NULL)
+		return TRUE;
+
+	if (GTK_IS_BUTTON (focused)) {
+		GdkEvent *event;
+		gboolean ignore = TRUE;
+
+		event = gtk_get_current_event ();
+		if (event) {
+			GdkModifierType modifs = 0;
+
+			ignore = gdk_event_get_state (event, &modifs) &&
+				(modifs & (GDK_CONTROL_MASK | GDK_MOD1_MASK)) == 0;
+
+			g_clear_pointer (&event, gdk_event_free);
+		}
+
+		return ignore;
+	}
+
 	if ((GTK_IS_ENTRY (focused) || GTK_IS_EDITABLE (focused) ||
-	    (GTK_IS_TREE_VIEW (focused) && gtk_tree_view_get_search_column (GTK_TREE_VIEW (focused)) >= 0))) {
+	    (GTK_IS_TREE_VIEW (focused) && gtk_tree_view_get_enable_search (GTK_TREE_VIEW (focused)) &&
+	     gtk_tree_view_get_search_column (GTK_TREE_VIEW (focused)) >= 0))) {
 		GdkEvent *event;
 		gboolean ignore = TRUE;
 

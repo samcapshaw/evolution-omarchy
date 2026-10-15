@@ -1,30 +1,9 @@
 /*
- * e-cell-tree.c - Tree cell object.
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
- * Authors:
- *   Chris Toshok <toshok@ximian.com>
- *
- * A majority of code taken from:
- *
- * the ECellText renderer.
- * Copyright 1998, The Free Software Foundation
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * published by the Free Software Foundation; either the version 2 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser  General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA.
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-FileCopyrightText: (C) 1998, The Free Software Foundation
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileContributor: Chris Toshok <toshok@ximian.com>
  */
 
 #include "evolution-config.h"
@@ -257,7 +236,7 @@ draw_expander (ECellTreeView *ectv,
 
 	gtk_style_context_set_state (style_context, flags);
 
-	gtk_widget_style_get (tree, "expander_size", &exp_size, NULL);
+	gtk_widget_style_get (tree, "expander-size", &exp_size, NULL);
 
 	cairo_save (cr);
 
@@ -342,7 +321,7 @@ static void
 adjust_event_position (GdkEvent *event,
                        gint offset)
 {
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 	case GDK_BUTTON_PRESS:
 	case GDK_BUTTON_RELEASE:
 	case GDK_2BUTTON_PRESS:
@@ -362,7 +341,7 @@ event_in_expander (GdkEvent *event,
                    gint offset,
                    gint height)
 {
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 	case GDK_BUTTON_PRESS:
 		return (event->button.x > (offset - INDENT_AMOUNT) && event->button.x < offset);
 	case GDK_MOTION_NOTIFY:
@@ -456,7 +435,7 @@ ect_event (ECellView *ecell_view,
 	layout = GTK_LAYOUT (tree_view->canvas);
 	window = gtk_layout_get_bin_window (layout);
 
-	switch (event->type) {
+	switch (gdk_event_get_event_type (event)) {
 	case GDK_BUTTON_PRESS:
 
 		if (E_CELL_TREE (tree_view->cell_view.ecell)->show_expander &&
@@ -748,7 +727,7 @@ ect_print (ECellView *ecell_view,
 			GdkRectangle r;
 			gint exp_size = 0;
 
-			gtk_widget_style_get (GTK_WIDGET (gtk_widget_get_parent (GTK_WIDGET (tree_view->canvas))), "expander_size", &exp_size, NULL);
+			gtk_widget_style_get (GTK_WIDGET (gtk_widget_get_parent (GTK_WIDGET (tree_view->canvas))), "expander-size", &exp_size, NULL);
 
 			node = e_cell_tree_get_node (ecell_view->e_table_model, row);
 			expanded = e_tree_table_adapter_node_is_expanded (tree_table_adapter, node);

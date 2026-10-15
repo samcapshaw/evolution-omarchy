@@ -340,7 +340,7 @@
     <key name="drag-and-drop-save-file-format" type="s">
       <default>'mbox'</default>
       <_summary>Save file format for drag-and-drop operation</_summary>
-      <_description>Can be either “mbox” or “pdf”.</_description>
+      <_description>Can be either “mbox”, “eml” or “pdf”. The “eml” can switch to the “mbox” when there is more than one message selected.</_description>
     </key>
     <key name="show-animated-images" type="b">
       <default>false</default>
@@ -714,7 +714,7 @@
     <key name="show-real-date" type="b">
       <default>true</default>
       <_summary>Show original “Date” header value.</_summary>
-      <_description>Show the original “Date” header (with a local time only if the time zone differs). Otherwise always show “Date” header value in a user preferred format and local time zone.</_description>
+      <_description>Show the original “Date” header with a user preferred format and in the local time zone value beside it.</_description>
     </key>
     <key name="labels" type="as">
       <default>['I_mportant:#EF2929','_Work:#F57900','_Personal:#4E9A06','_To Do:#3465A4','_Later:#75507B']</default>
@@ -811,6 +811,11 @@
       <_summary>Inherit theme colors in HTML format</_summary>
       <_description>When enabled the theme colors for background, text and links are sent in resulting HTML formatted message.</_description>
     </key>
+    <key name="composer-use-theme-colors" type="b">
+      <default>false</default>
+      <_summary>Use theme colors in HTML composer</_summary>
+      <_description>When enabled the theme colors are used for the composer background and text while editing, but they are not included in the sent message. This option has no effect when “Inherit theme colors” is enabled.</_description>
+    </key>
     <child name="browser-window" schema="org.gnome.evolution.window"/>
     <child name="composer-window" schema="org.gnome.evolution.window"/>
     <child name="filter-window" schema="org.gnome.evolution.window"/>
@@ -818,6 +823,7 @@
     <child name="subscription-window" schema="org.gnome.evolution.window"/>
     <child name="vfolder-window" schema="org.gnome.evolution.window"/>
     <child name="viewer-window" schema="org.gnome.evolution.window"/>
+    <child name="folder-selector-window" schema="org.gnome.evolution.window"/>
 
     <key name="local-archive-folder" type="s">
       <default>''</default>

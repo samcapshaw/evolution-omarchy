@@ -1,17 +1,6 @@
 /*
- * Copyright (C) 2019 Red Hat (www.redhat.com)
- *
- * This library is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this library. If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 2019 Red Hat (www.redhat.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -133,6 +122,8 @@ test_utils_fixture_set_up (TestFixture *fixture,
 
 	fixture->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
+	gtk_window_set_decorated (GTK_WINDOW (fixture->window), FALSE);
+
 	gtk_window_set_default_size (GTK_WINDOW (fixture->window), 320, 240);
 
 	fixture->web_view = WEBKIT_WEB_VIEW (e_web_view_new ());
@@ -251,6 +242,7 @@ typedef struct _JSCCallData {
 	TestFixture *fixture;
 	const gchar *script;
 	JSCValue **out_result;
+	gboolean success;
 } JSCCallData;
 
 static void
@@ -267,11 +259,13 @@ test_utils_jsc_call_sync_done_cb (GObject *source_object,
 	value = webkit_web_view_evaluate_javascript_finish (WEBKIT_WEB_VIEW (source_object), result, &error);
 
 	if (error) {
-		if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED) &&
-		    (!g_error_matches (error, WEBKIT_JAVASCRIPT_ERROR, WEBKIT_JAVASCRIPT_ERROR_SCRIPT_FAILED) ||
-		     /* WebKit can return empty error message, thus ignore those. */
-		     (error->message && *(error->message))))
-			g_warning ("Failed to call '%s': %s", jcd->script, error->message);
+		if (!g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+			if (!g_error_matches (error, WEBKIT_JAVASCRIPT_ERROR, WEBKIT_JAVASCRIPT_ERROR_SCRIPT_FAILED) ||
+			    /* WebKit can return empty error message, thus ignore those. */
+			    (error->message && *(error->message)))
+				g_warning ("Failed to call '%s': %s", jcd->script, error->message);
+			jcd->success = FALSE;
+		}
 		g_clear_error (&error);
 	}
 
@@ -283,6 +277,7 @@ test_utils_jsc_call_sync_done_cb (GObject *source_object,
 		if (exception) {
 			g_warning ("Failed to call '%s': %s", jcd->script, jsc_exception_get_message (exception));
 			jsc_context_clear_exception (jsc_value_get_context (value));
+			jcd->success = FALSE;
 		} else if (jcd->out_result) {
 			*(jcd->out_result) = value ? g_object_ref (value) : NULL;
 		}
@@ -321,10 +316,14 @@ test_utils_jsc_call_sync (TestFixture *fixture,
 	jcd.fixture = fixture;
 	jcd.script = script;
 	jcd.out_result = out_result;
+	jcd.success = TRUE;
 
 	webkit_web_view_evaluate_javascript (fixture->web_view, script, -1, NULL, NULL, NULL, test_utils_jsc_call_sync_done_cb, &jcd);
 
 	test_utils_wait (fixture);
+
+	if (!jcd.success)
+		g_error ("test_utils_jsc_call_sync: script failed: %s", script);
 }
 
 static gboolean
@@ -3612,6 +3611,8 @@ main (gint argc,
 	gint res;
 
 	setlocale (LC_ALL, "");
+
+	g_set_prgname ("test-web-view-jsc");
 
 	g_test_init (&argc, &argv, NULL);
 	g_test_bug_base ("https://gitlab.gnome.org/GNOME/evolution/issues/");

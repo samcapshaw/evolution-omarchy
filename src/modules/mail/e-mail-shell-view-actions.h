@@ -1,21 +1,6 @@
 /*
- * e-mail-shell-view-actions.h
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
- *
- * Copyright (C) 1999-2008 Novell, Inc. (www.novell.com)
- *
+ * SPDX-FileCopyrightText: (C) 1999-2008 Novell, Inc. (www.novell.com)
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifndef E_MAIL_SHELL_VIEW_ACTIONS_H
@@ -86,8 +71,6 @@
 	E_SHELL_VIEW_ACTION ((view), "mail-folder-move")
 #define E_SHELL_VIEW_ACTION_MAIL_FOLDER_NEW(view) \
 	E_SHELL_VIEW_ACTION ((view), "mail-folder-new")
-#define E_SHELL_VIEW_ACTION_MAIL_FOLDER_NEW_FULL(view) \
-	E_SHELL_VIEW_ACTION ((view), "mail-folder-new-full")
 #define E_SHELL_VIEW_ACTION_MAIL_FOLDER_PROPERTIES(view) \
 	E_SHELL_VIEW_ACTION ((view), "mail-folder-properties")
 #define E_SHELL_VIEW_ACTION_MAIL_FOLDER_REFRESH(view) \

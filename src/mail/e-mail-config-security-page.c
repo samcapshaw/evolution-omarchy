@@ -1,18 +1,5 @@
 /*
- * e-mail-config-security-page.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "evolution-config.h"
@@ -36,8 +23,11 @@ struct _EMailConfigSecurityPagePrivate {
 
 enum {
 	PROP_0,
-	PROP_IDENTITY_SOURCE
+	PROP_IDENTITY_SOURCE,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Forward Declarations */
 static void	e_mail_config_security_page_interface_init
@@ -538,9 +528,6 @@ mail_config_security_page_constructed (GObject *object)
 		"", _("Default"));
 	gtk_combo_box_text_append (
 		GTK_COMBO_BOX_TEXT (widget),
-		"sha1", _("SHA1"));
-	gtk_combo_box_text_append (
-		GTK_COMBO_BOX_TEXT (widget),
 		"sha256", _("SHA256"));
 	gtk_combo_box_text_append (
 		GTK_COMBO_BOX_TEXT (widget),
@@ -788,9 +775,6 @@ mail_config_security_page_constructed (GObject *object)
 		"", _("Default"));
 	gtk_combo_box_text_append (
 		GTK_COMBO_BOX_TEXT (widget),
-		"sha1", _("SHA1"));
-	gtk_combo_box_text_append (
-		GTK_COMBO_BOX_TEXT (widget),
 		"sha256", _("SHA256"));
 	gtk_combo_box_text_append (
 		GTK_COMBO_BOX_TEXT (widget),
@@ -914,17 +898,20 @@ e_mail_config_security_page_class_init (EMailConfigSecurityPageClass *class)
 	object_class->dispose = mail_config_security_page_dispose;
 	object_class->constructed = mail_config_security_page_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_IDENTITY_SOURCE,
+	/**
+	 * EMailConfigSecurityPage:identity-source
+	 *
+	 * Mail identity source being edited
+	 **/
+	properties[PROP_IDENTITY_SOURCE] =
 		g_param_spec_object (
-			"identity-source",
-			"Identity Source",
-			"Mail identity source being edited",
+			"identity-source", NULL, NULL,
 			E_TYPE_SOURCE,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 }
 
 static void

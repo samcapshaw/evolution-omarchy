@@ -1,18 +1,5 @@
 /*
- * gal-view-collection.c
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "gal-view-collection.h"
@@ -47,8 +34,11 @@ struct _GalViewCollectionPrivate {
 enum {
 	PROP_0,
 	PROP_SYSTEM_DIRECTORY,
-	PROP_USER_DIRECTORY
+	PROP_USER_DIRECTORY,
+	N_PROPS
 };
+
+static GParamSpec *properties[N_PROPS] = { NULL, };
 
 enum {
 	CHANGED,
@@ -228,6 +218,8 @@ load_single_file (GalViewCollection *collection,
 			item->view_changed_id = g_signal_connect (
 				item->view, "changed",
 				G_CALLBACK (view_changed), item);
+		} else {
+			g_warning ("Failed to find view type '%s' for '%s'", item->type, item->title);
 		}
 	}
 	return item;
@@ -457,29 +449,33 @@ gal_view_collection_class_init (GalViewCollectionClass *class)
 	object_class->finalize = gal_view_collection_finalize;
 	object_class->constructed = gal_view_collection_constructed;
 
-	g_object_class_install_property (
-		object_class,
-		PROP_SYSTEM_DIRECTORY,
+	/**
+	 * GalViewCollection:system-directory
+	 *
+	 * Directory from which to load built-in views
+	 **/
+	properties[PROP_SYSTEM_DIRECTORY] =
 		g_param_spec_string (
-			"system-directory",
-			"System Directory",
-			"Directory from which to load built-in views",
+			"system-directory", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
 
-	g_object_class_install_property (
-		object_class,
-		PROP_USER_DIRECTORY,
+	/**
+	 * GalViewCollection:user-directory
+	 *
+	 * Directory from which to load user-created views
+	 **/
+	properties[PROP_USER_DIRECTORY] =
 		g_param_spec_string (
-			"user-directory",
-			"User Directory",
-			"Directory from which to load user-created views",
+			"user-directory", NULL, NULL,
 			NULL,
 			G_PARAM_READWRITE |
 			G_PARAM_CONSTRUCT_ONLY |
-			G_PARAM_STATIC_STRINGS));
+			G_PARAM_STATIC_STRINGS);
+
+	g_object_class_install_properties (object_class, N_PROPS, properties);
 
 	signals[CHANGED] = g_signal_new (
 		"changed",
