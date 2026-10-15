@@ -68,6 +68,7 @@ static GParamSpec *properties[N_PROPS] = { NULL, };
 
 /* Forward Declarations */
 static void e_mail_paned_view_reader_init (EMailReaderInterface *iface);
+static void mail_paned_view_responsive_size_allocate_cb (GtkWidget *widget, GtkAllocation *allocation, gpointer user_data);
 
 G_DEFINE_TYPE_WITH_CODE (EMailPanedView, e_mail_paned_view, E_TYPE_MAIL_VIEW,
 	G_ADD_PRIVATE (EMailPanedView)
@@ -224,6 +225,7 @@ mail_paned_view_message_selected_cb (EMailView *view,
 	gchar *folder_uri;
 	gchar *group_name;
 
+	mail_paned_view_responsive_size_allocate_cb (GTK_WIDGET (view), NULL, NULL);
 	folder = message_list_ref_folder (message_list);
 
 	/* This also gets triggered when selecting a store name on
@@ -394,7 +396,7 @@ mail_paned_view_responsive_idle_cb (gpointer user_data)
 	EShellView *shell_view = e_mail_view_get_shell_view (E_MAIL_VIEW (self));
 	GtkWidget *window, *header;
 	GtkOrientation requested, target;
-	gboolean stacked, changed;
+	gboolean stacked, changed, preview_visible;
 	self->priv->responsive_idle = 0;
 	if (!shell_view || !self->priv->paned)
 		return G_SOURCE_REMOVE;
@@ -413,6 +415,10 @@ mail_paned_view_responsive_idle_cb (gpointer user_data)
 		if (stacked)
 			e_paned_set_proportion (E_PANED (self->priv->paned), 0.40);
 	}
+	g_object_get (self, "preview-visible", &preview_visible, NULL);
+	/* Do not reserve half a small window for an empty reading pane. */
+	gtk_widget_set_visible (gtk_paned_get_child2 (GTK_PANED (self->priv->paned)),
+		preview_visible && (!stacked || message_list_selected_count (MESSAGE_LIST (self->priv->message_list)) > 0));
 	header = e_shell_view_get_headerbar (shell_view);
 	if (header)
 		mail_paned_view_compact_header (header, GINT_TO_POINTER (gtk_widget_get_allocated_width (window)));
