@@ -408,12 +408,14 @@ mail_paned_view_responsive_idle_cb (gpointer user_data)
 	changed = stacked != self->priv->responsive_stacked;
 	if (changed || gtk_orientable_get_orientation (GTK_ORIENTABLE (self->priv->paned)) != target) {
 		EShellWindow *shell_window = e_shell_view_get_shell_window (shell_view);
+		/* EPaned can notify its ratio during the orientation change itself. */
+		g_settings_unbind (self->priv->paned, "proportion");
 		self->priv->responsive_stacked = stacked;
 		g_object_set_data (G_OBJECT (self->priv->paned), "oma-responsive-stacked", GINT_TO_POINTER (stacked));
 		gtk_orientable_set_orientation (GTK_ORIENTABLE (self->priv->paned), target);
 		mail_paned_view_notify_orientation_cb (self->priv->paned, NULL, shell_window);
 		if (stacked)
-			e_paned_set_proportion (E_PANED (self->priv->paned), 0.40);
+			e_paned_set_proportion (E_PANED (self->priv->paned), 0.60);
 	}
 	g_object_get (self, "preview-visible", &preview_visible, NULL);
 	/* Do not reserve half a small window for an empty reading pane. */
