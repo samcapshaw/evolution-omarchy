@@ -4,6 +4,10 @@ An unofficial Evolution 3.62.1 fork with an Apple Mail inspired layout and a Tok
 
 ## Changes
 
+- A compact 12-pixel status margin keeps unread dots close to the message text; flags sit below them instead of widening the row.
+- Responsive reading layout: narrow content areas use a full-width message list above the preview; wide areas retain the side-by-side layout. Automatic changes do not overwrite the saved desktop split ratio or change message selection.
+- Narrow windows show the essential header actions; secondary actions stay available in menus. Folder titles truncate earlier instead of pushing the controls offscreen.
+
 - Unified **All Inboxes** under the first **Mailboxes** section. Account inboxes are discovered automatically; their subfolders are excluded.
 - Local folders move to **Local Storage** at the bottom, with a clearly named **Local Inbox**.
 - Side-by-side reading pane with padded message rows, fine separators, emphasized sender/subject, and up to two lines of body preview when supplied by the mail backend.
@@ -29,7 +33,7 @@ Message dividers begin at the text column, the redundant column heading is hidde
 
 ## Update branch status
 
-This branch merges upstream Evolution 3.62.1 while preserving the Omarchy changes. It requires Evolution Data Server 3.62.1 or newer and matching EWS/Microsoft365 modules; the existing 3.60.2 installation must not be overwritten with a mixed-version build. The `omarchy` branch remains the working 3.60.2 baseline as a rollback baseline. The new local stack has passed the checks described below.
+This branch merges upstream Evolution 3.62.1 while preserving the Omarchy changes. It requires Evolution Data Server 3.62.1 or newer and matching EWS/Microsoft365 modules; the existing 3.60.2 installation must not be overwritten with a mixed-version build. The `omarchy-3.60` branch preserves the previous working 3.60.2 build as a rollback baseline. The new local stack has passed the checks described below.
 
 The header now exposes **Check Mail**, a receive-only action that leaves queued outgoing messages alone. The optional appearance defaults enable Evolution's native status/activity bar. No custom timer, credential handler, or replacement synchronization engine is introduced.
 

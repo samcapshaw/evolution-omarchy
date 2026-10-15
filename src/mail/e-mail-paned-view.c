@@ -44,6 +44,8 @@ struct _EMailPanedViewPrivate {
 	gchar *last_selected_uid;
 
 	gboolean preview_toolbar_visible;
+	guint responsive_idle;
+	gboolean responsive_stacked;
 };
 
 enum {
@@ -303,6 +305,9 @@ mail_paned_view_notify_orientation_cb (GtkWidget *paned,
 	g_return_if_fail (E_IS_SHELL_WINDOW (shell_window));
 
 	g_settings_unbind (paned, "proportion");
+	/* Narrow layouts have a temporary split, never a saved desktop ratio. */
+	if (g_object_get_data (G_OBJECT (paned), "oma-responsive-stacked"))
+		return;
 
 	if (e_shell_window_is_main_instance (shell_window)) {
 		if (gtk_orientable_get_orientation (GTK_ORIENTABLE (paned)) == GTK_ORIENTATION_HORIZONTAL)
@@ -343,6 +348,87 @@ mail_paned_view_restore_state_cb (EShellWindow *shell_window,
 		G_CALLBACK (mail_paned_view_notify_orientation_cb), shell_window);
 
 	mail_paned_view_notify_orientation_cb (priv->paned, NULL, shell_window);
+}
+
+/* Use native panes and actions at every size; only their presentation changes. */
+static void
+mail_paned_view_compact_header (GtkWidget *widget,
+                               gpointer user_data)
+{
+	gint width = GPOINTER_TO_INT (user_data);
+	if (E_IS_HEADER_BAR_BUTTON (widget)) {
+		EUIAction *action = NULL;
+		const gchar *name;
+		gboolean secondary, hidden;
+		g_object_get (widget, "action", &action, NULL);
+		if (!action)
+			return;
+		name = g_action_get_name (G_ACTION (action));
+		secondary = g_str_equal (name, "mail-jump-top") ||
+			g_str_equal (name, "mail-reply-all") ||
+			g_str_equal (name, "mail-forward") ||
+			g_str_equal (name, "oma-mail-flag-toggle") ||
+			g_str_equal (name, "mail-archive");
+		hidden = (secondary && width < 1000) ||
+			(g_str_equal (name, "oma-unread-filter") && width < 600);
+		if (secondary || g_str_equal (name, "oma-unread-filter")) {
+			gtk_widget_set_no_show_all (widget, hidden);
+			gtk_widget_set_visible (widget, !hidden && e_ui_action_is_visible (action));
+		}
+		g_object_unref (action);
+		return;
+	}
+	if (GTK_IS_LABEL (widget) &&
+	    gtk_style_context_has_class (gtk_widget_get_style_context (widget), "title")) {
+		gtk_label_set_ellipsize (GTK_LABEL (widget), PANGO_ELLIPSIZE_END);
+		gtk_label_set_max_width_chars (GTK_LABEL (widget), width < 600 ? 6 : (width < 1000 ? 12 : 30));
+	}
+	if (GTK_IS_CONTAINER (widget))
+		gtk_container_forall (GTK_CONTAINER (widget), mail_paned_view_compact_header, user_data);
+}
+
+static gboolean
+mail_paned_view_responsive_idle_cb (gpointer user_data)
+{
+	EMailPanedView *self = E_MAIL_PANED_VIEW (user_data);
+	EShellView *shell_view = e_mail_view_get_shell_view (E_MAIL_VIEW (self));
+	GtkWidget *window, *header;
+	GtkOrientation requested, target;
+	gboolean stacked, changed;
+	self->priv->responsive_idle = 0;
+	if (!shell_view || !self->priv->paned)
+		return G_SOURCE_REMOVE;
+	window = gtk_widget_get_toplevel (GTK_WIDGET (self));
+	requested = gtk_orientable_get_orientation (GTK_ORIENTABLE (self));
+	stacked = requested == GTK_ORIENTATION_HORIZONTAL &&
+		gtk_widget_get_allocated_width (GTK_WIDGET (self)) < 840;
+	target = stacked ? GTK_ORIENTATION_VERTICAL : requested;
+	changed = stacked != self->priv->responsive_stacked;
+	if (changed || gtk_orientable_get_orientation (GTK_ORIENTABLE (self->priv->paned)) != target) {
+		EShellWindow *shell_window = e_shell_view_get_shell_window (shell_view);
+		self->priv->responsive_stacked = stacked;
+		g_object_set_data (G_OBJECT (self->priv->paned), "oma-responsive-stacked", GINT_TO_POINTER (stacked));
+		gtk_orientable_set_orientation (GTK_ORIENTABLE (self->priv->paned), target);
+		mail_paned_view_notify_orientation_cb (self->priv->paned, NULL, shell_window);
+		if (stacked)
+			e_paned_set_proportion (E_PANED (self->priv->paned), 0.40);
+	}
+	header = e_shell_view_get_headerbar (shell_view);
+	if (header)
+		mail_paned_view_compact_header (header, GINT_TO_POINTER (gtk_widget_get_allocated_width (window)));
+	return G_SOURCE_REMOVE;
+}
+
+static void
+mail_paned_view_responsive_size_allocate_cb (GtkWidget *widget,
+                                            GtkAllocation *allocation,
+                                            gpointer user_data)
+{
+	EMailPanedView *self = E_MAIL_PANED_VIEW (widget);
+	/* Defer orientation changes to avoid recursive allocations during tiling. */
+	if (!self->priv->responsive_idle)
+		self->priv->responsive_idle = g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+			mail_paned_view_responsive_idle_cb, g_object_ref (self), g_object_unref);
 }
 
 static void
@@ -483,6 +569,10 @@ mail_paned_view_dispose (GObject *object)
 {
 	EMailPanedView *self = E_MAIL_PANED_VIEW (object);
 
+	if (self->priv->responsive_idle) {
+		g_source_remove (self->priv->responsive_idle);
+		self->priv->responsive_idle = 0;
+	}
 	e_mail_reader_dispose (E_MAIL_READER (object));
 
 	g_clear_object (&self->priv->paned);
@@ -814,7 +904,7 @@ mail_paned_view_constructed (GObject *object)
 	gtk_scrolled_window_set_policy (
 		GTK_SCROLLED_WINDOW (widget),
 		GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
-	gtk_paned_pack1 (GTK_PANED (container), widget, TRUE, FALSE);
+	gtk_paned_pack1 (GTK_PANED (container), widget, TRUE, TRUE);
 	self->priv->scrolled_window = g_object_ref (widget);
 	gtk_widget_show (widget);
 
@@ -834,7 +924,7 @@ mail_paned_view_constructed (GObject *object)
 
 	widget = GTK_WIDGET (e_mail_display_get_attachment_view (self->priv->display));
 	gtk_widget_show (widget);
-	gtk_paned_pack2 (GTK_PANED (container), widget, FALSE, FALSE);
+	gtk_paned_pack2 (GTK_PANED (container), widget, FALSE, TRUE);
 
 	e_binding_bind_property (
 		object, "preview-visible",
@@ -883,6 +973,9 @@ mail_paned_view_constructed (GObject *object)
 	e_mail_view_set_preview_visible (view, TRUE);
 
 	e_extensible_load_extensions (E_EXTENSIBLE (object));
+
+	g_signal_connect (self, "size-allocate",
+		G_CALLBACK (mail_paned_view_responsive_size_allocate_cb), NULL);
 
 	/* Chain up to parent's constructed() method. */
 	G_OBJECT_CLASS (e_mail_paned_view_parent_class)->constructed (object);

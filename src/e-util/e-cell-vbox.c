@@ -28,7 +28,7 @@ G_DEFINE_TYPE (ECellVbox, e_cell_vbox, E_TYPE_CELL)
 static gint
 mail_gutter_width (ECellView *view)
 {
-	return g_object_get_data (G_OBJECT (view->ecell), "oma-unread-gutter-col") ? 32 : 0;
+	return g_object_get_data (G_OBJECT (view->ecell), "oma-unread-gutter-col") ? 12 : 0;
 }
 
 static void
@@ -40,17 +40,17 @@ mail_gutter_draw (ECellView *view, cairo_t *cr, gint row, gint x, gint y, gint h
 	cairo_save (cr);
 	cairo_set_source_rgb (cr, 122.0 / 255, 162.0 / 255, 247.0 / 255);
 	if (GPOINTER_TO_INT (e_table_model_value_at (view->e_table_model, unread_col, row))) {
-		cairo_arc (cr, x + 8, cy, 3.5, 0, 2 * G_PI);
+		cairo_arc (cr, x + 6, cy, 3.0, 0, 2 * G_PI);
 		cairo_fill (cr);
 	}
 	if (GPOINTER_TO_INT (e_table_model_value_at (view->e_table_model, flag_col, row))) {
 		cairo_set_line_width (cr, 1.5);
-		cairo_move_to (cr, x + 20, cy + 6);
-		cairo_line_to (cr, x + 20, cy - 6);
-		cairo_line_to (cr, x + 28, cy - 6);
-		cairo_line_to (cr, x + 26, cy - 3);
-		cairo_line_to (cr, x + 28, cy);
-		cairo_line_to (cr, x + 20, cy);
+		cairo_move_to (cr, x + 2, cy + height + 5);
+		cairo_line_to (cr, x + 2, cy + height - 5);
+		cairo_line_to (cr, x + 10, cy + height - 5);
+		cairo_line_to (cr, x + 8, cy + height - 2);
+		cairo_line_to (cr, x + 10, cy + height + 1);
+		cairo_line_to (cr, x + 2, cy + height + 1);
 		cairo_stroke (cr);
 	}
 	cairo_restore (cr);

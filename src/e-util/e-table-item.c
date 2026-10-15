@@ -1881,7 +1881,7 @@ eti_draw_grid_line (ETableItem *eti,
 	/* Match the mail text edge: status gutter, tree spacing, text padding. */
 	if (y1 == y2 && x2 > x1 &&
 	    g_strcmp0 (gtk_widget_get_name (gtk_widget_get_parent (GTK_WIDGET (GNOME_CANVAS_ITEM (eti)->canvas))), "omamail-message-list") == 0)
-		x1 = MIN (x1 + 52, x2);
+		x1 = MIN (x1 + 32, x2);
 
 	cairo_save (cr);
 
