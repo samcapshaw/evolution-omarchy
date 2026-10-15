@@ -1,6 +1,6 @@
 # Evolution for Omarchy
 
-An unofficial Evolution 3.60.2 fork with an Apple Mail inspired layout and a Tokyo Night palette. Upstream: [GNOME Evolution](https://gitlab.gnome.org/GNOME/evolution), mirrored at [GNOME/evolution](https://github.com/GNOME/evolution).
+An unofficial Evolution 3.62.1 fork with an Apple Mail inspired layout and a Tokyo Night palette. Upstream: [GNOME Evolution](https://gitlab.gnome.org/GNOME/evolution), mirrored at [GNOME/evolution](https://github.com/GNOME/evolution).
 
 ## Changes
 
@@ -27,6 +27,26 @@ The top toolbar includes an Unread toggle: click once to show unread mail in the
 
 Message dividers begin at the text column, the redundant column heading is hidden, and today’s messages show only their local time. Older messages retain the normal date format.
 
+## Update branch status
+
+This branch merges upstream Evolution 3.62.1 while preserving the Omarchy changes. It requires Evolution Data Server 3.62.1 or newer and matching EWS/Microsoft365 modules; the existing 3.60.2 installation must not be overwritten with a mixed-version build. The `omarchy` branch remains the working 3.60.2 baseline until the new stack passes validation.
+
+The header now exposes **Check Mail**, a receive-only action that leaves queued outgoing messages alone. The optional appearance defaults enable Evolution's native status/activity bar. No custom timer, credential handler, or replacement synchronization engine is introduced.
+
+Inspect enabled remote accounts' polling without changing anything:
+
+```sh
+python3 omarchy/refresh.py
+```
+
+Explicitly opt into one-minute checks:
+
+```sh
+python3 omarchy/refresh.py --apply-minutes 1
+```
+
+The tool backs up each changed account source privately outside the checkout before using Evolution's source registry to save the interval. It excludes local folders, search folders and RSS; calendar choices and credentials are preserved. Backups contain private configuration and must not be published.
+
 ## Build and install
 
 On Omarchy/Arch, install Evolution and its build dependencies first:
@@ -35,10 +55,10 @@ On Omarchy/Arch, install Evolution and its build dependencies first:
 omarchy pkg add evolution evolution-ews cmake ninja intltool glib2-devel
 ```
 
-Evolution's upstream CMake checks report any additional development dependencies required by your system. The custom app and system Evolution Data Server/EWS modules must have compatible versions; this branch targets 3.60.2.
+Evolution's upstream CMake checks report any additional development dependencies required by your system. The custom app and system Evolution Data Server/EWS modules must have compatible versions; this branch targets 3.62.1.
 
 ```sh
-git clone --branch omarchy https://github.com/samcapshaw/evolution-omarchy.git
+git clone --branch omarchy-3.62 https://github.com/samcapshaw/evolution-omarchy.git
 cd evolution-omarchy
 ./omarchy/build.sh
 ./omarchy/install.py

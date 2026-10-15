@@ -1787,8 +1787,8 @@ e_mail_shell_view_actions_init (EMailShellView *mail_shell_view)
 		  action_mail_send_receive_cb, NULL, NULL, NULL },
 
 		{ "mail-send-receive-receive-all",
-		  NULL,
-		  N_("R_eceive All"),
+		  "view-refresh",
+		  N_("Check _Mail"),
 		  NULL,
 		  N_("Receive new items from all accounts"),
 		  action_mail_send_receive_receive_all_cb, NULL, NULL, NULL },

@@ -1,7 +1,7 @@
 <eui>
   <headerbar id='main-headerbar'>
     <start>
-      <item action='mail-send-receive' label_priority='999999'/>
+      <item action='mail-send-receive-receive-all' icon_only='false' label_priority='0'/>
       <item action='mail-jump-top' icon_only='false' label_priority='0'/>
     </start>
     <end>

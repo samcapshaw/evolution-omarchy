@@ -14,7 +14,7 @@ defaults = {
         'use-header-bar': True, 'icon-only-buttons-in-header-bar': True,
         'prefer-symbolic-icons': 'yes', 'toolbar-icon-size': 'small',
         'menubar-visible': False, 'toolbar-visible': False,
-        'sidebar-visible': True, 'statusbar-visible': False,
+        'sidebar-visible': True, 'statusbar-visible': True,
         'buttons-visible': True, 'buttons-style': 'both',
         'buttons-hide': ['tasks', 'memos'], 'folder-bar-width': 230,
     },
