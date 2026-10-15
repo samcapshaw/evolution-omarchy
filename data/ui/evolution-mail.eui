@@ -30,7 +30,12 @@
         <item action='mail-tools-search-folders'/>
       </placeholder>
     </submenu>
+    <submenu action='mail-message-menu'>
+      <item action='oma-mail-flag-toggle'/>
+    </submenu>
     <submenu action='view-menu'>
+      <item action='mail-jump-top'/>
+      <item action='oma-unread-filter'/>
       <submenu action='layout-menu'>
         <placeholder id='view-layout-custom-menus'>
           <item action='mail-show-preview-toolbar'/>
