@@ -6,3 +6,5 @@ _build
 
 /build-omarchy/
 /omarchy/__pycache__/
+
+/build-stack/

@@ -47,12 +47,18 @@ python3 omarchy/refresh.py --apply-minutes 1
 
 The tool backs up each changed account source privately outside the checkout before using Evolution's source registry to save the interval. It excludes local folders, search folders and RSS; calendar choices and credentials are preserved. Backups contain private configuration and must not be published.
 
+### Isolated dependency build
+
+When the distribution still ships 3.60, the explicit `bash omarchy/build-stack.sh` command builds pinned 3.62.1 Data Server and EWS sources plus this fork into a dedicated user-local prefix. It does not alter the current launcher, install D-Bus overrides or replace running system services. The script needs the usual build dependencies plus gperf and uses four build jobs by default. GTK 3 OAuth remains enabled; optional GNOME Online Accounts, weather, LDAP and Berkeley DB backends are omitted from this isolated stack.
+
+This is a candidate build, not a supported mixed-version system upgrade. Keep the working 3.60.2 app until the matching stack and account/calendar behavior are validated. Run a candidate with its own library search path and schema directory; never load the system 3.60 EWS modules into it.
+
 ## Build and install
 
 On Omarchy/Arch, install Evolution and its build dependencies first:
 
 ```sh
-omarchy pkg add evolution evolution-ews cmake ninja intltool glib2-devel
+omarchy pkg add evolution evolution-ews cmake ninja intltool glib2-devel gperf
 ```
 
 Evolution's upstream CMake checks report any additional development dependencies required by your system. The custom app and system Evolution Data Server/EWS modules must have compatible versions; this branch targets 3.62.1.
