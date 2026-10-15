@@ -27,7 +27,7 @@ export PKG_CONFIG_PATH="$install_prefix/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CO
 export LD_LIBRARY_PATH="$install_prefix/lib:$install_prefix/lib/evolution-data-server${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 cmake -S "$stack_dir/evolution-data-server" -B "$stack_dir/eds-build" -G Ninja \
   -DCMAKE_INSTALL_PREFIX="$install_prefix" -DCMAKE_SHARED_LINKER_FLAGS="-L$install_prefix/lib" \
-  -DCMAKE_EXE_LINKER_FLAGS="-L$install_prefix/lib" -DENABLE_GTK_DOC=OFF \
+  -DCMAKE_MODULE_LINKER_FLAGS="-L$install_prefix/lib" -DCMAKE_EXE_LINKER_FLAGS="-L$install_prefix/lib" -DENABLE_GTK_DOC=OFF \
   -DENABLE_INSTALLED_TESTS=OFF -DENABLE_VALA_BINDINGS=OFF -DENABLE_INTROSPECTION=OFF \
   -DENABLE_GOA=OFF -DENABLE_GOOGLE=ON -DENABLE_WEATHER=OFF \
   -DENABLE_OAUTH2_WEBKITGTK4=OFF -DWITH_OPENLDAP=OFF -DWITH_LIBDB=OFF -DENABLE_CANBERRA=OFF
@@ -35,13 +35,13 @@ cmake --build "$stack_dir/eds-build" --parallel "$jobs"
 cmake --install "$stack_dir/eds-build"
 cmake -S "$repo_dir" -B "$stack_dir/mail-build" -G Ninja \
   -DCMAKE_INSTALL_PREFIX="$install_prefix" -DCMAKE_SHARED_LINKER_FLAGS="-L$install_prefix/lib" \
-  -DCMAKE_EXE_LINKER_FLAGS="-L$install_prefix/lib" -DENABLE_GTK_DOC=OFF -DWITH_HELP=OFF \
+  -DCMAKE_MODULE_LINKER_FLAGS="-L$install_prefix/lib" -DCMAKE_EXE_LINKER_FLAGS="-L$install_prefix/lib" -DENABLE_GTK_DOC=OFF -DWITH_HELP=OFF \
   -DENABLE_INSTALLED_TESTS=OFF -DENABLE_TEXT_HIGHLIGHT=OFF
 cmake --build "$stack_dir/mail-build" --parallel "$jobs"
 cmake --install "$stack_dir/mail-build"
 cmake -S "$stack_dir/evolution-ews" -B "$stack_dir/ews-build" -G Ninja \
   -DCMAKE_INSTALL_PREFIX="$install_prefix" -DCMAKE_SHARED_LINKER_FLAGS="-L$install_prefix/lib" \
-  -DCMAKE_EXE_LINKER_FLAGS="-L$install_prefix/lib" -DENABLE_GTK_DOC=OFF -DENABLE_TESTS=OFF
+  -DCMAKE_MODULE_LINKER_FLAGS="-L$install_prefix/lib" -DCMAKE_EXE_LINKER_FLAGS="-L$install_prefix/lib" -DENABLE_GTK_DOC=OFF -DENABLE_TESTS=OFF
 cmake --build "$stack_dir/ews-build" --parallel "$jobs"
 cmake --install "$stack_dir/ews-build"
 printf 'Built the local stack in %s. Your current launcher and account settings were not changed.\n' "$install_prefix"

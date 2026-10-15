@@ -29,7 +29,7 @@ Message dividers begin at the text column, the redundant column heading is hidde
 
 ## Update branch status
 
-This branch merges upstream Evolution 3.62.1 while preserving the Omarchy changes. It requires Evolution Data Server 3.62.1 or newer and matching EWS/Microsoft365 modules; the existing 3.60.2 installation must not be overwritten with a mixed-version build. The `omarchy` branch remains the working 3.60.2 baseline until the new stack passes validation.
+This branch merges upstream Evolution 3.62.1 while preserving the Omarchy changes. It requires Evolution Data Server 3.62.1 or newer and matching EWS/Microsoft365 modules; the existing 3.60.2 installation must not be overwritten with a mixed-version build. The `omarchy` branch remains the working 3.60.2 baseline as a rollback baseline. The new local stack has passed the checks described below.
 
 The header now exposes **Check Mail**, a receive-only action that leaves queued outgoing messages alone. The optional appearance defaults enable Evolution's native status/activity bar. No custom timer, credential handler, or replacement synchronization engine is introduced.
 
@@ -51,7 +51,15 @@ The tool backs up each changed account source privately outside the checkout bef
 
 When the distribution still ships 3.60, the explicit `bash omarchy/build-stack.sh` command builds pinned 3.62.1 Data Server and EWS sources plus this fork into a dedicated user-local prefix. It does not alter the current launcher, install D-Bus overrides or replace running system services. The script needs the usual build dependencies plus gperf and uses four build jobs by default. GTK 3 OAuth remains enabled; optional GNOME Online Accounts, weather, LDAP and Berkeley DB backends are omitted from this isolated stack.
 
-This is a candidate build, not a supported mixed-version system upgrade. Keep the working 3.60.2 app until the matching stack and account/calendar behavior are validated. Run a candidate with its own library search path and schema directory; never load the system 3.60 EWS modules into it.
+Close Mail after building. Explicitly activate the complete local stack with:
+
+```sh
+python3 omarchy/activate-stack.py --prefix "$HOME/.local/opt/evolution-omarchy-next" --apply
+```
+
+Activation creates private backups of configuration and calendar/address-book data, a runtime wrapper with matching library/schema paths, and four reversible **user** systemd service drop-ins for Data Server. It stops the previous user services and starts the new source registry. Packaged files are untouched. Existing account credentials, calendar selections, mail and folder rules remain in place. The standard user prefix is linked to the new runtime only if unused. The old app remains available for rollback.
+
+Use `~/.local/bin/evolution` to open Mail. To restore the previous launcher and services, close Mail and run `python3 omarchy/restore-stack.py --backup PATH --apply` using the private backup path printed during activation. Recovery leaves newer messages and account data intact; it does not blindly restore old mail or calendar caches.
 
 ## Build and install
 
@@ -85,6 +93,9 @@ The preferences script backs up existing Evolution settings before applying defa
 On desktops whose PATH prioritizes `/usr/bin`, launching plain `evolution` in a terminal still opens the packaged app. Use the desktop launcher or `~/.local/bin/evolution` explicitly.
 
 ## Validation
+
+The 3.62.1 app, Data Server and EWS modules compiled. Six focused Camel tests passed for MIME filters, message threads, virtual folders and body search. All three Evolution CTest tests passed (Markdown, UI actions, WebKit/JSC); the WebKit run used Hunspell alone because optional system spell-check modules had missing dependencies, with desktop accessibility/GVFS integrations isolated for the test. The offline app loaded the existing unified inbox with custom rows, and the native viewer rendered a fictional EML. Runtime services were switched to the matching local Data Server stack. No test email was sent. Full provider-specific regression coverage and real meeting edits are not claimed.
+
 
 The matching source changes were compiled and exercised on an Omarchy desktop with Google Workspace and Microsoft365 mail/calendar backends. Unified mail and calendar views were inspected, calendar checkbox choices matched after reopening, and the custom viewer loaded without missing-library errors. Flagging was checked in both directions using synthetic local mail. The editor sandbox includes the custom library path so HTML replies can load their quoted content. The unread toolbar toggle was exercised against three synthetic messages: one unread message remained when enabled, and all three returned when disabled. No test email was sent. This is a personal desktop fork, not an upstream-supported release.
 
