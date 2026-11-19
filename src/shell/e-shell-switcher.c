@@ -18,8 +18,9 @@
 
 #include "e-shell-switcher.h"
 
-#define H_PADDING 6
-#define V_PADDING 6
+/* Tighter rail: icons-only switcher should feel like a dock, not a button grid. */
+#define H_PADDING 4
+#define V_PADDING 4
 
 struct _EShellSwitcherPrivate {
 	GList *proxies;
@@ -530,6 +531,7 @@ e_shell_switcher_init (EShellSwitcher *switcher)
 	switcher->priv = e_shell_switcher_get_instance_private (switcher);
 
 	gtk_widget_set_has_window (GTK_WIDGET (switcher), FALSE);
+	gtk_widget_set_name (GTK_WIDGET (switcher), "omamail-switcher");
 
 	e_extensible_load_extensions (E_EXTENSIBLE (switcher));
 }

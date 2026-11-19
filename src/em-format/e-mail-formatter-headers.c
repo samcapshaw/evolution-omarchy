@@ -135,14 +135,27 @@ format_short_headers (EMailFormatter *formatter,
 		g_string_append (buffer, subject);
 	else
 		g_string_append (buffer, _("(no subject)"));
-	g_string_append (buffer, "</div><div class=\"oma-message-meta\">");
-	if (from->len > 0)
-		g_string_append_printf (buffer, "<div class=\"oma-message-sender\">%s</div>", from->str);
-	if (date)
-		g_string_append_printf (buffer, "<div class=\"oma-message-date\">%s</div>", date);
 	g_string_append (buffer, "</div>");
-	if (to->len > 0)
-		g_string_append_printf (buffer, "<div class=\"oma-message-to\">%s: %s</div>", _("To"), to->str);
+	/* Sender by name (address on hover), then one quiet line: To · date. */
+	if (addrs && addrs->type == CAMEL_HEADER_ADDRESS_NAME && addrs->name && *addrs->name && addrs->v.addr) {
+		gchar *name = g_markup_escape_text (addrs->name, -1);
+		gchar *addr = g_markup_escape_text (addrs->v.addr, -1);
+		g_string_append_printf (buffer, "<div class=\"oma-message-sender\" title=\"%s\">%s</div>", addr, name);
+		g_free (name);
+		g_free (addr);
+	} else if (from->len > 0) {
+		g_string_append_printf (buffer, "<div class=\"oma-message-sender\">%s</div>", from->str);
+	}
+	if (to->len > 0 || date) {
+		g_string_append (buffer, "<div class=\"oma-message-meta\">");
+		if (to->len > 0)
+			g_string_append_printf (buffer, "<span class=\"oma-message-to\">%s: %s</span>", _("To"), to->str);
+		if (to->len > 0 && date)
+			g_string_append (buffer, "<span class=\"oma-message-sep\"> · </span>");
+		if (date)
+			g_string_append_printf (buffer, "<span class=\"oma-message-date\">%s</span>", date);
+		g_string_append (buffer, "</div>");
+	}
 	g_string_append (buffer, "</td>");
 
 	if (!gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &icon_width, &icon_height)) {

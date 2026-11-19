@@ -835,9 +835,18 @@ folder_tree_render_display_name (GtkTreeViewColumn *column,
 			bold = bold || subdirs_unread;
 	}
 
-	bold = !editable && bold;
-	weight = bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL;
-	g_object_set (renderer, "weight", weight, NULL);
+	/* Apple-Mail sidebar: accounts read as quiet section headings and
+	 * folder names stay regular; unread counts live in their own column. */
+	bold = !editable && is_store;
+	weight = bold ? PANGO_WEIGHT_SEMIBOLD : PANGO_WEIGHT_NORMAL;
+	g_object_set (renderer,
+		"weight", weight,
+		"scale", is_store ? 0.88 : 1.0,
+		NULL);
+	if (is_store && !editable) {
+		static const GdkRGBA heading = { 0x7a / 255.0, 0x84 / 255.0, 0x9e / 255.0, 1.0 };
+		g_object_set (renderer, "foreground-rgba", &heading, NULL);
+	}
 
 	if (self->priv->new_message_text_color && unread > unread_last_sel && !is_draft &&
 	    (folder_flags & CAMEL_FOLDER_VIRTUAL) == 0 &&
@@ -857,41 +866,67 @@ folder_tree_render_display_name (GtkTreeViewColumn *column,
 			display_name = "Mailboxes";
 		else if (g_strcmp0 (camel_service_get_uid (service), "local") == 0)
 			display_name = "Local Storage";
-		g_object_set (renderer, "text", display_name, NULL);
+
+		if (editable) {
+			g_object_set (renderer, "text", display_name, NULL);
+		} else {
+			/* Section heading: uppercase, tracked out; an address shows its local part. */
+			const gchar *at = display_name ? strchr (display_name, '@') : NULL;
+			gchar *base = at ? g_strndup (display_name, at - display_name) : g_strdup (display_name ? display_name : "");
+			gchar *upper = g_utf8_strup (base, -1);
+			gchar *escaped = g_markup_escape_text (upper, -1);
+			gchar *markup = g_strdup_printf ("<span letter_spacing=\"1100\">%s</span>", escaped);
+
+			g_object_set (renderer, "markup", markup, NULL);
+			g_free (markup);
+			g_free (escaped);
+			g_free (upper);
+			g_free (base);
+		}
 		g_clear_object (&service);
-
-	} else if (!editable && unread > 0 && self->priv->show_unread_count) {
-		gchar *name_and_unread;
-
-		name_and_unread = g_strdup_printf (
-			/* Translators: This is the string used for displaying the
-			 * folder names in folder trees. The first "%s" will be
-			 * replaced by the folder's name and "%u" will be replaced
-			 * with the number of unread messages in the folder. The
-			 * second %s will be replaced with a "+" letter for collapsed
-			 * folders with unread messages in some subfolder too,
-			 * or with an empty string for other cases.
-			 *
-			 * Most languages should translate this as "%s (%u%s)". The
-			 * languages that use localized digits (like Persian) may
-			 * need to replace "%u" with "%Iu". Right-to-left languages
-			 * (like Arabic and Hebrew) may need to add bidirectional
-			 * formatting codes to take care of the cases the folder
-			 * name appears in either direction.
-			 *
-			 * Do not translate the "folder-display|" part. Remove it
-			 * from your translation.
-			 */
-			C_("folder-display", "%s (%u%s)"),
-			name, unread, !is_expanded && subdirs_unread ? "+" : "");
-		g_object_set (renderer, "text", name_and_unread, NULL);
-		g_free (name_and_unread);
 
 	} else {
 		g_object_set (renderer, "text", name, NULL);
 	}
 
 	g_free (name);
+}
+
+static void
+folder_tree_render_unread_count (GtkTreeViewColumn *column,
+                                 GtkCellRenderer *renderer,
+                                 GtkTreeModel *model,
+                                 GtkTreeIter *iter,
+                                 gpointer user_data)
+{
+	EMFolderTree *self = user_data;
+	gboolean is_store = FALSE, is_draft = FALSE, subdirs_unread = FALSE, is_expanded = TRUE;
+	guint unread = 0;
+	gchar *text = NULL;
+
+	gtk_tree_model_get (model, iter,
+		COL_BOOL_IS_STORE, &is_store,
+		COL_BOOL_IS_DRAFT, &is_draft,
+		COL_UINT_UNREAD, &unread,
+		COL_BOOL_SUBDIRS_UNREAD, &subdirs_unread,
+		-1);
+
+	if (gtk_tree_model_iter_has_child (model, iter)) {
+		GtkTreePath *path = gtk_tree_model_get_path (model, iter);
+		is_expanded = gtk_tree_view_row_expanded (GTK_TREE_VIEW (self), path);
+		gtk_tree_path_free (path);
+	}
+
+	/* Drafts count is not "news"; a collapsed parent hints at unread children. */
+	if (!is_store && !is_draft && self->priv->show_unread_count) {
+		if (unread > 0)
+			text = g_strdup_printf ("%u", unread);
+		else if (!is_expanded && subdirs_unread)
+			text = g_strdup ("•");
+	}
+
+	g_object_set (renderer, "text", text, "visible", text != NULL, NULL);
+	g_free (text);
 }
 
 static GEmblem *
@@ -1012,6 +1047,13 @@ folder_tree_render_icon (GtkTreeViewColumn *column,
 	gboolean show_new_mail_emblem;
 	guint32 fi_flags = 0;
 
+	/* Text-only sidebar: names carry the meaning. The upstream icon logic
+	 * below is kept intact so future merges stay small. */
+	if (renderer) {
+		g_object_set (renderer, "visible", FALSE, NULL);
+		return;
+	}
+
 	gtk_tree_model_get (
 		model, iter,
 		COL_STRING_ICON_NAME, &icon_name,
@@ -1030,9 +1072,22 @@ folder_tree_render_icon (GtkTreeViewColumn *column,
 
 	effective_icon_name = icon_name;
 
+	if (!custom_icon && (fi_flags & CAMEL_FOLDER_VIRTUAL) != 0) {
+		gchar *display_name = NULL;
+
+		gtk_tree_model_get (model, iter, COL_STRING_DISPLAY_NAME, &display_name, -1);
+		if (g_strcmp0 (display_name, "All Inboxes") == 0)
+			effective_icon_name = "mail-inbox";
+		else if (g_strcmp0 (display_name, "All Sent") == 0)
+			effective_icon_name = "mail-send";
+		else if (g_strcmp0 (display_name, "Flagged") == 0)
+			effective_icon_name = "oma-mail-flag";
+		g_free (display_name);
+	}
+
 	if (!custom_icon && g_strcmp0 (icon_name, "folder") == 0) {
 		if (is_selected) {
-			effective_icon_name = "folder-open";
+			/* Keep the same glyph when selected; selection is shown by the row. */
 		} else if (self->priv->cached_drag_dest_row != NULL) {
 			GtkTreePath *path;
 
@@ -1130,7 +1185,7 @@ em_folder_tree_query_tooltip_cb (GtkTreeView *tree_view,
 	if (is_store && service && status_code != EMFT_STATUS_CODE_UNKNOWN && CAMEL_IS_NETWORK_SERVICE (service)) {
 		GtkTreeViewColumn *column;
 
-		column = gtk_tree_view_get_column (tree_view, 1);
+		column = gtk_tree_view_get_column (tree_view, 0);
 
 		gtk_tree_view_set_tooltip_cell (tree_view, tooltip, path, column, renderer);
 
@@ -1516,6 +1571,8 @@ folder_tree_constructed (GObject *object)
 	gtk_tree_view_column_set_sizing (
 		column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
 	gtk_tree_view_append_column (tree_view, column);
+	/* Breathing room between glyph and label. */
+	gtk_tree_view_column_set_spacing (column, 6);
 
 	renderer = gtk_cell_renderer_pixbuf_new ();
 	gtk_tree_view_column_pack_start (column, renderer, FALSE);
@@ -1544,6 +1601,19 @@ folder_tree_constructed (GObject *object)
 		column, renderer,
 		folder_tree_render_display_name, object, NULL);
 
+	renderer = gtk_cell_renderer_text_new ();
+	g_object_set (renderer,
+		"xalign", 1.0,
+		"xpad", 6,
+		"scale", 0.88,
+		"foreground-rgba", &(GdkRGBA) { 0x7a / 255.0, 0x84 / 255.0, 0x9e / 255.0, 1.0 },
+		NULL);
+	gtk_tree_view_column_pack_end (column, renderer, FALSE);
+	gtk_tree_view_column_set_cell_data_func (
+		column, renderer,
+		folder_tree_render_unread_count, object, NULL);
+	renderer = self->priv->text_renderer;
+
 	g_signal_connect_swapped (
 		renderer, "edited",
 		G_CALLBACK (folder_tree_cell_edited_cb), object);
@@ -1552,8 +1622,7 @@ folder_tree_constructed (GObject *object)
 		renderer, "editing-canceled",
 		G_CALLBACK (folder_tree_editing_canceled_cb), object);
 
-	column = gtk_tree_view_column_new ();
-	gtk_tree_view_append_column (tree_view, column);
+	/* Status glyphs share the name column so a selected row is one shape. */
 
 	renderer = gtk_cell_renderer_pixbuf_new ();
 	g_object_set (renderer, "xalign", 1.0, NULL);

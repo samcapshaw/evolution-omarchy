@@ -800,7 +800,9 @@ ect_draw (ECellView *ecell_view,
 	if (!selected && g_object_get_data (G_OBJECT (ect), "oma-unread-column")) {
 		gint unread_col = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (ect), "oma-unread-column")) - 1;
 		gboolean unread = GPOINTER_TO_INT (e_table_model_value_at (ecell_view->e_table_model, unread_col, row));
-		gdk_rgba_parse (&fg_rgba, unread ? "#e0e7ff" : "#9aa4c9");
+		gdk_rgba_parse (&fg_rgba, unread ? "#e0e7ff" : "#c0caf5");
+		if (g_object_get_data (G_OBJECT (ect), "oma-preview-lines"))
+			gdk_rgba_parse (&fg_rgba, "#7a849e");
 	}
 	gdk_cairo_set_source_rgba (cr, &fg_rgba);
 

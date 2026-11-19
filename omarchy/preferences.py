@@ -9,20 +9,24 @@ backup.parent.mkdir(parents=True, exist_ok=True)
 if not backup.exists():
     backup.write_bytes(subprocess.check_output(['dconf', 'dump', '/org/gnome/evolution/']))
     backup.chmod(0o600)
+# Calm Apple-Mail chrome: hide secondary toolbars/headers by default;
+# keep the status bar for sync feedback. Folder rail slightly wider for labels.
 defaults = {
     'org.gnome.evolution.shell': {
         'use-header-bar': True, 'icon-only-buttons-in-header-bar': True,
         'prefer-symbolic-icons': 'yes', 'toolbar-icon-size': 'small',
         'menubar-visible': False, 'toolbar-visible': False,
         'sidebar-visible': True, 'statusbar-visible': True,
-        'buttons-visible': True, 'buttons-style': 'both',
-        'buttons-hide': ['tasks', 'memos'], 'folder-bar-width': 230,
+        'buttons-visible': True, 'buttons-style': 'icons',
+        'buttons-hide': [], 'folder-bar-width': 248,
     },
     'org.gnome.evolution.mail': {
         'layout': 1, 'hpaned-size': 1420000, 'global-view-setting': False,
         'show-subject-above-sender': False, 'show-email': False,
         'show-preview-toolbar': False, 'show-to-do-bar': False,
         'show-sender-photo': False, 'headers-collapsed': True,
+        'show-all-headers': False, 'show-attachment-bar': True,
+        'preview-unset-html-colors': True,
         'composer-show-main-toolbar': False, 'composer-show-edit-toolbar': False,
         'composer-show-cc': False,
         'reply-style-name': 'quoted', 'composer-mode': 'html',

@@ -76,6 +76,12 @@ struct _MessageListPrivate {
 	GTask *regen_task;
 	GSource *regen_idle_source;
 
+	/* Paged list: show the newest oma_page_limit messages, grow on scroll. */
+	guint oma_page_limit;
+	guint oma_total;
+	gboolean oma_loading_more;
+	GtkAdjustment *oma_vadjustment;
+
 	gboolean thaw_needs_regen;
 
 	struct _MLSelection clipboard;
@@ -167,6 +173,9 @@ struct _RegenData {
 	gchar *select_uid;
 	gboolean select_all;
 	gboolean select_use_fallback;
+
+	guint oma_limit; /* 0 = unlimited; read-only in the regen thread */
+	guint oma_total; /* matching messages before the limit was applied */
 };
 
 enum {
@@ -275,6 +284,9 @@ static gint	on_click			(ETree *tree,
 						 GdkEvent *event,
 						 MessageList *message_list);
 
+#define OMA_PAGE_SIZE 50
+
+static void	oma_message_list_notify_vadjustment_cb (MessageList *message_list, GParamSpec *param, gpointer user_data);
 static void	mail_regen_list			(MessageList *message_list,
 						 const gchar *search,
 						 CamelFolderChangeInfo *folder_changes);
@@ -302,13 +314,14 @@ static const gchar *status_map[] = {
 	N_("Forwarded") /* and unread */
 };
 
+/* Apple-Mail status column: a blue dot only where there is news. */
 static const gchar *status_icons[] = {
-	"mail-unread",
-	"mail-read",
+	"oma-mail-unread",
+	NULL,  /* read: no marker, less noise */
 	"mail-replied",
 	"mail-forward",
-	"mail-replied", /* and unread */
-	"mail-forward" /* and unread */
+	"oma-mail-unread", /* answered and unread: unread matters more */
+	"oma-mail-unread" /* forwarded and unread */
 };
 
 static const gchar *score_map[] = {
@@ -473,6 +486,7 @@ regen_data_new (MessageList *message_list,
 	regen_data->activity = g_object_ref (activity);
 	regen_data->folder = message_list_ref_folder (message_list);
 	regen_data->last_row = -1;
+	regen_data->oma_limit = message_list->priv->oma_page_limit;
 
 	if (adapter) {
 		regen_data->sort_info = e_tree_table_adapter_get_sort_info (adapter);
@@ -2250,6 +2264,9 @@ create_composite_cell (GSettings *mail_settings,
 	cell_vbox = e_cell_vbox_new ();
 	g_object_set_data (G_OBJECT (cell_vbox), "oma-unread-gutter-col", GINT_TO_POINTER (COL_UNREAD + 1));
 	g_object_set_data (G_OBJECT (cell_vbox), "oma-flag-gutter-col", GINT_TO_POINTER (COL_FLAGGED + 1));
+	/* Sender avatar: address picks the site icon, name the placeholder initial. */
+	g_object_set_data (G_OBJECT (cell_vbox), "oma-avatar-email-col", GINT_TO_POINTER (COL_SENDER_MAIL + 1));
+	g_object_set_data (G_OBJECT (cell_vbox), "oma-avatar-name-col", GINT_TO_POINTER (COL_SENDER + 1));
 
 	cell_hbox = e_cell_hbox_new ();
 
@@ -2278,7 +2295,7 @@ create_composite_cell (GSettings *mail_settings,
 
 	cell_preview = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set_data (G_OBJECT (cell_preview), "oma-unread-column", GINT_TO_POINTER (COL_UNREAD + 1));
-	g_object_set_data (G_OBJECT (cell_preview), "oma-emphasize", GINT_TO_POINTER (2));
+	g_object_set_data (G_OBJECT (cell_preview), "oma-emphasize", GINT_TO_POINTER (1));
 	g_object_set (
 		cell_preview,
 		"bold-column", COL_UNREAD,
@@ -2309,7 +2326,7 @@ create_composite_cell (GSettings *mail_settings,
 	/* Sender/date, subject, then two quiet lines of actual message text. */
 	cell_body = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set_data (G_OBJECT (cell_body), "oma-unread-column", GINT_TO_POINTER (COL_UNREAD + 1));
-	g_object_set_data (G_OBJECT (cell_body), "oma-preview-lines", GINT_TO_POINTER (2));
+	g_object_set_data (G_OBJECT (cell_body), "oma-preview-lines", GINT_TO_POINTER (1));
 	body_cell_tree = e_cell_tree_new (TRUE, TRUE, cell_body);
 	e_cell_vbox_append (E_CELL_VBOX (cell_vbox), body_cell_tree, COL_BODY_PREVIEW);
 	g_object_unref (body_cell_tree);
@@ -3449,6 +3466,11 @@ message_list_dispose (GObject *object)
 
 	priv = message_list->priv;
 
+	if (priv->oma_vadjustment) {
+		g_signal_handlers_disconnect_by_data (priv->oma_vadjustment, message_list);
+		g_clear_object (&priv->oma_vadjustment);
+	}
+
 	if (priv->folder_changed_handler_id > 0) {
 		g_signal_handler_disconnect (
 			priv->folder,
@@ -4333,6 +4355,9 @@ message_list_init (MessageList *message_list)
 
 	gtk_widget_set_name (GTK_WIDGET (message_list), "omamail-message-list");
 	message_list->priv = message_list_get_instance_private (message_list);
+	message_list->priv->oma_page_limit = OMA_PAGE_SIZE;
+	g_signal_connect (message_list, "notify::vadjustment",
+		G_CALLBACK (oma_message_list_notify_vadjustment_cb), NULL);
 
 	message_list->normalised_hash = g_hash_table_new_full (
 		g_str_hash, g_str_equal,
@@ -5328,6 +5353,10 @@ message_list_set_folder (MessageList *message_list,
 		return;
 
 	e_tree_release_viewport (E_TREE (message_list));
+	/* A new folder starts at the first page again. */
+	message_list->priv->oma_page_limit = OMA_PAGE_SIZE;
+	message_list->priv->oma_total = 0;
+	message_list->priv->oma_loading_more = FALSE;
 
 	if (folder != NULL) {
 		g_return_if_fail (CAMEL_IS_FOLDER (folder));
@@ -6169,6 +6198,10 @@ message_list_set_search (MessageList *message_list,
 		return;
 	}
 
+	/* New search, new result set: start from the first page. */
+	message_list->priv->oma_page_limit = OMA_PAGE_SIZE;
+	message_list->priv->oma_loading_more = FALSE;
+
 	if (message_list->frozen == 0)
 		mail_regen_list (message_list, search ? search : "", NULL);
 	else {
@@ -6237,6 +6270,64 @@ message_list_regen_tweak_search_results (MessageList *message_list,
 			(gpointer) camel_pstring_strdup (uid));
 
 	g_clear_object (&info);
+}
+
+typedef struct {
+	gpointer uid;
+	gint64 date;
+} OmaUidDate;
+
+static gint
+oma_uid_date_newest_first (gconstpointer a,
+                           gconstpointer b)
+{
+	gint64 da = ((const OmaUidDate *) a)->date, db = ((const OmaUidDate *) b)->date;
+
+	return da < db ? 1 : (da > db ? -1 : 0);
+}
+
+/* Keep only the newest @limit UIDs; the dropped tail is freed by the
+ * array's own free function. Runs in the regen thread. */
+static void
+oma_limit_uids (CamelFolder *folder,
+                GPtrArray *uids,
+                guint limit,
+                GCancellable *cancellable)
+{
+	GArray *dated;
+	guint ii;
+
+	if (limit == 0 || uids->len <= limit)
+		return;
+
+	camel_folder_summary_prepare_fetch_all (camel_folder_get_folder_summary (folder), NULL);
+
+	dated = g_array_sized_new (FALSE, FALSE, sizeof (OmaUidDate), uids->len);
+	for (ii = 0; ii < uids->len; ii++) {
+		OmaUidDate item = { uids->pdata[ii], 0 };
+		CamelMessageInfo *info = camel_folder_get_message_info (folder, item.uid);
+
+		if (info) {
+			item.date = camel_message_info_get_date_sent (info);
+			if (item.date <= 0)
+				item.date = camel_message_info_get_date_received (info);
+			g_object_unref (info);
+		}
+		g_array_append_val (dated, item);
+
+		if ((ii & 0x3ff) == 0 && g_cancellable_is_cancelled (cancellable))
+			break;
+	}
+
+	if (dated->len == uids->len) {
+		g_array_sort (dated, oma_uid_date_newest_first);
+		/* Same pointer set, new order, so ownership is unchanged. */
+		for (ii = 0; ii < dated->len; ii++)
+			uids->pdata[ii] = g_array_index (dated, OmaUidDate, ii).uid;
+		g_ptr_array_set_size (uids, limit);
+	}
+
+	g_array_free (dated, TRUE);
 }
 
 static void
@@ -6382,6 +6473,12 @@ message_list_regen_thread (GTask *task,
 	 *     still need to verify that. */
 	if (uids == NULL)
 		goto exit_successfully;
+
+	regen_data->oma_total = uids->len;
+	oma_limit_uids (folder, uids, regen_data->oma_limit, cancellable);
+
+	if (g_task_return_error_if_cancelled (task))
+		goto exit;
 
 	camel_folder_sort_uids (folder, uids);
 
@@ -6583,6 +6680,74 @@ message_list_update_tree_text (MessageList *message_list)
 	e_tree_set_info_message (tree, info_message);
 }
 
+static gboolean
+oma_release_viewport_idle_cb (gpointer user_data)
+{
+	e_tree_release_viewport (E_TREE (user_data));
+
+	return G_SOURCE_REMOVE;
+}
+
+/* Infinite scroll: when the viewport nears the end, load the next page. */
+static void
+oma_message_list_maybe_load_more (GtkAdjustment *adjustment,
+                                  MessageList *message_list)
+{
+	MessageListPrivate *priv = message_list->priv;
+	gdouble value, page, upper;
+
+	if (priv->oma_loading_more || priv->oma_page_limit == 0 ||
+	    priv->oma_total <= priv->oma_page_limit || !priv->folder)
+		return;
+
+	value = gtk_adjustment_get_value (adjustment);
+	page = gtk_adjustment_get_page_size (adjustment);
+	upper = gtk_adjustment_get_upper (adjustment);
+
+	/* Prefetch about a screen ahead so scrolling never hits a wall. */
+	if (page <= 0 || upper <= page || value + page < upper - page)
+		return;
+
+	priv->oma_loading_more = TRUE;
+	priv->oma_page_limit += OMA_PAGE_SIZE;
+	e_tree_preserve_viewport (E_TREE (message_list));
+
+	/* An empty change set marks this as an in-place update of the same
+	 * folder, so the rebuild neither re-selects nor scrolls to the cursor
+	 * (a NULL change set would jump back to the selected message). */
+	{
+		CamelFolderChangeInfo *changes = camel_folder_change_info_new ();
+
+		mail_regen_list (message_list, NULL, changes);
+		camel_folder_change_info_free (changes);
+	}
+}
+
+static void
+oma_message_list_notify_vadjustment_cb (MessageList *message_list,
+                                        GParamSpec *param,
+                                        gpointer user_data)
+{
+	MessageListPrivate *priv = message_list->priv;
+	GtkAdjustment *adjustment = gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (message_list));
+
+	if (adjustment == priv->oma_vadjustment)
+		return;
+
+	if (priv->oma_vadjustment) {
+		g_signal_handlers_disconnect_by_data (priv->oma_vadjustment, message_list);
+		g_clear_object (&priv->oma_vadjustment);
+	}
+
+	if (adjustment) {
+		priv->oma_vadjustment = g_object_ref (adjustment);
+		g_signal_connect (adjustment, "value-changed",
+			G_CALLBACK (oma_message_list_maybe_load_more), message_list);
+		g_signal_connect (adjustment, "changed",
+			G_CALLBACK (oma_message_list_maybe_load_more), message_list);
+	}
+}
+
 static void
 message_list_regen_done_cb (GObject *source_object,
                             GAsyncResult *result,
@@ -6601,6 +6766,14 @@ message_list_regen_done_cb (GObject *source_object,
 	message_list = MESSAGE_LIST (source_object);
 	regen_data = g_task_get_task_data (G_TASK (result));
 	g_task_propagate_boolean (G_TASK (result), &local_error);
+
+	if (message_list->priv->oma_loading_more && regen_data->oma_limit == message_list->priv->oma_page_limit) {
+		message_list->priv->oma_loading_more = FALSE;
+		/* Let the pending reflow (priority 400) restore the viewport first. */
+		g_idle_add_full (500, oma_release_viewport_idle_cb, g_object_ref (message_list), g_object_unref);
+	}
+	if (!local_error)
+		message_list->priv->oma_total = regen_data->oma_total;
 
 	/* Withdraw our RegenData from the private struct, if it hasn't
 	 * already been replaced.  We have exclusive access to it now. */

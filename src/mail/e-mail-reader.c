@@ -3517,7 +3517,7 @@ e_mail_reader_init_ui_data_default (EMailReader *self)
 		   action_mail_remove_duplicates_cb, NULL, NULL, NULL },
 
 		{ "mail-reply-all",
-		  NULL,
+		  "mail-reply-all",
 		  N_("Reply to _All"),
 		  "<Shift><Control>r",
 		  N_("Compose a reply to all the recipients of the selected message"),

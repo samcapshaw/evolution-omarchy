@@ -59,9 +59,9 @@ img.navigable {
   padding: 0px;
 }
 
+/* Message bodies sit directly on the reading pane; no framed "card". */
 iframe:not([id$=".itip"]) {
-  border-width: 1px;
-  border-style: solid;
+  border: 0;
 }
 
 .part-container {
@@ -304,13 +304,14 @@ div.itip-day-event-transparent {
   opacity: 0.6;
 }
 
-/* Compact reader summary with clear subject, sender and date hierarchy. */
-div.headers { padding: 18px 20px; border-bottom: 1px solid #343a50; }
+/* Reader summary: big subject, sender by name, one quiet To · date line. */
+div.headers { padding: 22px 24px 18px; border-bottom: 1px solid #2a2f45; }
 #__evo-short-headers { width: 100%; }
-.oma-message-subject { font-size: 18px; font-weight: 700; line-height: 1.35; margin-bottom: 10px; overflow-wrap: anywhere; }
-.oma-message-meta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
-.oma-message-sender { font-size: 13px; font-weight: 700; line-height: 1.5; }
-.oma-message-date { font-size: 12px; opacity: .75; white-space: nowrap; }
-.oma-message-to { font-size: 12px; line-height: 1.5; opacity: .75; margin-top: 4px; overflow-wrap: anywhere; }
+.oma-message-subject { font-size: 22px; font-weight: 700; line-height: 1.3; letter-spacing: -0.01em; margin-bottom: 12px; overflow-wrap: anywhere; }
+.oma-message-sender { font-size: 14px; font-weight: 600; line-height: 1.5; }
+.oma-message-meta { font-size: 12px; line-height: 1.5; opacity: .65; margin-top: 2px; overflow-wrap: anywhere; }
+.oma-message-date { white-space: nowrap; }
 .oma-message-sender a, .oma-message-to a { color: inherit; text-decoration: none; }
-button.header-collapse { border: 0; background: transparent; opacity: .6; margin-top: 4px; }
+/* Full-headers toggle stays reachable but out of the way until hovered. */
+button.header-collapse { border: 0; background: transparent; opacity: 0; margin-top: 6px; transition: opacity 150ms ease; }
+div.headers:hover button.header-collapse { opacity: .6; }

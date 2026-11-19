@@ -1,58 +1,465 @@
-/* Evolution-only Tokyo Night palette; no desktop-wide GTK changes. */
+/*
+ * Mail for Omarchy — appearance
+ *
+ * Apple Mail structure: heavier chrome, quieter content, clear type hierarchy.
+ * Motion stays subtle (frequent inbox actions should feel instant).
+ * Palette stays Tokyo Night so the fork keeps its identity.
+ */
+
+/* —— Tokens —— */
 @define-color theme_bg_color #1a1b26;
 @define-color theme_fg_color #a9b1d6;
 @define-color theme_base_color #1a1b26;
 @define-color theme_text_color #c0caf5;
-@define-color theme_selected_bg_color #292e42;
+@define-color theme_selected_bg_color #283552;
 @define-color theme_selected_fg_color #c0caf5;
-@define-color theme_unfocused_selected_bg_color #24283b;
+@define-color theme_unfocused_selected_bg_color #283552;
 @define-color theme_unfocused_selected_fg_color #c0caf5;
-@define-color borders rgba(169,177,214,0.16);
+@define-color borders rgba(169,177,214,0.12);
 @define-color warning_color #7aa2f7;
 @define-color theme_unfocused_bg_color #1a1b26;
 @define-color theme_unfocused_fg_color #a9b1d6;
-window, dialog { background-color:#1a1b26; color:#a9b1d6; font-family:"Liberation Sans",sans-serif; font-size:13px; }
-headerbar, toolbar, .primary-toolbar { background-image:none; background-color:#13141c; color:#c0caf5; border:0; box-shadow:none; padding:5px 8px; min-height:34px; }
-headerbar button, toolbar button, .primary-toolbar button { background-image:none; background-color:transparent; border:0; box-shadow:none; border-radius:5px; padding:5px 7px; min-width:20px; min-height:20px; color:#c0caf5; }
-headerbar button:hover, toolbar button:hover { background-color:#292e42; }
-headerbar button:checked, toolbar button:checked { background-color:#292e42; color:#7aa2f7; }
-headerbar button:disabled, toolbar button:disabled { color:#565f89; }
-#omamail-sidebar, #omamail-sidebar scrolledwindow, #omamail-sidebar treeview, #omamail-sidebar viewport { background-color:#13141c; color:#c0caf5; }
-#omamail-sidebar treeview { -gtk-icon-style:symbolic; -GtkTreeView-vertical-separator:8; border:0; }
-#omamail-sidebar treeview:selected { background-color:#292e42; color:#c0caf5; }
-#omamail-message-list { -ETree-alternating-row-colors:false; -ETree-vertical-spacing:6; -MessageList-important-fg-color:#7aa2f7; background-color:#1a1b26; color:#a9b1d6; }
-#omamail-message-list:selected { background-color:#292e42; color:#c0caf5; }
-treeview.view, .view { background-color:#1a1b26; color:#a9b1d6; }
-.view:selected { background-color:#292e42; color:#c0caf5; }
-entry, searchentry { background-image:none; background-color:#24283b; border:1px solid rgba(169,177,214,.16); border-radius:6px; color:#c0caf5; box-shadow:none; min-height:26px; }
-entry:focus { border-color:#7aa2f7; }
-button.suggested-action { background-image:none; background-color:#292e42; color:#c0caf5; border-color:#414868; }
-button { border-radius:5px; }
-check, radio { background-image:none; background-color:#24283b; border-color:#414868; }
-check:checked, radio:checked { background-color:#7aa2f7; color:#13141c; }
-notebook > header { background-color:#13141c; }
-paned > separator { background-color:rgba(169,177,214,.14); min-width:1px; min-height:1px; }
-scrollbar { background-color:transparent; }
-scrollbar slider { background-color:#414868; min-width:5px; min-height:5px; border:0; }
-statusbar { background-color:#13141c; color:#565f89; }
-
-/* Calendar grid uses these separately from window borders. */
-@define-color oma_calendar_grid #414868;
+@define-color oma_calendar_grid #3b4261;
 @define-color oma_calendar_today #7aa2f7;
+@define-color oma_mail_separator #24283b;
 
-@define-color oma_mail_separator #414868;
+/* —— Surfaces ——
+ * Chrome (sidebar/header) is heavier; content is a step lighter.
+ * Soft separators replace hard rules; selection uses a cool wash + accent. */
+window, dialog {
+  background-color: #1a1b26;
+  color: #a9b1d6;
+  font-family: "Adwaita Sans", "Liberation Sans", sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
 
-/* Breathing room between search controls, list heading and first row. */
-#omamail-searchbar { padding:8px 12px; margin-bottom:6px; }
-#omamail-message-list { margin-top:8px; }
+headerbar, toolbar, .primary-toolbar {
+  background-image: none;
+  background-color: rgba(19, 20, 28, 0.96);
+  color: #c0caf5;
+  border: 0;
+  border-bottom: 1px solid rgba(169, 177, 214, 0.08);
+  box-shadow: none;
+  padding: 6px 10px;
+  min-height: 40px;
+}
 
-/* A quiet compose surface, with controls available on demand. */
-#omamail-composer headerbar { padding:8px 14px; border-bottom:1px solid rgba(169,177,214,.12); }
-#omamail-composer headerbar button.suggested-action { background-color:#7aa2f7; color:#13141c; padding:6px 18px; font-weight:600; border-radius:8px; }
-#omamail-composer headerbar button.suggested-action:hover { background-color:#9bb8ff; }
-#omamail-composer-fields { background-color:#1a1b26; }
-#omamail-composer-fields entry, #omamail-composer-fields combobox button { background-image:none; background-color:transparent; border:0; border-bottom:1px solid rgba(169,177,214,.14); border-radius:0; box-shadow:none; padding:5px 8px; min-height:24px; }
-#omamail-composer-fields entry:focus { border-bottom-color:#7aa2f7; }
-#omamail-composer-fields button { background-image:none; background-color:transparent; border:0; box-shadow:none; padding:4px 8px; }
-#omamail-composer-fields label { color:#9aa4c9; }
-#omamail-composer toolbar { padding:4px 14px; }
+headerbar button, toolbar button, .primary-toolbar button {
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 8px;
+  padding: 7px 9px;
+  min-width: 28px;
+  min-height: 28px;
+  color: #c0caf5;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+headerbar button:hover, toolbar button:hover {
+  background-color: #292e42;
+}
+
+/* Press feedback on pointer-down — instant, no layout shift. */
+headerbar button:active, toolbar button:active {
+  background-color: #1f2436;
+}
+
+headerbar button:checked, toolbar button:checked {
+  background-color: rgba(122, 162, 247, 0.16);
+  color: #7aa2f7;
+}
+
+headerbar button:disabled, toolbar button:disabled {
+  color: #6b7394;
+  opacity: 0.7;
+}
+
+headerbar button:focus, toolbar button:focus, button:focus, entry:focus, searchentry:focus {
+  outline: 2px solid #7aa2f7;
+  outline-offset: 1px;
+}
+
+/* —— Sidebar (structural, heavier material) —— */
+#omamail-sidebar,
+#omamail-sidebar scrolledwindow,
+#omamail-sidebar treeview,
+#omamail-sidebar viewport {
+  background-color: #12131a;
+  color: #c0caf5;
+}
+
+#omamail-sidebar treeview {
+  -gtk-icon-style: symbolic;
+  -GtkTreeView-vertical-separator: 7;
+  -GtkTreeView-expander-size: 12;
+  border: 0;
+  font-size: 13px;
+  padding: 8px 0 4px;
+}
+
+#omamail-sidebar treeview:selected {
+  background-color: #283552;
+  color: #e0e7ff;
+  border-radius: 8px;
+}
+
+#omamail-sidebar treeview:hover {
+  background-color: rgba(41, 46, 66, 0.55);
+}
+
+/* —— Message list ——
+ * Breathing room, no zebra stripes, selection as a cool wash. */
+#omamail-message-list {
+  -ETree-alternating-row-colors: false;
+  -ETree-vertical-spacing: 2;
+  -MessageList-important-fg-color: #7aa2f7;
+  background-color: #1a1b26;
+  color: #a9b1d6;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+#omamail-message-list:selected {
+  background-color: #2a3148;
+  color: #c0caf5;
+  box-shadow: inset 3px 0 0 #7aa2f7;
+}
+
+#omamail-message-list:hover {
+  background-color: rgba(41, 46, 66, 0.35);
+}
+
+treeview.view, .view {
+  background-color: #1a1b26;
+  color: #a9b1d6;
+}
+
+.view:selected {
+  background-color: #2a3148;
+  color: #c0caf5;
+}
+
+/* —— Search / fields ——
+ * Slightly taller targets; focus is color + ring, not a hard flash. */
+#omamail-searchbar {
+  padding: 10px 14px 8px;
+  margin-bottom: 4px;
+  background-color: #1a1b26;
+}
+
+entry, searchentry {
+  background-image: none;
+  background-color: #24283b;
+  border: 1px solid rgba(169, 177, 214, 0.14);
+  border-radius: 8px;
+  color: #c0caf5;
+  box-shadow: none;
+  min-height: 30px;
+  padding: 4px 10px;
+  transition: border-color 150ms cubic-bezier(0.23, 1, 0.32, 1),
+              background-color 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+entry:focus, searchentry:focus {
+  border-color: #7aa2f7;
+  background-color: #1f2335;
+}
+
+button.suggested-action {
+  background-image: none;
+  background-color: #292e42;
+  color: #c0caf5;
+  border-color: #414868;
+  border-radius: 8px;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+button {
+  border-radius: 8px;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+button:active {
+  background-color: #1f2436;
+}
+
+check, radio {
+  background-image: none;
+  background-color: #24283b;
+  border-color: #414868;
+  min-width: 16px;
+  min-height: 16px;
+}
+
+check:checked, radio:checked {
+  background-color: #7aa2f7;
+  color: #13141c;
+}
+
+notebook > header {
+  background-color: #12131a;
+  border-bottom: 1px solid rgba(169, 177, 214, 0.08);
+}
+
+/* Soft pane edge — a fade of material, not a hard rule. */
+paned > separator {
+  background-color: rgba(169, 177, 214, 0.08);
+  min-width: 1px;
+  min-height: 1px;
+}
+
+scrollbar {
+  background-color: transparent;
+}
+
+scrollbar slider {
+  background-color: #3b4261;
+  min-width: 6px;
+  min-height: 6px;
+  border: 0;
+  border-radius: 6px;
+  margin: 2px;
+}
+
+scrollbar slider:hover {
+  background-color: #565f89;
+}
+
+statusbar {
+  background-color: #12131a;
+  color: #7a849e;
+  border-top: 1px solid rgba(169, 177, 214, 0.06);
+  padding: 2px 10px;
+  font-size: 11.5px;
+}
+
+/* —— Bottom bar ——
+ * A slim strip on the sidebar material: connection glyph, muted activity. */
+#omamail-statusbar {
+  background-color: #12131a;
+  border: 0;
+  border-top: 1px solid rgba(169, 177, 214, 0.06);
+  padding: 0 6px;
+}
+
+#omamail-statusbar label {
+  color: #7a849e;
+  font-size: 11.5px;
+}
+
+#omamail-statusbar button {
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 6px;
+  padding: 2px 6px;
+  min-width: 22px;
+  min-height: 22px;
+  color: #7a849e;
+}
+
+#omamail-statusbar button:hover {
+  background-color: #1f2335;
+  color: #c0caf5;
+}
+
+#omamail-statusbar button.offline {
+  color: #e0af68;
+}
+
+/* —— Folded sidebar rail ——
+ * One button per unified mailbox and account inbox. */
+#omamail-rail {
+  background-color: #12131a;
+  padding: 10px 0;
+}
+
+#omamail-rail button {
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 32px;
+  min-height: 32px;
+  color: #7a849e;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1),
+              color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#omamail-rail button:hover {
+  background-color: #1f2335;
+  color: #c0caf5;
+}
+
+#omamail-rail button.unread {
+  color: #c0caf5;
+}
+
+#omamail-rail button.selected {
+  background-color: rgba(122, 162, 247, 0.16);
+  color: #7aa2f7;
+}
+
+#omamail-rail .oma-rail-initial {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 16px;
+  min-height: 16px;
+  padding: 1px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+}
+
+#omamail-rail button.unread .oma-rail-initial {
+  background-color: rgba(122, 162, 247, 0.25);
+}
+
+#omamail-rail separator {
+  background-color: rgba(169, 177, 214, 0.10);
+  min-height: 1px;
+  margin: 2px 12px;
+}
+
+/* Module switcher — compact icon rail, not a chunky grid of cards.
+ * Only the current module gets a fill; the others are bare icons. */
+#omamail-switcher {
+  background-color: #12131a;
+  border-top: 1px solid rgba(169, 177, 214, 0.08);
+  padding: 4px 6px 6px;
+}
+
+#omamail-switcher toolbutton > button {
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 30px;
+  min-height: 30px;
+  color: #7a849e;
+  -gtk-icon-effect: none;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1),
+              color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#omamail-switcher toolbutton > button:hover {
+  background-color: #1f2335;
+  color: #c0caf5;
+}
+
+#omamail-switcher toolbutton > button:active {
+  background-color: #1a1e2e;
+}
+
+#omamail-switcher toolbutton > button:checked {
+  background-color: rgba(122, 162, 247, 0.16);
+  color: #7aa2f7;
+}
+
+/* Soften the reading-pane header chrome. */
+.taskbar {
+  background-color: #1a1b26;
+}
+
+/* —— Composer ——
+ * Quiet fields; Send is the only loud control. */
+#omamail-composer headerbar {
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(169, 177, 214, 0.10);
+  min-height: 44px;
+}
+
+#omamail-composer headerbar button.suggested-action {
+  background-color: #7aa2f7;
+  color: #13141c;
+  padding: 7px 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: 8px;
+  border: 0;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#omamail-composer headerbar button.suggested-action:hover {
+  background-color: #8fb0f8;
+}
+
+#omamail-composer headerbar button.suggested-action:active {
+  background-color: #5d8de0;
+}
+
+#omamail-composer-fields {
+  background-color: #1a1b26;
+  padding: 4px 8px 0;
+}
+
+#omamail-composer-fields entry,
+#omamail-composer-fields combobox button {
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(169, 177, 214, 0.12);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 8px 10px;
+  min-height: 28px;
+}
+
+#omamail-composer-fields entry:focus {
+  border-bottom-color: #7aa2f7;
+  outline: none;
+}
+
+#omamail-composer-fields button {
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 6px 10px;
+  min-height: 28px;
+}
+
+#omamail-composer-fields label {
+  color: #8b93b3;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+#omamail-composer toolbar {
+  padding: 6px 16px;
+  border-top: 1px solid rgba(169, 177, 214, 0.08);
+}
+
+/* Dialogs / menus — same material language */
+menu, .menu, popover, .popover {
+  background-color: #1f2335;
+  color: #c0caf5;
+  border: 1px solid rgba(169, 177, 214, 0.12);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+menuitem, modelbutton {
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 28px;
+}
+
+menuitem:hover, modelbutton:hover {
+  background-color: #292e42;
+}
+
+tooltip {
+  background-color: #24283b;
+  color: #c0caf5;
+  border: 1px solid rgba(169, 177, 214, 0.14);
+  border-radius: 6px;
+  padding: 4px 8px;
+}

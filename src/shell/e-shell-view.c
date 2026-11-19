@@ -584,9 +584,11 @@ shell_view_construct_taskbar (EShellView *self)
 		status_area, "visible",
 		G_BINDING_SYNC_CREATE);
 
-	/* Make the status area as large as the task bar. */
+	/* A slim status strip; height comes from the stylesheet. */
+	gtk_widget_set_name (status_area, "omamail-statusbar");
+	gtk_frame_set_shadow_type (GTK_FRAME (status_area), GTK_SHADOW_NONE);
 	gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, NULL, &height);
-	gtk_widget_set_size_request (status_area, -1, (height * 2) + 6);
+	gtk_widget_set_size_request (status_area, -1, height + 10);
 
 	online_button = e_online_button_new ();
 	gtk_box_pack_start (GTK_BOX (box), online_button, FALSE, TRUE, 0);
@@ -816,14 +818,32 @@ shell_view_compact_sidebar_cb (EShellView *self,
 	gint width;
 	if (!switcher)
 		return;
+
+	/* Views that offer a folded rail keep their sidebar and swap its content;
+	 * the others hide it as before. */
+	{
+		GObject *sidebar = G_OBJECT (self->priv->shell_sidebar);
+		GtkWidget *rail = g_object_get_data (sidebar, "oma-compact-rail");
+		GtkWidget *full = g_object_get_data (sidebar, "oma-full-content");
+
+		if (rail && full) {
+			gtk_widget_set_visible (full, expanded);
+			gtk_widget_set_visible (rail, !expanded);
+			gtk_widget_set_visible (GTK_WIDGET (sidebar), TRUE);
+		} else {
+			gtk_widget_set_visible (GTK_WIDGET (sidebar), expanded);
+		}
+	}
+
 	parent = gtk_widget_get_parent (switcher);
 	if (!GTK_IS_PANED (parent))
 		return;
 	width = gtk_paned_get_position (GTK_PANED (parent));
 	if (!expanded && width > 80)
 		g_object_set_data (G_OBJECT (self), "oma-expanded-width", GINT_TO_POINTER (width));
-	e_shell_switcher_set_style (E_SHELL_SWITCHER (switcher),
-		expanded ? GTK_TOOLBAR_BOTH_HORIZ : GTK_TOOLBAR_ICONS);
+	/* Prefer icons-only even when expanded: less chrome, clearer hierarchy.
+	 * Folded rail stays icons-only for the compact Apple-Mail strip. */
+	e_shell_switcher_set_style (E_SHELL_SWITCHER (switcher), GTK_TOOLBAR_ICONS);
 	gtk_widget_show (switcher);
 	gtk_paned_set_position (GTK_PANED (parent), expanded ?
 		MAX (230, GPOINTER_TO_INT (g_object_get_data (G_OBJECT (self), "oma-expanded-width"))) : 48);
@@ -2291,11 +2311,6 @@ shell_view_constructed (GObject *object)
 
 	widget = e_shell_switcher_new ();
 	shell_view->priv->switcher = g_object_ref_sink (widget);
-
-	e_binding_bind_property (
-		shell_view, "sidebar-visible",
-		shell_view->priv->shell_sidebar, "visible",
-		G_BINDING_SYNC_CREATE);
 
 	e_binding_bind_property (
 		shell_view, "switcher-visible",

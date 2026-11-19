@@ -51,27 +51,6 @@ online_button_update_tooltip (EOnlineButton *button)
 }
 
 static void
-online_button_update_icon (GtkImage *image,
-			   const gchar *filename)
-{
-	GdkPixbuf *pixbuf = NULL;
-	gint height = -1;
-
-	if (!filename)
-		return;
-
-	if (gdk_pixbuf_get_file_info (filename, NULL, &height) && height > 16)
-		pixbuf = gdk_pixbuf_new_from_file_at_scale (filename, -1, 16, TRUE, NULL);
-
-	if (pixbuf) {
-		gtk_image_set_from_pixbuf (image, pixbuf);
-		g_object_unref (pixbuf);
-	} else {
-		gtk_image_set_from_file (image, filename);
-	}
-}
-
-static void
 online_button_set_property (GObject *object,
                              guint property_id,
                              const GValue *value,
@@ -151,7 +130,9 @@ e_online_button_init (EOnlineButton *button)
 	gtk_widget_set_can_focus (GTK_WIDGET (button), FALSE);
 	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
 
-	widget = gtk_image_new ();
+	/* Starts offline (priv->online is FALSE); set_online() swaps the glyph. */
+	widget = gtk_image_new_from_icon_name ("network-offline-symbolic", GTK_ICON_SIZE_MENU);
+	gtk_style_context_add_class (gtk_widget_get_style_context (GTK_WIDGET (button)), "offline");
 	gtk_container_add (GTK_CONTAINER (button), widget);
 	button->priv->image = g_object_ref (widget);
 	gtk_widget_show (widget);
@@ -183,11 +164,7 @@ void
 e_online_button_set_online (EOnlineButton *button,
                             gboolean online)
 {
-	GtkImage *image;
-	GtkIconInfo *icon_info;
-	GtkIconTheme *icon_theme;
-	const gchar *filename;
-	const gchar *icon_name;
+	GtkStyleContext *context;
 
 	g_return_if_fail (E_IS_ONLINE_BUTTON (button));
 
@@ -196,16 +173,15 @@ e_online_button_set_online (EOnlineButton *button,
 
 	button->priv->online = online;
 
-	image = GTK_IMAGE (button->priv->image);
-	icon_name = online ? "online" : "offline";
-	icon_theme = gtk_icon_theme_get_default ();
-
-	/* Prevent GTK+ from scaling these rectangular icons. */
-	icon_info = gtk_icon_theme_lookup_icon (
-		icon_theme, icon_name, GTK_ICON_SIZE_BUTTON, 0);
-	filename = gtk_icon_info_get_filename (icon_info);
-	online_button_update_icon (image, filename);
-	g_object_unref (icon_info);
+	/* Monochrome glyph that follows the theme; offline gets a warning tint. */
+	gtk_image_set_from_icon_name (GTK_IMAGE (button->priv->image),
+		online ? "network-transmit-receive-symbolic" : "network-offline-symbolic",
+		GTK_ICON_SIZE_MENU);
+	context = gtk_widget_get_style_context (GTK_WIDGET (button));
+	if (online)
+		gtk_style_context_remove_class (context, "offline");
+	else
+		gtk_style_context_add_class (context, "offline");
 
 	g_object_notify_by_pspec (G_OBJECT (button), properties[PROP_ONLINE]);
 }
