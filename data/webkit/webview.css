@@ -59,9 +59,9 @@ img.navigable {
   padding: 0px;
 }
 
+/* Message bodies sit directly on the reading pane; no framed "card". */
 iframe:not([id$=".itip"]) {
-  border-width: 1px;
-  border-style: solid;
+  border: 0;
 }
 
 .part-container {

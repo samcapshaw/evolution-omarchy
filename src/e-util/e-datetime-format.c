@@ -5,6 +5,8 @@
 
 #include "evolution-config.h"
 
+#include <langinfo.h>
+#include <string.h>
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
 
@@ -228,6 +230,12 @@ get_default_format (DTFormatKind kind,
 		res = g_hash_table_lookup (key2fmt, "Default-DateTime");
 		if (!res && key && g_str_has_prefix (key, "mail-table"))
 			res = "%ad %H:%M";
+		if (!res && key && g_str_has_prefix (key, "mail-header")) {
+			/* Relative day, minutes only; follow the locale's 12/24h clock. */
+			const gchar *t_fmt = nl_langinfo (T_FMT);
+			res = (strstr (t_fmt, "%r") || strstr (t_fmt, "%p") || strstr (t_fmt, "%I")) ?
+				"%ad %-I:%M %p" : "%ad %H:%M";
+		}
 		if (!res)
 			res = "%x %X"; /* %c is also possible, but it doesn't play well with time zone identifiers */
 		break;

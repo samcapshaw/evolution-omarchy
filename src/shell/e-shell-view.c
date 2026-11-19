@@ -822,8 +822,9 @@ shell_view_compact_sidebar_cb (EShellView *self,
 	width = gtk_paned_get_position (GTK_PANED (parent));
 	if (!expanded && width > 80)
 		g_object_set_data (G_OBJECT (self), "oma-expanded-width", GINT_TO_POINTER (width));
-	e_shell_switcher_set_style (E_SHELL_SWITCHER (switcher),
-		expanded ? GTK_TOOLBAR_BOTH_HORIZ : GTK_TOOLBAR_ICONS);
+	/* Prefer icons-only even when expanded: less chrome, clearer hierarchy.
+	 * Folded rail stays icons-only for the compact Apple-Mail strip. */
+	e_shell_switcher_set_style (E_SHELL_SWITCHER (switcher), GTK_TOOLBAR_ICONS);
 	gtk_widget_show (switcher);
 	gtk_paned_set_position (GTK_PANED (parent), expanded ?
 		MAX (230, GPOINTER_TO_INT (g_object_get_data (G_OBJECT (self), "oma-expanded-width"))) : 48);

@@ -8,6 +8,7 @@
 
 #include "e-cell-date.h"
 
+#include <langinfo.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
@@ -128,16 +129,35 @@ e_cell_date_value_to_text (ECellDate *ecd,
 	else
 		fmt_part = "table";
 
-	/* Keep today's mail timestamps compact enough for the message list. */
+	/* Apple-Mail dates: time today, "Yesterday", weekday this week, else date. */
 	if (!date_only && g_strcmp0 (fmt_component, "mail") == 0) {
 		GDateTime *stamp = g_date_time_new_from_unix_local (value);
 		GDateTime *now = g_date_time_new_now_local ();
-		gboolean today = stamp &&
-			g_date_time_get_year (stamp) == g_date_time_get_year (now) &&
-			g_date_time_get_day_of_year (stamp) == g_date_time_get_day_of_year (now);
-		gchar *text = today ? g_date_time_format (stamp, "%-I:%M %p") : NULL;
-		if (stamp)
+		gchar *text = NULL;
+		if (stamp) {
+			GDate d_stamp, d_now;
+			gint days;
+			g_date_clear (&d_stamp, 1);
+			g_date_clear (&d_now, 1);
+			g_date_set_dmy (&d_stamp, g_date_time_get_day_of_month (stamp),
+				g_date_time_get_month (stamp), g_date_time_get_year (stamp));
+			g_date_set_dmy (&d_now, g_date_time_get_day_of_month (now),
+				g_date_time_get_month (now), g_date_time_get_year (now));
+			days = g_date_days_between (&d_stamp, &d_now);
+			if (days == 0) {
+				const gchar *t_fmt = nl_langinfo (T_FMT);
+				text = g_date_time_format (stamp,
+					(strstr (t_fmt, "%r") || strstr (t_fmt, "%p") || strstr (t_fmt, "%I")) ?
+					"%-I:%M %p" : "%H:%M");
+			} else if (days == 1) {
+				text = g_strdup (_("Yesterday"));
+			} else if (days > 1 && days < 7) {
+				text = g_date_time_format (stamp, "%A");
+			} else {
+				text = g_date_time_format (stamp, "%x");
+			}
 			g_date_time_unref (stamp);
+		}
 		g_date_time_unref (now);
 		if (text)
 			return text;
