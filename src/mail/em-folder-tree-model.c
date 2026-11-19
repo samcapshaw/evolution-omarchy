@@ -1880,6 +1880,7 @@ folder_tree_model_update_status_icon (StoreInfo *si)
 	GtkTreeIter iter;
 	GIcon *icon = NULL;
 	const gchar *icon_name = NULL;
+	gboolean show_icon = TRUE;
 	gboolean was_connecting;
 	gboolean host_reachable;
 	guint status_code = EMFT_STATUS_CODE_UNKNOWN;
@@ -1917,7 +1918,8 @@ folder_tree_model_update_status_icon (StoreInfo *si)
 
 		case CAMEL_SERVICE_CONNECTED:
 			/* Healthy accounts need no glyph; only problems are shown. */
-			icon_name = NULL;
+			icon_name = "network-idle-symbolic";
+			show_icon = FALSE;
 			status_code = EMFT_STATUS_CODE_CONNECTED;
 			break;
 
@@ -1926,6 +1928,7 @@ folder_tree_model_update_status_icon (StoreInfo *si)
 			break;
 	}
 
+	/* No icon means a transition (connecting/disconnecting): spin. */
 	if (icon_name == NULL && si->spinner_pulse_timeout_id == 0) {
 		si->spinner_pulse_timeout_id = g_timeout_add_full (
 			G_PRIORITY_DEFAULT,
@@ -1953,7 +1956,7 @@ folder_tree_model_update_status_icon (StoreInfo *si)
 	gtk_tree_store_set (
 		GTK_TREE_STORE (model), &iter,
 		COL_STATUS_ICON, icon,
-		COL_STATUS_ICON_VISIBLE, (icon_name != NULL),
+		COL_STATUS_ICON_VISIBLE, (icon_name != NULL && show_icon),
 		COL_STATUS_SPINNER_VISIBLE, (icon_name == NULL),
 		COL_UINT_STATUS_CODE, status_code,
 		-1);

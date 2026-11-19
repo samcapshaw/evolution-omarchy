@@ -1881,7 +1881,8 @@ eti_draw_grid_line (ETableItem *eti,
 	/* Match the mail text edge: status gutter, tree spacing, text padding. */
 	if (y1 == y2 && x2 > x1 &&
 	    g_strcmp0 (gtk_widget_get_name (gtk_widget_get_parent (GTK_WIDGET (GNOME_CANVAS_ITEM (eti)->canvas))), "omamail-message-list") == 0)
-		x1 = MIN (x1 + 32, x2);
+		/* One composite column means the avatar layout: inset past the avatar. */
+		x1 = MIN (x1 + (e_table_header_count (eti->header) == 1 ? 76 : 32), x2);
 
 	cairo_save (cr);
 
@@ -2067,6 +2068,29 @@ eti_draw (GnomeCanvasItem *item,
 
 			eti_get_cell_background_color (eti, row, col, col_selected, &background);
 
+			/* Mail list (one composite column): selection is an inset rounded card. */
+			if (selected && e_table_header_count (eti->header) == 1 &&
+			    g_strcmp0 (gtk_widget_get_name (gtk_widget_get_parent (canvas)), "omamail-message-list") == 0) {
+				GdkRGBA base;
+				gdouble rx = x1 + 8, ry = y1 + 3, rw = ecol->width - 16, rh = height - 7, r = 8;
+
+				e_utils_get_theme_color (canvas, "theme_base_color", E_UTILS_DEFAULT_THEME_BASE_COLOR, &base);
+				cairo_save (cr);
+				gdk_cairo_set_source_rgba (cr, &base);
+				cairo_rectangle (cr, x1, y1 - 1, ecol->width, height + 1);
+				cairo_fill (cr);
+				cairo_new_sub_path (cr);
+				cairo_arc (cr, rx + rw - r, ry + r, r, -G_PI / 2, 0);
+				cairo_arc (cr, rx + rw - r, ry + rh - r, r, 0, G_PI / 2);
+				cairo_arc (cr, rx + r, ry + rh - r, r, G_PI / 2, G_PI);
+				cairo_arc (cr, rx + r, ry + r, r, G_PI, 3 * G_PI / 2);
+				cairo_close_path (cr);
+				gdk_cairo_set_source_rgba (cr, &background);
+				cairo_fill (cr);
+				cairo_restore (cr);
+				goto oma_draw_cell;
+			}
+
 			cairo_save (cr);
 			pat = cairo_pattern_create_linear (0, y1, 0, y2);
 			cairo_pattern_add_color_stop_rgba (
@@ -2111,6 +2135,7 @@ eti_draw (GnomeCanvasItem *item,
 			cairo_stroke (cr);
 			cairo_restore (cr);
 
+ oma_draw_cell:
 			flags = col_selected ? E_CELL_SELECTED : 0;
 			flags |= gtk_widget_has_focus (canvas) ? E_CELL_FOCUSED : 0;
 			flags |= cursor ? E_CELL_CURSOR : 0;

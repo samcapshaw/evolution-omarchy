@@ -2264,6 +2264,9 @@ create_composite_cell (GSettings *mail_settings,
 	cell_vbox = e_cell_vbox_new ();
 	g_object_set_data (G_OBJECT (cell_vbox), "oma-unread-gutter-col", GINT_TO_POINTER (COL_UNREAD + 1));
 	g_object_set_data (G_OBJECT (cell_vbox), "oma-flag-gutter-col", GINT_TO_POINTER (COL_FLAGGED + 1));
+	/* Sender avatar: address picks the site icon, name the placeholder initial. */
+	g_object_set_data (G_OBJECT (cell_vbox), "oma-avatar-email-col", GINT_TO_POINTER (COL_SENDER_MAIL + 1));
+	g_object_set_data (G_OBJECT (cell_vbox), "oma-avatar-name-col", GINT_TO_POINTER (COL_SENDER + 1));
 
 	cell_hbox = e_cell_hbox_new ();
 
@@ -2292,7 +2295,7 @@ create_composite_cell (GSettings *mail_settings,
 
 	cell_preview = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set_data (G_OBJECT (cell_preview), "oma-unread-column", GINT_TO_POINTER (COL_UNREAD + 1));
-	g_object_set_data (G_OBJECT (cell_preview), "oma-emphasize", GINT_TO_POINTER (2));
+	g_object_set_data (G_OBJECT (cell_preview), "oma-emphasize", GINT_TO_POINTER (1));
 	g_object_set (
 		cell_preview,
 		"bold-column", COL_UNREAD,
@@ -2323,7 +2326,7 @@ create_composite_cell (GSettings *mail_settings,
 	/* Sender/date, subject, then two quiet lines of actual message text. */
 	cell_body = e_cell_text_new (NULL, GTK_JUSTIFY_LEFT);
 	g_object_set_data (G_OBJECT (cell_body), "oma-unread-column", GINT_TO_POINTER (COL_UNREAD + 1));
-	g_object_set_data (G_OBJECT (cell_body), "oma-preview-lines", GINT_TO_POINTER (2));
+	g_object_set_data (G_OBJECT (cell_body), "oma-preview-lines", GINT_TO_POINTER (1));
 	body_cell_tree = e_cell_tree_new (TRUE, TRUE, cell_body);
 	e_cell_vbox_append (E_CELL_VBOX (cell_vbox), body_cell_tree, COL_BODY_PREVIEW);
 	g_object_unref (body_cell_tree);
@@ -6708,7 +6711,16 @@ oma_message_list_maybe_load_more (GtkAdjustment *adjustment,
 	priv->oma_loading_more = TRUE;
 	priv->oma_page_limit += OMA_PAGE_SIZE;
 	e_tree_preserve_viewport (E_TREE (message_list));
-	mail_regen_list (message_list, NULL, NULL);
+
+	/* An empty change set marks this as an in-place update of the same
+	 * folder, so the rebuild neither re-selects nor scrolls to the cursor
+	 * (a NULL change set would jump back to the selected message). */
+	{
+		CamelFolderChangeInfo *changes = camel_folder_change_info_new ();
+
+		mail_regen_list (message_list, NULL, changes);
+		camel_folder_change_info_free (changes);
+	}
 }
 
 static void

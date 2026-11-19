@@ -18,7 +18,7 @@ defaults = {
         'menubar-visible': False, 'toolbar-visible': False,
         'sidebar-visible': True, 'statusbar-visible': True,
         'buttons-visible': True, 'buttons-style': 'icons',
-        'buttons-hide': ['tasks', 'memos'], 'folder-bar-width': 248,
+        'buttons-hide': [], 'folder-bar-width': 248,
     },
     'org.gnome.evolution.mail': {
         'layout': 1, 'hpaned-size': 1420000, 'global-view-setting': False,

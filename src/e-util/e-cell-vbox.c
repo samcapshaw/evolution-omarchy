@@ -17,6 +17,7 @@
 #include "gal-a11y-e-cell-vbox.h"
 
 #include "e-cell-vbox.h"
+#include "e-oma-avatar.h"
 #include "e-table-item.h"
 
 G_DEFINE_TYPE (ECellVbox, e_cell_vbox, E_TYPE_CELL)
@@ -28,7 +29,36 @@ G_DEFINE_TYPE (ECellVbox, e_cell_vbox, E_TYPE_CELL)
 static gint
 mail_gutter_width (ECellView *view)
 {
-	return g_object_get_data (G_OBJECT (view->ecell), "oma-unread-gutter-col") ? 12 : 0;
+	if (!g_object_get_data (G_OBJECT (view->ecell), "oma-unread-gutter-col"))
+		return 0;
+	/* 12px unread dot column, plus a 32px avatar with 12px of air. */
+	return g_object_get_data (G_OBJECT (view->ecell), "oma-avatar-email-col") ? 56 : 12;
+}
+
+static void
+mail_avatar_draw (ECellView *view, cairo_t *cr, gint row, gint x, gint y)
+{
+	gint email_col = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (view->ecell), "oma-avatar-email-col")) - 1;
+	gint name_col = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (view->ecell), "oma-avatar-name-col")) - 1;
+	GnomeCanvasItem *item = GNOME_CANVAS_ITEM (view->e_table_item_view);
+	gpointer email, name;
+
+	if (email_col < 0)
+		return;
+
+	email = e_table_model_value_at (view->e_table_model, email_col, row);
+	name = name_col >= 0 ? e_table_model_value_at (view->e_table_model, name_col, row) : NULL;
+	e_oma_avatar_draw (cr, x, y, 32, email, name, item ? GTK_WIDGET (item->canvas) : NULL);
+	if (name)
+		e_table_model_free_value (view->e_table_model, name_col, name);
+	e_table_model_free_value (view->e_table_model, email_col, email);
+}
+
+/* Breathing room above and below each mail row; lines inside stay tight. */
+static gint
+mail_row_pad (ECellView *view)
+{
+	return mail_gutter_width (view) ? 11 : 0;
 }
 
 static void
@@ -162,13 +192,16 @@ ecv_draw (ECellView *ecell_view,
 {
 	ECellVboxView *vbox_view = (ECellVboxView *) ecell_view;
 
-	gint subcell_offset = 0;
+	gint subcell_offset = mail_row_pad (ecell_view);
 	gint i;
 	gint gutter = mail_gutter_width (ecell_view);
 
-	if (gutter && vbox_view->subcell_view_count)
-		mail_gutter_draw (ecell_view, cr, row, x1, y1,
+	if (gutter && vbox_view->subcell_view_count) {
+		mail_gutter_draw (ecell_view, cr, row, x1, y1 + subcell_offset,
 			e_cell_height (vbox_view->subcell_views[0], vbox_view->model_cols[0], view_col, row));
+		if (gutter > 12)
+			mail_avatar_draw (ecell_view, cr, row, x1 + 14, y1 + subcell_offset + 2);
+	}
 
 	for (i = 0; i < vbox_view->subcell_view_count; i++) {
 		/* Now cause our subcells to draw their contents,
@@ -181,7 +214,7 @@ ecv_draw (ECellView *ecell_view,
 		e_cell_draw (
 			vbox_view->subcell_views[i], cr,
 			vbox_view->model_cols[i], view_col, row, flags,
-			x1 + gutter, y1 + subcell_offset, x2,
+			x1 + gutter, y1 + subcell_offset, x2 - (gutter ? 14 : 0),
 			y1 + subcell_offset + height);
 
 		subcell_offset += e_cell_height (
@@ -208,7 +241,7 @@ ecv_event (ECellView *ecell_view,
 	GdkEvent *adjusted = NULL;
 	gint result = 0;
 	gint i;
-	gint subcell_offset = 0;
+	gint subcell_offset = mail_row_pad (ecell_view);
 
 	switch (gdk_event_get_event_type (event)) {
 	case GDK_BUTTON_PRESS:
@@ -262,7 +295,7 @@ ecv_height (ECellView *ecell_view,
             gint row)
 {
 	ECellVboxView *vbox_view = (ECellVboxView *) ecell_view;
-	gint height = 0;
+	gint height = 2 * mail_row_pad (ecell_view);
 	gint i;
 
 	for (i = 0; i < vbox_view->subcell_view_count; i++) {

@@ -12,10 +12,243 @@
 #include "mail/e-mail-reader.h"
 #include "mail/e-mail-sidebar.h"
 #include "mail/em-folder-utils.h"
+#include "mail/em-folder-tree-model.h"
+#include "libemail-engine/libemail-engine.h"
 
 struct _EMailShellSidebarPrivate {
 	GtkWidget *folder_tree;
+
+	/* Folded sidebar: a column of mailbox shortcuts. */
+	GtkWidget *rail;
+	guint rail_idle_id;
+	guint rail_unread_idle_id;
 };
+
+/* —— Folded mailbox rail ——
+ * When the sidebar is folded to a strip, the full folder tree is swapped
+ * for one button per unified mailbox and per account inbox, so the folded
+ * state still answers "which mail do I want to check?". */
+
+static void
+oma_rail_button_clicked_cb (GtkButton *button,
+                            EMailShellSidebar *self)
+{
+	const gchar *uri = g_object_get_data (G_OBJECT (button), "oma-uri");
+
+	if (uri && self->priv->folder_tree)
+		em_folder_tree_set_selected (EM_FOLDER_TREE (self->priv->folder_tree), uri, FALSE);
+}
+
+static void
+oma_rail_sync_selection (EMailShellSidebar *self)
+{
+	GList *children, *link;
+	gchar *selected;
+
+	if (!self->priv->rail || !self->priv->folder_tree)
+		return;
+
+	selected = em_folder_tree_get_selected_uri (EM_FOLDER_TREE (self->priv->folder_tree));
+	children = gtk_container_get_children (GTK_CONTAINER (self->priv->rail));
+	for (link = children; link; link = g_list_next (link)) {
+		const gchar *uri = g_object_get_data (G_OBJECT (link->data), "oma-uri");
+		GtkStyleContext *context = gtk_widget_get_style_context (link->data);
+
+		if (uri && selected && g_str_equal (uri, selected))
+			gtk_style_context_add_class (context, "selected");
+		else
+			gtk_style_context_remove_class (context, "selected");
+	}
+	g_list_free (children);
+	g_free (selected);
+}
+
+static void
+oma_rail_add (EMailShellSidebar *self,
+              GtkTreeModel *model,
+              GtkTreeIter *iter,
+              CamelStore *store,
+              const gchar *full_name,
+              const gchar *icon_name,
+              const gchar *initial,
+              const gchar *tooltip,
+              guint unread)
+{
+	GtkWidget *button, *child;
+	gchar *text;
+
+	button = gtk_button_new ();
+	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
+	gtk_widget_set_halign (button, GTK_ALIGN_CENTER);
+	if (icon_name) {
+		child = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	} else {
+		child = gtk_label_new (initial);
+		gtk_style_context_add_class (gtk_widget_get_style_context (child), "oma-rail-initial");
+	}
+	gtk_container_add (GTK_CONTAINER (button), child);
+	if (unread > 0)
+		gtk_style_context_add_class (gtk_widget_get_style_context (button), "unread");
+
+	text = unread > 0 ? g_strdup_printf ("%s — %u unread", tooltip, unread) : g_strdup (tooltip);
+	gtk_widget_set_tooltip_text (button, text);
+	g_free (text);
+
+	g_object_set_data_full (G_OBJECT (button), "oma-uri",
+		e_mail_folder_uri_build (store, full_name), g_free);
+	{
+		GtkTreePath *path = gtk_tree_model_get_path (model, iter);
+		g_object_set_data_full (G_OBJECT (button), "oma-row",
+			gtk_tree_row_reference_new (model, path), (GDestroyNotify) gtk_tree_row_reference_free);
+		g_object_set_data_full (G_OBJECT (button), "oma-label", g_strdup (tooltip), g_free);
+		gtk_tree_path_free (path);
+	}
+	g_signal_connect (button, "clicked", G_CALLBACK (oma_rail_button_clicked_cb), self);
+	gtk_box_pack_start (GTK_BOX (self->priv->rail), button, FALSE, FALSE, 0);
+	gtk_widget_show_all (button);
+}
+
+static gboolean
+oma_rail_rebuild_idle_cb (gpointer user_data)
+{
+	EMailShellSidebar *self = user_data;
+	GtkTreeModel *model;
+	GtkTreeIter store_iter;
+	gboolean valid, first = TRUE;
+
+	self->priv->rail_idle_id = 0;
+	if (!self->priv->rail || !self->priv->folder_tree)
+		return G_SOURCE_REMOVE;
+
+	gtk_container_foreach (GTK_CONTAINER (self->priv->rail), (GtkCallback) gtk_widget_destroy, NULL);
+	model = gtk_tree_view_get_model (GTK_TREE_VIEW (self->priv->folder_tree));
+
+	for (valid = model && gtk_tree_model_get_iter_first (model, &store_iter); valid;
+	     valid = gtk_tree_model_iter_next (model, &store_iter)) {
+		CamelStore *store = NULL;
+		gchar *store_name = NULL;
+		GtkTreeIter iter;
+		gboolean child_valid, added = FALSE;
+		const gchar *uid;
+
+		gtk_tree_model_get (model, &store_iter,
+			COL_OBJECT_CAMEL_STORE, &store,
+			COL_STRING_DISPLAY_NAME, &store_name, -1);
+		uid = store ? camel_service_get_uid (CAMEL_SERVICE (store)) : NULL;
+
+		if (!store || g_strcmp0 (uid, "local") == 0) {
+			g_clear_object (&store);
+			g_free (store_name);
+			continue;
+		}
+
+		for (child_valid = gtk_tree_model_iter_children (model, &iter, &store_iter); child_valid;
+		     child_valid = gtk_tree_model_iter_next (model, &iter)) {
+			gchar *name = NULL, *full_name = NULL;
+			guint32 flags = 0;
+			guint unread = 0;
+
+			gtk_tree_model_get (model, &iter,
+				COL_STRING_DISPLAY_NAME, &name,
+				COL_STRING_FULL_NAME, &full_name,
+				COL_UINT_FLAGS, &flags,
+				COL_UINT_UNREAD, &unread, -1);
+
+			if (full_name && g_strcmp0 (uid, "vfolder") == 0) {
+				const gchar *icon = "folder-saved-search-symbolic";
+
+				if (g_strcmp0 (name, "All Inboxes") == 0)
+					icon = "mail-inbox-symbolic";
+				else if (g_strcmp0 (name, "All Sent") == 0)
+					icon = "mail-send-symbolic";
+				else if (g_strcmp0 (name, "Flagged") == 0)
+					icon = "oma-mail-flag-symbolic";
+				if (!added && !first)
+					gtk_box_pack_start (GTK_BOX (self->priv->rail), gtk_separator_new (GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 4);
+				oma_rail_add (self, model, &iter, store, full_name, icon, NULL, name, unread);
+				added = TRUE;
+			} else if (full_name && (flags & CAMEL_FOLDER_TYPE_MASK) == CAMEL_FOLDER_TYPE_INBOX) {
+				/* An account's inbox shows as the account's initial. */
+				gchar initial[8] = { 0 };
+				gchar *tooltip = g_strdup_printf ("%s — %s", name, store_name ? store_name : "");
+				gunichar ch = store_name && *store_name ? g_unichar_toupper (g_utf8_get_char (store_name)) : '?';
+
+				g_unichar_to_utf8 (ch, initial);
+				if (!added && !first)
+					gtk_box_pack_start (GTK_BOX (self->priv->rail), gtk_separator_new (GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 4);
+				oma_rail_add (self, model, &iter, store, full_name, NULL, initial, tooltip, unread);
+				g_free (tooltip);
+				added = TRUE;
+			}
+
+			g_free (name);
+			g_free (full_name);
+		}
+
+		first = first && !added;
+		g_clear_object (&store);
+		g_free (store_name);
+	}
+
+	gtk_widget_show_all (self->priv->rail);
+	oma_rail_sync_selection (self);
+
+	return G_SOURCE_REMOVE;
+}
+
+/* Unread changes only restyle existing buttons. */
+static gboolean
+oma_rail_refresh_unread_idle_cb (gpointer user_data)
+{
+	EMailShellSidebar *self = user_data;
+	GList *children, *link;
+
+	self->priv->rail_unread_idle_id = 0;
+	if (!self->priv->rail)
+		return G_SOURCE_REMOVE;
+
+	children = gtk_container_get_children (GTK_CONTAINER (self->priv->rail));
+	for (link = children; link; link = g_list_next (link)) {
+		GtkTreeRowReference *row = g_object_get_data (G_OBJECT (link->data), "oma-row");
+		const gchar *label = g_object_get_data (G_OBJECT (link->data), "oma-label");
+		GtkStyleContext *context = gtk_widget_get_style_context (link->data);
+		GtkTreePath *path = row ? gtk_tree_row_reference_get_path (row) : NULL;
+		GtkTreeModel *model = row ? gtk_tree_row_reference_get_model (row) : NULL;
+		GtkTreeIter iter;
+		guint unread = 0;
+
+		if (path && gtk_tree_model_get_iter (model, &iter, path)) {
+			gchar *text;
+
+			gtk_tree_model_get (model, &iter, COL_UINT_UNREAD, &unread, -1);
+			if (unread > 0)
+				gtk_style_context_add_class (context, "unread");
+			else
+				gtk_style_context_remove_class (context, "unread");
+			text = unread > 0 ? g_strdup_printf ("%s — %u unread", label, unread) : g_strdup (label);
+			gtk_widget_set_tooltip_text (link->data, text);
+			g_free (text);
+		}
+		gtk_tree_path_free (path);
+	}
+	g_list_free (children);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void
+oma_rail_queue_refresh_unread (EMailShellSidebar *self)
+{
+	if (!self->priv->rail_unread_idle_id)
+		self->priv->rail_unread_idle_id = g_idle_add (oma_rail_refresh_unread_idle_cb, self);
+}
+
+static void
+oma_rail_queue_rebuild (EMailShellSidebar *self)
+{
+	if (!self->priv->rail_idle_id)
+		self->priv->rail_idle_id = g_idle_add (oma_rail_rebuild_idle_cb, self);
+}
 
 enum {
 	PROP_0,
@@ -159,6 +392,16 @@ mail_shell_sidebar_dispose (GObject *object)
 {
 	EMailShellSidebar *self = E_MAIL_SHELL_SIDEBAR (object);
 
+	if (self->priv->rail_idle_id) {
+		g_source_remove (self->priv->rail_idle_id);
+		self->priv->rail_idle_id = 0;
+	}
+	if (self->priv->rail_unread_idle_id) {
+		g_source_remove (self->priv->rail_unread_idle_id);
+		self->priv->rail_unread_idle_id = 0;
+	}
+	self->priv->rail = NULL;
+
 	if (self->priv->folder_tree != NULL) {
 		GtkTreeModel *model;
 
@@ -167,7 +410,13 @@ mail_shell_sidebar_dispose (GObject *object)
 		if (model) {
 			g_signal_handlers_disconnect_by_func (model,
 				mail_shell_sidebar_model_row_changed_cb, object);
+			g_signal_handlers_disconnect_by_func (model,
+				oma_rail_queue_rebuild, object);
+			g_signal_handlers_disconnect_by_func (model,
+				oma_rail_queue_refresh_unread, object);
 		}
+		g_signal_handlers_disconnect_by_func (self->priv->folder_tree,
+			oma_rail_sync_selection, object);
 
 		g_clear_object (&self->priv->folder_tree);
 	}
@@ -210,12 +459,27 @@ mail_shell_sidebar_constructed (GObject *object)
 
 	container = GTK_WIDGET (object);
 
+	/* Full folder tree and the folded rail share the sidebar; the shell
+	 * view shows one or the other (see shell_view_compact_sidebar_cb). */
+	widget = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+	gtk_container_add (GTK_CONTAINER (container), widget);
+	gtk_widget_show (widget);
+	container = widget;
+
+	widget = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
+	gtk_widget_set_name (widget, "omamail-rail");
+	gtk_widget_set_no_show_all (widget, TRUE);
+	gtk_box_pack_end (GTK_BOX (container), widget, TRUE, TRUE, 0);
+	mail_shell_sidebar->priv->rail = widget;
+	g_object_set_data (object, "oma-compact-rail", widget);
+
 	widget = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (
 		GTK_SCROLLED_WINDOW (widget),
 		GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_container_add (GTK_CONTAINER (container), widget);
+	gtk_box_pack_start (GTK_BOX (container), widget, TRUE, TRUE, 0);
 	gtk_widget_show (widget);
+	g_object_set_data (object, "oma-full-content", widget);
 
 	container = widget;
 
@@ -255,6 +519,16 @@ mail_shell_sidebar_constructed (GObject *object)
 
 	g_signal_connect (tree_view, "key-press-event",
 		G_CALLBACK (mail_shell_sidebar_tree_view_key_press_cb), shell_sidebar);
+
+	g_signal_connect_swapped (gtk_tree_view_get_model (tree_view), "row-inserted",
+		G_CALLBACK (oma_rail_queue_rebuild), object);
+	g_signal_connect_swapped (gtk_tree_view_get_model (tree_view), "row-deleted",
+		G_CALLBACK (oma_rail_queue_rebuild), object);
+	g_signal_connect_swapped (gtk_tree_view_get_model (tree_view), "row-changed",
+		G_CALLBACK (oma_rail_queue_refresh_unread), object);
+	g_signal_connect_swapped (tree_view, "folder-selected",
+		G_CALLBACK (oma_rail_sync_selection), object);
+	oma_rail_queue_rebuild (mail_shell_sidebar);
 }
 
 static gint
@@ -321,6 +595,10 @@ mail_shell_sidebar_get_preferred_width (GtkWidget *widget,
 
 	GTK_WIDGET_CLASS (e_mail_shell_sidebar_parent_class)->
 		get_preferred_width (widget, minimum_width, natural_width);
+
+	/* The folded rail is an icon strip; don't widen it to fit a name. */
+	if (sidebar->priv->rail && gtk_widget_get_visible (sidebar->priv->rail))
+		return;
 
 	/* This string is a mockup only; it doesn't need to be translated */
 	layout = gtk_widget_create_pango_layout (

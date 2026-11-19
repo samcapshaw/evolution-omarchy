@@ -11,9 +11,9 @@
 @define-color theme_fg_color #a9b1d6;
 @define-color theme_base_color #1a1b26;
 @define-color theme_text_color #c0caf5;
-@define-color theme_selected_bg_color #2a3148;
+@define-color theme_selected_bg_color #283552;
 @define-color theme_selected_fg_color #c0caf5;
-@define-color theme_unfocused_selected_bg_color #24283b;
+@define-color theme_unfocused_selected_bg_color #283552;
 @define-color theme_unfocused_selected_fg_color #c0caf5;
 @define-color borders rgba(169,177,214,0.12);
 @define-color warning_color #7aa2f7;
@@ -101,8 +101,9 @@ headerbar button:focus, toolbar button:focus, button:focus, entry:focus, searche
 }
 
 #omamail-sidebar treeview:selected {
-  background-color: #2a3148;
-  color: #c0caf5;
+  background-color: #283552;
+  color: #e0e7ff;
+  border-radius: 8px;
 }
 
 #omamail-sidebar treeview:hover {
@@ -113,7 +114,7 @@ headerbar button:focus, toolbar button:focus, button:focus, entry:focus, searche
  * Breathing room, no zebra stripes, selection as a cool wash. */
 #omamail-message-list {
   -ETree-alternating-row-colors: false;
-  -ETree-vertical-spacing: 10;
+  -ETree-vertical-spacing: 2;
   -MessageList-important-fg-color: #7aa2f7;
   background-color: #1a1b26;
   color: #a9b1d6;
@@ -235,6 +236,96 @@ statusbar {
   font-size: 11.5px;
 }
 
+/* —— Bottom bar ——
+ * A slim strip on the sidebar material: connection glyph, muted activity. */
+#omamail-statusbar {
+  background-color: #12131a;
+  border: 0;
+  border-top: 1px solid rgba(169, 177, 214, 0.06);
+  padding: 0 6px;
+}
+
+#omamail-statusbar label {
+  color: #7a849e;
+  font-size: 11.5px;
+}
+
+#omamail-statusbar button {
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 6px;
+  padding: 2px 6px;
+  min-width: 22px;
+  min-height: 22px;
+  color: #7a849e;
+}
+
+#omamail-statusbar button:hover {
+  background-color: #1f2335;
+  color: #c0caf5;
+}
+
+#omamail-statusbar button.offline {
+  color: #e0af68;
+}
+
+/* —— Folded sidebar rail ——
+ * One button per unified mailbox and account inbox. */
+#omamail-rail {
+  background-color: #12131a;
+  padding: 10px 0;
+}
+
+#omamail-rail button {
+  background-image: none;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 32px;
+  min-height: 32px;
+  color: #7a849e;
+  transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1),
+              color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#omamail-rail button:hover {
+  background-color: #1f2335;
+  color: #c0caf5;
+}
+
+#omamail-rail button.unread {
+  color: #c0caf5;
+}
+
+#omamail-rail button.selected {
+  background-color: rgba(122, 162, 247, 0.16);
+  color: #7aa2f7;
+}
+
+#omamail-rail .oma-rail-initial {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 16px;
+  min-height: 16px;
+  padding: 1px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+}
+
+#omamail-rail button.unread .oma-rail-initial {
+  background-color: rgba(122, 162, 247, 0.25);
+}
+
+#omamail-rail separator {
+  background-color: rgba(169, 177, 214, 0.10);
+  min-height: 1px;
+  margin: 2px 12px;
+}
+
 /* Module switcher — compact icon rail, not a chunky grid of cards.
  * Only the current module gets a fill; the others are bare icons. */
 #omamail-switcher {
@@ -249,9 +340,9 @@ statusbar {
   border: 0;
   box-shadow: none;
   border-radius: 8px;
-  padding: 6px;
-  min-width: 36px;
-  min-height: 36px;
+  padding: 4px;
+  min-width: 30px;
+  min-height: 30px;
   color: #7a849e;
   -gtk-icon-effect: none;
   transition: background-color 120ms cubic-bezier(0.23, 1, 0.32, 1),

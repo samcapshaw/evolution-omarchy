@@ -866,7 +866,23 @@ folder_tree_render_display_name (GtkTreeViewColumn *column,
 			display_name = "Mailboxes";
 		else if (g_strcmp0 (camel_service_get_uid (service), "local") == 0)
 			display_name = "Local Storage";
-		g_object_set (renderer, "text", display_name, NULL);
+
+		if (editable) {
+			g_object_set (renderer, "text", display_name, NULL);
+		} else {
+			/* Section heading: uppercase, tracked out; an address shows its local part. */
+			const gchar *at = display_name ? strchr (display_name, '@') : NULL;
+			gchar *base = at ? g_strndup (display_name, at - display_name) : g_strdup (display_name ? display_name : "");
+			gchar *upper = g_utf8_strup (base, -1);
+			gchar *escaped = g_markup_escape_text (upper, -1);
+			gchar *markup = g_strdup_printf ("<span letter_spacing=\"1100\">%s</span>", escaped);
+
+			g_object_set (renderer, "markup", markup, NULL);
+			g_free (markup);
+			g_free (escaped);
+			g_free (upper);
+			g_free (base);
+		}
 		g_clear_object (&service);
 
 	} else {
@@ -1031,6 +1047,13 @@ folder_tree_render_icon (GtkTreeViewColumn *column,
 	gboolean show_new_mail_emblem;
 	guint32 fi_flags = 0;
 
+	/* Text-only sidebar: names carry the meaning. The upstream icon logic
+	 * below is kept intact so future merges stay small. */
+	if (renderer) {
+		g_object_set (renderer, "visible", FALSE, NULL);
+		return;
+	}
+
 	gtk_tree_model_get (
 		model, iter,
 		COL_STRING_ICON_NAME, &icon_name,
@@ -1162,7 +1185,7 @@ em_folder_tree_query_tooltip_cb (GtkTreeView *tree_view,
 	if (is_store && service && status_code != EMFT_STATUS_CODE_UNKNOWN && CAMEL_IS_NETWORK_SERVICE (service)) {
 		GtkTreeViewColumn *column;
 
-		column = gtk_tree_view_get_column (tree_view, 1);
+		column = gtk_tree_view_get_column (tree_view, 0);
 
 		gtk_tree_view_set_tooltip_cell (tree_view, tooltip, path, column, renderer);
 
@@ -1599,8 +1622,7 @@ folder_tree_constructed (GObject *object)
 		renderer, "editing-canceled",
 		G_CALLBACK (folder_tree_editing_canceled_cb), object);
 
-	column = gtk_tree_view_column_new ();
-	gtk_tree_view_append_column (tree_view, column);
+	/* Status glyphs share the name column so a selected row is one shape. */
 
 	renderer = gtk_cell_renderer_pixbuf_new ();
 	g_object_set (renderer, "xalign", 1.0, NULL);
