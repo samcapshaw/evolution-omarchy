@@ -1916,7 +1916,8 @@ folder_tree_model_update_status_icon (StoreInfo *si)
 			break;
 
 		case CAMEL_SERVICE_CONNECTED:
-			icon_name = "network-idle-symbolic";
+			/* Healthy accounts need no glyph; only problems are shown. */
+			icon_name = NULL;
 			status_code = EMFT_STATUS_CODE_CONNECTED;
 			break;
 

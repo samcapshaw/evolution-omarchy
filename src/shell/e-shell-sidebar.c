@@ -390,7 +390,8 @@ e_shell_sidebar_init (EShellSidebar *shell_sidebar)
 	widget = gtk_event_box_new ();
 	gtk_widget_set_parent (widget, GTK_WIDGET (shell_sidebar));
 	shell_sidebar->priv->event_box = g_object_ref (widget);
-	gtk_widget_show (widget);
+	/* The header bar already names the folder and its unread count. */
+	gtk_widget_set_no_show_all (widget, TRUE);
 
 	container = widget;
 
